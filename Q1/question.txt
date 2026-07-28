@@ -1,0 +1,1 @@
+Q1. Create a user named student and set password as student
