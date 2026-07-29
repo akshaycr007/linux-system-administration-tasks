@@ -728,3 +728,42 @@ Wed Jul 29 11:22:16 AM UTC 2026
 akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -l -c 'samay'
 Wed Jul 29 11:22:35 AM UTC 2026
 akshay@servera:~/linux-system-administration-tasks$
+cat << 'EOF' >> tasks
+================================================================================
+Question 24: Add 3 Storage Drives (HDD1: 5GB, HDD2: 7GB, HDD3: 8GB)
+================================================================================
+
+step1
+sudo mkdir -p /disks
+sudo truncate -s 5G /disks/hdd1.img
+sudo truncate -s 7G /disks/hdd2.img
+sudo truncate -s 8G /disks/hdd3.img
+
+sudo losetup -fP /disks/hdd1.img
+sudo losetup -fP /disks/hdd2.img
+sudo losetup -fP /disks/hdd3.img
+
+EOF
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo truncate -s 7G /disks/hdd2.img
+sudo truncate -s 8G /disks/hdd3.img^[[201~akshay@servera:~/linux-system-administration-tasks$
+akshay@servera:~/linux-system-administration-tasks$ sudo truncate -s 5G /disks/hdd1.img
+sudo truncate -s 7G /disks/hdd2.img
+sudo truncate -s 8G /disks/hdd3.img
+akshay@servera:~/linux-system-administration-tasks$ sudo losetup -fP /disks/hdd1.img
+sudo losetup -fP /disks/hdd2.img
+sudo losetup -fP /disks/hdd3.img
+akshay@servera:~/linux-system-administration-tasks$ lsblk
+NAME                      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+loop0                       7:0    0    5G  0 loop
+loop1                       7:1    0    7G  0 loop
+loop2                       7:2    0    8G  0 loop
+sda                         8:0    0   25G  0 disk
+├─sda1                      8:1    0    1M  0 part
+├─sda2                      8:2    0    2G  0 part /boot
+└─sda3                      8:3    0   23G  0 part
+  └─ubuntu--vg-ubuntu--lv 252:0    0 11.5G  0 lvm  /
+sr0                        11:0    1 1024M  1 rom
+
