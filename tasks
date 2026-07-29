@@ -689,3 +689,21 @@ address sizes   : 46 bits physical, 48 bits virtual
 power management:
 
 
+================================================================================
+Question 22: Find the Location of the "date" Command
+================================================================================
+
+step1
+which date
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ which date
+/usr/bin/date
+
+================================================================================
+Question 23: Copy /usr/bin/date to /mypgm1/samay
+================================================================================
+
+step1
+sudo cp /usr/bin/date /mypgm1/samay
