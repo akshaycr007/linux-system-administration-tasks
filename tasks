@@ -190,3 +190,47 @@ $ cd ..
 $ cd ..
 $ ls
 backup  restored
+================================================================================
+Question 5: Search Files and Filter Text using find and grep
+================================================================================
+
+step1
+sudo -u student bash -c 'find /home/student/backup -name "*.mp3" > /home/student/all_songs.txt'
+--
+step2
+sudo -u student bash -c 'grep -rn "hello" /home/student/backup/ > /home/student/search_results.txt'
+--
+step3
+sudo -u student bash -c 'find /home/student/backup -type d -name "dir*" > /home/student/all_dirs.txt'
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -c 'find /home/student/backup -name "*.mp3" > /home/student/all_songs.txt'
+akshay@servera:~/linux-system-administration-tasks$ suo su - student
+Command 'suo' not found, did you mean:
+  command 'sum' from deb coreutils (9.4-3ubuntu6.2)
+  command 'sup' from deb sup (20100519-3)
+  command 'su' from deb util-linux (2.39.3-9ubuntu6.5)
+  command 'su1' from deb hxtools (20231101-1)
+  command 'sudo' from deb sudo (1.9.15p5-3ubuntu5.24.04.2)
+  command 'sudo' from deb sudo-ldap (1.9.15p5-3ubuntu5.24.04.2)
+  command 'sur' from deb subtle (0.11.3224-xi-2.2build5)
+  command 'zuo' from deb zuo (1.9-1)
+  command 'sumo' from deb sumo (1.18.0+dfsg-3build2)
+Try: sudo apt install <deb name>
+akshay@servera:~/linux-system-administration-tasks$ sudo su - student
+$ ls
+all_songs.txt  backup  restored
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -c 'grep -rn "hello" /home/student/backup/ > /home/student/search_results.txt'
+akshay@servera:~/linux-system-administration-tasks$ sudo su - student
+$ ls
+all_songs.txt  backup  restored  search_results.txt
+$ cat search_results.txt
+/home/student/backup/filea:1:hello happy learning
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -c 'find /home/student/backup -type d -name "dir*" > /home/student/all_dirs.txt'
+akshay@servera:~/linux-system-administration-tasks$ sudo su - student
+$ ls
+all_dirs.txt  all_songs.txt  backup  restored  search_results.txt
+$
