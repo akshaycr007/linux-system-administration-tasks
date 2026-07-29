@@ -366,3 +366,21 @@ hello happy learning
 akshay@servera:~/linux-system-administration-tasks$ ls -la /home/student/stud-backup1-dir1_softlink
 lrwxrwxrwx 1 student student 22 Jul 29 07:25 /home/student/stud-backup1-dir1_softlink -> /tmp/stud-backup1-dir1
 
+================================================================================
+Question 12: Copy Last 5 Lines of /etc/passwd to /tmp/my-passwd as Student User
+================================================================================
+
+step1
+sudo -u student bash -c 'tail -n 5 /etc/passwd > /tmp/my-passwd'
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -c 'tail -n 5 /etc/passwd > /tmp/my-passwd'
+akshay@servera:~/linux-system-administration-tasks$ cat /tmp/my-pass appuser:x:1003:1008::/app/appuser:/bin/bash
+dnsmasq:x:999:65534:dnsmasq:/var/lib/misc:/usr/sbin/nologin
+_rpc:x:110:65534::/run/rpcbind:/usr/sbin/nologin
+statd:x:111:65534::/var/lib/nfs:/usr/sbin/nologin
+student:x:1004:1009::/home/student:/bin/sh
+akshay@servera:~/linux-system-administration-tasks$ ls -l /tmp/my-passwd && wc -l /tmp/my-passwd
+-rw-rw-r-- 1 student student 246 Jul 29 07:42 /tmp/my-passwd
+5 /tmp/my-passwd
