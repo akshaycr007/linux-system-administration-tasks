@@ -276,3 +276,53 @@ OUTPUT
 akshay@servera:~/linux-system-administration-tasks$ sudo du -sh /home/student/backup/
 6.5M    /home/student/backup/
 
+================================================================================
+Question 8: Copy Directory Preserving Attributes as Student User
+================================================================================
+
+step1
+sudo -u student cp -a /home/student/backup /home/student/stud-backup1-dir1
+--
+step2
+sudo -u student cp -a /home/student/backup /tmp/stud-backup2-dir2
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student cp -a /home/student/backup /home/student/stud-backup1-dir1
+sudo -u student cp -a /home/student/backup /tmp/stud-backup2-dir2
+akshay@servera:~/linux-system-administration-tasks$ ls -ld /home/student/backup /home/student/stud-backup1-dir1 /tmp/stud-backup2-dir2
+drwxrwxr-x 5 student student 4096 Jul 29 05:36 /home/student/backup
+drwxrwxr-x 5 student student 4096 Jul 29 05:36 /home/student/stud-backup1-dir1
+drwxrwxr-x 5 student student 4096 Jul 29 05:36 /tmp/stud-backup2-dir2
+================================================================================
+Question 9: Move Directory to /tmp and List in Tree Format
+================================================================================
+
+step1
+sudo -u student mv /home/student/stud-backup1-dir1 /tmp/
+--
+step2
+tree /tmp
+--
+step3
+tree /home/student
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student mv /home/student/stud-backup1-dir1 /tmp/
+akshay@servera:~/linux-system-administration-tasks$ tree /tmp
+tree /home/student
+/tmp
+├── backup.tar.gz
+├── r-dir1
+│   └── root-file1
+├── snap-private-tmp  [error opening dir]
+├── stud-backup1-dir1
+│   ├── data
+│   │   └── etc
+│   │       ├── adduser.conf
+│   │       ├── alternatives
+│   │       │   ├── arptables -> /usr/sbin/arptables-nft
+│   │       │   ├── arptables-restore -> /usr/sbin/arptables-nft-restore
+│   │       │   ├── arptables-save -> /usr/sbin/arptables-nft-save
+
