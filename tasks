@@ -707,3 +707,24 @@ Question 23: Copy /usr/bin/date to /mypgm1/samay
 
 step1
 sudo cp /usr/bin/date /mypgm1/samay
+akshay@servera:~/linux-system-administration-tasks$ sudo cp /usr/bin/date /mypgm1/samay
+[sudo] password for akshay:
+akshay@servera:~/linux-system-administration-tasks$ ls -l /mypgm1/samay
+-rw-r--r-- 1 root root 109064 Jul 29 11:11 /mypgm1/samay
+================================================================================
+Question 24: Verify 'samay' Execution for root and student Users
+================================================================================
+
+step1
+samay
+--
+step2
+sudo -u student bash -l -c 'samay'
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ samay
+Wed Jul 29 11:22:16 AM UTC 2026
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -l -c 'samay'
+Wed Jul 29 11:22:35 AM UTC 2026
+akshay@servera:~/linux-system-administration-tasks$
