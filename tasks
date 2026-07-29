@@ -384,3 +384,63 @@ student:x:1004:1009::/home/student:/bin/sh
 akshay@servera:~/linux-system-administration-tasks$ ls -l /tmp/my-passwd && wc -l /tmp/my-passwd
 -rw-rw-r-- 1 student student 246 Jul 29 07:42 /tmp/my-passwd
 5 /tmp/my-passwd
+================================================================================
+Question 13: List /etc Directory and Save Output to /tmp/etc-out.txt as Student User
+================================================================================
+
+step1
+sudo -u student bash -c 'ls -la /etc > /tmp/etc-out.txt'
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -c 'ls -la /etc > /tmp/etc-out.txt'
+[sudo] password for akshay:
+Sorry, try again.
+[sudo] password for akshay:
+akshay@servera:~/linux-system-administration-tasks$ head -n 10 /tmp/etc-out.txt
+total 1020
+drwxr-xr-x+ 118 root root      12288 Jul 29 05:05 .
+drwxr-xr-x   27 root root       4096 Jul 23 07:51 ..
+-rw-r--r--+   1 root root       3444 Jul  5  2023 adduser.conf
+drwxr-xr-x+   2 root root       4096 Jul 16 11:39 alternatives
+drwxr-xr-x+   2 root root       4096 Jul 16 11:41 apparmor
+drwxr-xr-x+   9 root root      12288 Jul 24 11:14 apparmor.d
+drwxr-xr-x+   3 root root       4096 Jul 16 11:43 apport
+drwxr-xr-x+   9 root root       4096 Jul 13 04:38 apt
+-rw-r--r--+   1 root root       2319 Mar 31  2024 bash.bashrc
+akshay@servera:~/linux-system-administration-tasks$ ls -l /tmp/etc-out.txt && wc -l /tmp/etc-out.txt
+-rw-rw-r-- 1 student student 13074 Jul 29 09:01 /tmp/etc-out.txt
+216 /tmp/etc-out.txt
+akshay@servera:~/linux-system-administration-tasks$
+
+
+================================================================================
+Question 14: Find Files Named passwd with stdout and stderr Redirection
+================================================================================
+
+step1
+sudo -u student bash -c 'find / -name passwd > /tmp/out2.txt 2> /tmp/err.txt'
+
+================================================================================
+Question 14: Find Files Named passwd with stdout and stderr Redirection
+================================================================================
+
+step1
+sudo -u student bash -c 'find / -name passwd > /tmp/out2.txt 2> /tmp/err.txt'
+
+OUTPUT 
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -c 'find / -name passwd > /tmp/out2.txt 2> /tmp/err.txt'
+akshay@servera:~/linux-system-administration-tasks$ cat /tmp/out2.txt
+/home/student/backup/data/etc/passwd
+/home/student/backup/data/etc/pam.d/passwd
+/home/student/restored/backup/data/etc/passwd
+/home/student/restored/backup/data/etc/pam.d/passwd
+/etc/passwd
+/etc/pam.d/passwd
+/tmp/stud-backup2-dir2/data/etc/passwd
+/tmp/stud-backup2-dir2/data/etc/pam.d/passwd
+/usr/bin/passwd
+/usr/share/doc/passwd
+/usr/share/lintian/overrides/passwd
+
