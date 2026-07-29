@@ -344,3 +344,25 @@ akshay@servera:~/linux-system-administration-tasks$ ls -la /home/student/filea_h
 -rw-rw-r-- 2 student student 21 Jul 29 05:20 /home/student/filea_hardlink
 lrwxrwxrwx 1 student student 22 Jul 29 07:25 /home/student/stud-backup1-dir1_softlink -> /tmp/stud-backup1-dir1
 
+================================================================================
+Question 11: Delete Source Directory and Test Hard/Soft Link Accessibility
+================================================================================
+
+step1
+sudo rm -rf /tmp/stud-backup1-dir1/
+--
+step2
+cat /home/student/filea_hardlink
+--
+step3
+ls -la /home/student/stud-backup1-dir1_softlink
+
+OUTPUT
+
+
+akshay@servera:~/linux-system-administration-tasks$ sudo rm -rf /tmp/stud-backup1-dir1/
+akshay@servera:~/linux-system-administration-tasks$ cat /home/student/filea_hardlink
+hello happy learning
+akshay@servera:~/linux-system-administration-tasks$ ls -la /home/student/stud-backup1-dir1_softlink
+lrwxrwxrwx 1 student student 22 Jul 29 07:25 /home/student/stud-backup1-dir1_softlink -> /tmp/stud-backup1-dir1
+
