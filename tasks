@@ -326,3 +326,21 @@ tree /home/student
 │   │       │   ├── arptables-restore -> /usr/sbin/arptables-nft-restore
 │   │       │   ├── arptables-save -> /usr/sbin/arptables-nft-save
 
+================================================================================
+Question 10: Create Link for File and Directory to Student's Home Directory
+================================================================================
+
+step1
+sudo -u student ln /tmp/stud-backup1-dir1/filea /home/student/filea_hardlink
+--
+step2
+sudo -u student ln -s /tmp/stud-backup1-dir1 /home/student/stud-backup1-dir1_softlink
+
+OUTPUT
+
++akshay@servera:~/linux-system-administration-tasks$ sudo -u student ln /tmp/stud-backup1-dir1/filea /home/student/filea_hardlink
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student ln -s /tmp/stud-backup1-dir1 /home/student/stud-backup1-dir1_softlink
+akshay@servera:~/linux-system-administration-tasks$ ls -la /home/student/filea_hardlink /home/student/stud-backup1-dir1_softlink
+-rw-rw-r-- 2 student student 21 Jul 29 05:20 /home/student/filea_hardlink
+lrwxrwxrwx 1 student student 22 Jul 29 07:25 /home/student/stud-backup1-dir1_softlink -> /tmp/stud-backup1-dir1
+
