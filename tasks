@@ -459,3 +459,27 @@ akshay@servera:~/linux-system-administration-tasks$ find /etc -type f -name "*yu
 akshay@servera:~/linux-system-administration-tasks$
 
 
+================================================================================
+Question 18: Set Shell and Environment Variables for Student User
+================================================================================
+
+step1
+sudo -u student bash -c 'echo "tmplist=\"/tmp/*\"" >> /home/student/.bashrc'
+--
+step2
+sudo -u student bash -c 'echo "export FN=James" >> /home/student/.bashrc'
+--
+step3
+sudo -u student bash -c 'echo "LN=Bond" >> /home/student/.bashrc'
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -c 'echo "tmplist=\"/tmp/*\"" >> /home/student/.bashrc'
+[sudo] password for akshay:
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -c 'echo "export FN=James" >> /home/student/.bashrc'
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -c 'echo "LN=Bond" >> /home/student/.bashrc'
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -i -c 'echo "FN=$FN | LN=$LN | tmplist=$tmplist"'
+FN=James | LN=Bond | tmplist=/tmp/*
+akshay@servera:~/linux-system-administration-tasks$
+
+
