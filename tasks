@@ -444,3 +444,18 @@ akshay@servera:~/linux-system-administration-tasks$ cat /tmp/out2.txt
 /usr/share/doc/passwd
 /usr/share/lintian/overrides/passwd
 
+
+================================================================================
+Question 17: Count Files in /etc/ Directory Matching 'yum'
+================================================================================
+
+step1
+find /etc -type f -name "*yum*" 2>/dev/null | wc -l
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ find /etc -type f -name "*yum*" 2>/dev/null | wc -l
+0
+akshay@servera:~/linux-system-administration-tasks$
+
+
