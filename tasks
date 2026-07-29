@@ -19,3 +19,59 @@ Password:
 $ whoami
 student
 
+================================================================================
+Question 2: Create Directory and Files as Student User
+================================================================================
+
+step1
+sudo -u student mkdir -p /home/student/backup
+--
+step2
+sudo -u student bash -c 'echo "hello happy learning" > /home/student/backup/filea'
+sudo -u student bash -c 'echo "hello happy learning" > /home/student/backup/fileb'
+--
+step3
+sudo -u student bash -c 'touch /home/student/backup/songs{1..99}.mp3'
+--
+step4
+sudo -u student bash -c 'touch /home/student/backup/film{1..10}.avi'
+--
+step5
+sudo -u student mkdir -p /home/student/backup/{songs,movies,picture,data}
+--
+step6
+sudo -u student bash -c 'mkdir -p /home/student/backup/dir{1..20}'
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student mkdir -p /home/student/backup
+akshay@servera:~/linux-system-administration-tasks$ ls -la /home/student/backup
+total 8
+drwxrwxr-x 2 student student 4096 Jul 29 05:11 .
+drwxr-xr-x 3 student student 4096 Jul 29 05:11 ..
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -c 'echo "hello happy learning" > /home/student/backup/filea'
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -c 'touch /home/student/backup/songs{1..99}.mp3'
+sudo -u student bash -c 'touch /home/student/backup/film{1..10}.avi'
+akshay@servera:~/linux-system-administration-tasks$ ls
+tasks
+akshay@servera:~/linux-system-administration-tasks$ su -u student
+Try 'su --help' for more information.
+akshay@servera:~/linux-system-administration-tasks$ sudo su - student
+$ ls
+backup
+$ cd backup
+$ ls
+filea        songs12.mp3  songs24.mp3  songs36.mp3  songs48.mp3  songs5.mp3   songs71.mp3  songs83.mp3  songs95.mp3
+film10.avi   songs13.mp3  songs25.mp3  songs37.mp3  songs49.mp3  songs60.mp3  songs72.mp3  songs84.mp3  songs96.mp3
+film1.avi    songs14.mp3  songs26.mp3  songs38.mp3  songs4.mp3   songs61.mp3  songs73.mp3  songs85.mp3  songs97.mp3
+film2.avi    songs15.mp3  songs27.mp3  songs39.mp3  songs50.mp3  songs62.mp3  songs74.mp3  songs86.mp3  songs98.mp3
+film3.avi    songs16.mp3  songs28.mp3  songs3.mp3   songs51.mp3  songs63.mp3  songs75.mp3  songs87.mp3  songs99.mp3
+film4.avi    songs17.mp3  songs29.mp3  songs40.mp3  songs52.mp3  songs64.mp3  songs76.mp3  songs88.mp3  songs9.mp3
+film5.avi    songs18.mp3  songs2.mp3   songs41.mp3  songs53.mp3  songs65.mp3  songs77.mp3  songs89.mp3
+film6.avi    songs19.mp3  songs30.mp3  songs42.mp3  songs54.mp3  songs66.mp3  songs78.mp3  songs8.mp3
+film7.avi    songs1.mp3   songs31.mp3  songs43.mp3  songs55.mp3  songs67.mp3  songs79.mp3  songs90.mp3
+film8.avi    songs20.mp3  songs32.mp3  songs44.mp3  songs56.mp3  songs68.mp3  songs7.mp3   songs91.mp3
+film9.avi    songs21.mp3  songs33.mp3  songs45.mp3  songs57.mp3  songs69.mp3  songs80.mp3  songs92.mp3
+songs10.mp3  songs22.mp3  songs34.mp3  songs46.mp3  songs58.mp3  songs6.mp3   songs81.mp3  songs93.mp3
+songs11.mp3  songs23.mp3  songs35.mp3  songs47.mp3  songs59.mp3  songs70.mp3  songs82.mp3  songs94.mp3
+
