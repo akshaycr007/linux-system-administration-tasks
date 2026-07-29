@@ -1,5 +1,0 @@
-=== Account Verification ===
-uid=1004(student) gid=1009(student) groups=1009(student)
-
-=== Home Directory Verification ===
-drwxr-x--- 2 student student 4096 Jul 28 06:56 /home/student

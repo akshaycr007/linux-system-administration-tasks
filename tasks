@@ -1,0 +1,21 @@
+================================================================================
+Question 1: Create a user named student and set password as student
+================================================================================
+
+step1
+sudo useradd -m -s /bin/bash student
+--
+step2
+echo "student:student" | sudo chpasswd
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo useradd student
+akshay@servera:~/linux-system-administration-tasks$ id student
+uid=1004(student) gid=1009(student) groups=1009(student)
+akshay@servera:~/linux-system-administration-tasks$ echo "student:student" | sudo chpasswd
+akshay@servera:~/linux-system-administration-tasks$ su - student
+Password:
+$ whoami
+student
+
