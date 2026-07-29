@@ -234,3 +234,45 @@ akshay@servera:~/linux-system-administration-tasks$ sudo su - student
 $ ls
 all_dirs.txt  all_songs.txt  backup  restored  search_results.txt
 $
+================================================================================
+Question 6: Create Directory and File as Root User
+================================================================================
+
+step1
+sudo mkdir -p /tmp/r-dir1
+--
+step2
+sudo bash -c 'echo "hello its root users file" > /tmp/r-dir1/root-file1'
+
+step1
+sudo mkdir -p /tmp/r-dir1
+--
+step2
+sudo bash -c 'echo "hello its root users file" > /tmp/r-dir1/root-file1'
+
+EOF
+akshay@servera:~/linux-system-administration-tasks$ sudo mkdir -p /tmp/r-dir1
+[sudo] password for akshay:
+akshay@servera:~/linux-system-administration-tasks$ sudo bash -c 'echo "hello its root users file" > /tmp/r-dir1/root-file1'
+akshay@servera:~/linux-system-administration-tasks$ # 1. Check directory contents, ownership, and permissions
+ls -la /tmp/r-dir1
+
+# 2. Read the content of root-file1
+cat /tmp/r-dir1/root-file1
+total 12
+drwxr-xr-x  2 root root 4096 Jul 29 06:47 .
+drwxrwxrwt 15 root root 4096 Jul 29 06:47 ..
+-rw-r--r--  1 root root   26 Jul 29 06:47 root-file1
+hello its root users file
+================================================================================
+Question 7: Check Directory Size of /home/student/backup/
+================================================================================
+
+step1
+du -sh /home/student/backup/
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo du -sh /home/student/backup/
+6.5M    /home/student/backup/
+
