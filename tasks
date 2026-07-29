@@ -138,3 +138,55 @@ drwxr-xr-x   3 student student  4096 Jul 29 05:55 apport
 drwxr-xr-x   9 student student  4096 Jul 29 05:55 apt
 -rw-r--r--   1 student student  2319 Jul 29 05:55 bash.bashrc
 -rw-r--r--   1 student student    45 Jul 29 05:55 bash_completi
+================================================================================
+Question 4: Archive, Compress, and Restore Backup Directory using tar
+================================================================================
+
+step1
+sudo -u student tar -czvf /tmp/backup.tar.gz -C /home/student backup
+--
+step2
+sudo -u student mkdir -p /home/student/restored
+--
+step3
+sudo -u student tar -xzvf /tmp/backup.tar.gz -C /home/student/restored
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student tar -czvf /tmp/backup.tar.gz -C /home/student backup
+[sudo] password for akshay:
+backup/
+backup/songs/
+backup/songs/songs46.mp3
+backup/songs/songs67.mp3
+backup/songs/songs76.mp3
+backup/songs/songs69.mp3
+backup/songs/songs81.mp3
+backup/songs/songs86.mp3
+backup/songs/songs15.mp3
+backup/songs/songs41.mp3
+backup/songs/songs27.mp3
+backup/songs/songs56.mp3
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student mkdir -p /home/student/restored
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student tar -xzvf /tmp/backup.tar.gz -C /home/student/restored
+backup/
+backup/songs/
+backup/songs/songs46.mp3
+backup/songs/songs67.mp3
+backup/songs/songs76.mp3
+backup/songs/songs69.mp3
+backup/songs/songs81.mp3
+backup/songs/songs86.mp3
+backup/songs/songs15.mp3
+akshay@servera:~/linux-system-administration-tasks$ sudo su - student
+$ cd backup
+$ ls
+data  filea  movies  songs
+$ cd data
+$ ls
+etc
+$ cd ..
+$ cd ..
+$ ls
+backup  restored
