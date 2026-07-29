@@ -483,3 +483,36 @@ FN=James | LN=Bond | tmplist=/tmp/*
 akshay@servera:~/linux-system-administration-tasks$
 
 
+================================================================================
+Question 19: Verify Variables and List Files Using Variable
+================================================================================
+
+step1
+sudo -u student bash -i -c 'set | grep -E "^(tmplist|FN|LN)=" '
+--
+step2
+sudo -u student bash -i -c 'ls -ld $tmplist'
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -i -c 'set | grep -E "^(tmplist|FN|LN)=" '
+FN=James
+LN=Bond
+tmplist='/tmp/*'
+akshay@servera:~/linux-system-administration-tasks$ sudo -u student bash -i -c 'ls -ld $tmplist'
+-rw-rw-r-- 1 student student 608457 Jul 29 06:11 /tmp/backup.tar.gz
+-rw-rw-r-- 1 student student  71832 Jul 29 09:07 /tmp/err.txt
+-rw-rw-r-- 1 student student  13074 Jul 29 09:01 /tmp/etc-out.txt
+-rw-rw-r-- 1 student student    246 Jul 29 07:42 /tmp/my-passwd
+-rw-rw-r-- 1 student student    412 Jul 29 09:07 /tmp/out2.txt
+drwxr-xr-x 2 root    root      4096 Jul 29 06:47 /tmp/r-dir1
+drwx------ 2 root    root      4096 Jul 29 04:01 /tmp/snap-private-tmp
+drwxrwxr-x 5 student student   4096 Jul 29 05:36 /tmp/stud-backup2-dir2
+drwx------ 3 root    root      4096 Jul 29 04:37 /tmp/systemd-private-e07a9015a85145e3866c1fdbbca314c3-fwupd.service-CX7YgJ
+drwx------ 3 root    root      4096 Jul 29 04:01 /tmp/systemd-private-e07a9015a85145e3866c1fdbbca314c3-ModemManager.service-n             Cg2bT
+drwx------ 3 root    root      4096 Jul 29 04:01 /tmp/systemd-private-e07a9015a85145e3866c1fdbbca314c3-polkit.service-IA2a3I
+drwx------ 3 root    root      4096 Jul 29 04:01 /tmp/systemd-private-e07a9015a85145e3866c1fdbbca314c3-systemd-logind.service             -bGdHyS
+drwx------ 3 root    root      4096 Jul 29 04:01 /tmp/systemd-private-e07a9015a85145e3866c1fdbbca314c3-systemd-resolved.servi             ce-YPCjfJ
+drwx------ 3 root    root      4096 Jul 29 04:01 /tmp/systemd-private-e07a9015a85145e3866c1fdbbca314c3-systemd-timesyncd.serv             ice-Y1mA1w
+drwx------ 3 root    root      4096 Jul 29 04:37 /tmp/systemd-private-e07a9015a85145e3866c1fdbbca314c3-upower.service-F1Yr26
+
