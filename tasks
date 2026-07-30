@@ -1351,21 +1351,4 @@ akshay@servera:~/linux-system-administration-tasks$ ls -l /mnt/database/file1
 -rw-r--r-- 1 root root 0 Jul 30 12:29 /mnt/database/file1
 akshay@servera:~/linux-system-administration-tasks$
 
-================================================================================
-Question 111: NFS Share & Autofs setup
-================================================================================
-
-Task Requirements:
-- Server: servera.lab.example.com
-- NFS Export directory: /data/rhome/remoteuser1
-- Client: workstation
-- User: remoteuser1 (Home: /rhome/remoteuser1)
-- Automount via Autofs under /rhome
-
-Commands Executed on servera:
-sudo mkdir -p /data/rhome/remoteuser1
-sudo chmod 777 /data/rhome/remoteuser1
-echo "/data/rhome/remoteuser1 *(rw,sync,no_root_squash)" | sudo tee -a /etc/exports
-sudo exportfs -r
-sudo systemctl enable --now nfs-server
 
