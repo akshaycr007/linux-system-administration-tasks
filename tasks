@@ -831,7 +831,7 @@ akshay@servera:~/linux-system-administration-tasks$ grep '/mnt/songs' /etc/fstab
 /dev/loop0p1 /mnt/songs vfat defaults 0 0
 
 ================================================================================
-Question: Create 1.5G GPT ext4 partition on HDD2 mounted persistently on /mnt/movies
+Question70: Create 1.5G GPT ext4 partition on HDD2 mounted persistently on /mnt/movies
 ================================================================================
 
 step1
@@ -877,4 +877,143 @@ akshay@servera:~/linux-system-administration-tasks$ echo '/dev/loop1p1 /mnt/movi
 akshay@servera:~/linux-system-administration-tasks$ df -h /mnt/movies
 Filesystem      Size  Used Avail Use% Mounted on
 /dev/loop1p1    1.5G   24K  1.4G   1% /mnt/movies
+
+================================================================================
+Question 71: Create swap partition on HDD2 (2x RAM size, persistent)
+================================================================================
+
+RAM Size: MB -> Swap Size: MB
+
+step1: Create partition on /dev/loop1
+sudo parted -s /dev/loop1 mkpart primary linux-swap MiB MiB
+
+step2: Format as swap
+sudo mkswap /dev/loop1p2
+
+step3: Enable swap
+sudo swapon /dev/loop1p2
+
+step4: Make persistent in /etc/fstab
+echo '/dev/loop1p2  none  swap  defaults  0  0' | sudo tee -a /etc/fstab
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ free -m
+               total        used        free      shared  buff/cache   available
+Mem:            1968         439        1045          24         657        1528
+Swap:           2047           0        2047
+akshay@servera:~/linux-system-administration-tasks$ RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
+SWAP_SIZE_MB=$((RAM_MB * 2))
+akshay@servera:~/linux-system-administration-tasks$ START_MIB=1537
+END_MIB=$((START_MIB + SWAP_SIZE_MB))
+akshay@servera:~/linux-system-administration-tasks$ sudo parted -s /dev/loop1 mkpart primary linux-swap ${START_MIB}MiB ${END_MIB}MiB
+[sudo] password for akshay:
+akshay@servera:~/linux-system-administration-tasks$ sudo mkswap /dev/loop1p2
+Setting up swapspace version 1, size = 3.8 GiB (4127191040 bytes)
+no label, UUID=db0d7656-cdf6-4f77-93f9-7067fa84c7b0
+akshay@servera:~/linux-system-administration-tasks$ sudo swapon /dev/loop1p2
+akshay@servera:~/linux-system-administration-tasks$ echo '/dev/loop1p2  none  swap  defaults  0  0' | sudo tee -a /etc/fstab
+/dev/loop1p2  none  swap  defaults  0  0
+akshay@servera:~/linux-system-administration-tasks$ swapon --show
+NAME         TYPE      SIZE USED PRIO
+/swap.img    file        2G   0B   -2
+/dev/loop1p2 partition 3.8G   0B   -3
+akshay@servera:~/linux-system-administration-tasks$ grep 'swap' /etc/fstab
+/swap.img       none    swap    sw      0       0
+/dev/loop1p2  none  swap  defaults  0  0
+================================================================================
+Question 92: Cron Job - natasha must run a job "logger testing" every 2 minutes
+================================================================================
+
+step1: Ensure user exists
+sudo useradd natasha
+
+step2: Add the cron job for user natasha directly
+echo "*/2 * * * * logger testing" | sudo crontab -u natasha -
+
+OUTPUT
+
+
+akshay@servera:~/linux-system-administration-tasks$ sudo useradd natasha
+[sudo] password for akshay:
+akshay@servera:~/linux-system-administration-tasks$ echo "*/2 * * * * logger testing" | sudo crontab -u natasha -
+akshay@servera:~/linux-system-administration-tasks$ sudo crontab -u natasha -l
+*/2 * * * * logger testing
+akshay@servera:~/linux-system-administration-tasks$ sudo grep "testing" /var/log/syslog
+akshay@servera:~/linux-system-administration-tasks$ sudo grep "testing" /var/log/syslog
+akshay@servera:~/linux-system-administration-tasks$ sudo grep "testing" /var/log/syslog
+grep: /var/log/syslog: binary file matches
+akshay@servera:~/linux-system-administration-tasks$ sudo grep "testing" /var/log/syslog
+grep: /var/log/syslog: binary file matches
+akshay@servera:~/linux-system-administration-tasks$ sudo grep "testing" /var/log/syslog
+grep: /var/log/syslog: binary file matches
+akshay@servera:~/linux-system-administration-tasks$ ^C
+akshay@servera:~/linux-system-administration-tasks$ sudo grep -a "testing" /var/log/syslog
+2026-07-30T09:52:01.023371+00:00 servera CRON[82286]: (natasha) CMD (logger testing)
+2026-07-30T09:52:01.031061+00:00 servera natasha: testing
+2026-07-30T09:54:01.038487+00:00 servera CRON[82992]: (natasha) CMD (logger testing)
+2026-07-30T09:54:01.055736+00:00 servera natasha: testing
+2026-07-30T09:56:01.086719+00:00 servera CRON[83701]: (natasha) CMD (logger testing)
+2026-07-30T09:56:01.092302+00:00 servera natasha: testing
+2026-07-30T09:58:01.104831+00:00 servera CRON[84400]: (natasha) CMD (logger testing)
+2026-07-30T09:58:01.118870+00:00 servera natasha: testing
+================================================================================
+Question 92.1: CRON JOB - Every Tuesday at 1 PM remove unused images & build cache
+================================================================================
+
+Schedule: 0 13 * * 2
+Command: docker system prune -a -f
+
+Added to crontab via:
+(crontab -l 2>/dev/null; echo "0 13 * * 2 docker system prune -a -f") | crontab -
+
+OUTPUT 
+
+akshay@servera:~/linux-system-administration-tasks$ crontab -e
+crontab: installing new crontab
+akshay@servera:~/linux-system-administration-tasks$ docker system prune -a -f
+Deleted Containers:
+f513ad9bb6780ad4b796ccca5781bb34ea550ec5d53980f231937b87510f1a05
+f394476b0d57a473cc775de85ac9d3a0b7945856ad6e99cc535e3cd232c960f3
+
+Deleted Images:
+untagged: nginx:alpine
+deleted: sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752
+deleted: sha256:1d40e3eb3bf4f138de1d67193f2aa5309fcaf343eb5ffadbf5e9439de1eb1ebb
+deleted: sha256:f4d04d14c852e7061f121198c11a73c58769fa0787b763dd72591438d7a73465
+untagged: nginx:latest
+deleted: sha256:5a88c9c45479443d7be2eadc894b4ed0a9801bae03d97a5760ae13b5c2005942
+deleted: sha256:db4f612f385437d11eb26620a4f1d7efb3ff44e1296a3c21540b30454e6e2bf3
+deleted: sha256:7f506a8a5a97f0fc5dfbea6036e9826352844f4242c42464505a8497e5528e64
+
+Total reclaimed space: 59.49MB
+akshay@servera:~/linux-system-administration-tasks$ crontab -l
+0 13 * * 2 docker system prune -a -f
+akshay@servera:~/linux-system-administration
+================================================================================
+Question 93: BACKUP FILES - Create archive /root/new.tar.gz backing up /usr/local
+================================================================================
+
+Command:
+sudo tar -czf /root/new.tar.gz /usr/local
+
+OUTPUT
+
+	
+akshay@servera:~/linux-system-administration-tasks$ sudo tar -czf /root/new.tar.gz /usr/local
+[sudo] password for akshay:
+tar: Removing leading `/' from member names
+akshay@servera:~/linux-system-administration-tasks$ sudo ls -lh /root/new.tar.gz
+-rw-r--r-- 1 root root 64M Jul 30 10:28 /root/new.tar.gz
+akshay@servera:~/linux-system-administration-tasks$ sudo tar -ztvf /root/new.tar.gz | head -n 10
+drwxr-xr-x root/root         0 2026-02-10 00:16 usr/local/
+drwxr-xr-x root/root         0 2026-07-23 07:51 usr/local/bin/
+-rwxrwxr-x akshay/akshay 59556002 2026-07-21 10:38 usr/local/bin/kubectl
+-rwxr-xr-x root/root    134891912 2026-07-21 10:47 usr/local/bin/minikube
+-rwxr-xr-x root/root          287 2026-07-23 07:51 usr/local/bin/daily_maintenance.sh
+drwxr-xr-x root/root            0 2026-02-10 00:16 usr/local/sbin/
+drwxr-xr-x root/root            0 2026-02-10 00:16 usr/local/etc/
+drwxr-xr-x root/root            0 2026-07-13 04:40 usr/local/share/
+drwxr-xr-x root/root            0 2026-02-10 00:26 usr/local/share/xml/
+drwxr-xr-x root/root            0 2026-02-10 00:26 usr/local/share/xml/schema/
 
