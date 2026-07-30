@@ -1017,3 +1017,208 @@ drwxr-xr-x root/root            0 2026-07-13 04:40 usr/local/share/
 drwxr-xr-x root/root            0 2026-02-10 00:26 usr/local/share/xml/
 drwxr-xr-x root/root            0 2026-02-10 00:26 usr/local/share/xml/schema/
 
+================================================================================
+Question 94: CROSS-SERVER BACKUP - Copy /var/log from servera & serverb every weekend at 9:30 PM
+================================================================================
+
+Schedule: 30 21 * * 6,0
+Commands:
+sudo mkdir -p /backup
+scp -r root@servera:/var/log /backup/servera_logs
+scp -r root@serverb:/var/log /backup/serverb_logs
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo mkdir -p /backup
+akshay@servera:~/linux-system-administration-tasks$ (sudo crontab -l 2>/dev/null; echo "30 21 * * 6,0 scp -r root@servera:/var/log /backup/servera_logs && scp -r root@serverb:/var/log /backup/serverb_logs") | sudo crontab -
+akshay@servera:~/linux-system-administration-tasks$ sudo scp -r root@serverb:/var/log /backup/serverb_logs
+sudo ls -l /backup/serverb_logs
+root@serverb's password:
+dmesg.1.gz                                                                                              100%   15KB   1.7MB/s   00:00
+kern.log                                                                                                100%  460KB   7.5MB/s   00:00
+syslog                                                                                                  100% 1041KB   5.1MB/s   00:00
+dmesg.3.gz                                                                                              100%   15KB   1.6MB/s   00:00
+dmesg                                                                                                   100%   47KB   2.8MB/s   00:00
+lastlog                                                                                                 100%  285KB   9.7MB/s   00:00
+unattended-upgrades-dpkg.log                                                                            100%   60KB   2.0MB/s   00:00
+unattended-upgrades.log                                                                                 100% 2401    77.2KB/s   00:00
+wtmp                                                                                                    100%   27KB 688.4KB/s   00:00
+dmesg.4.gz                                                                                              100%   15KB   1.7MB/s   00:00
+sa23                                                                                                    100%   28KB   4.6MB/s   00:00
+sa30                                                                                                    100% 8100     1.4MB/s   00:00
+sa22                                                                                                    100%   15KB   1.8MB/s   00:00
+term.log                                                                                                100%   46KB   2.9MB/s   00:00
+history.log                                                                                             100%   76KB   1.9MB/s   00:00
+eipp.log.xz                                                                                             100%   27KB   4.4MB/s   00:00
+auth.log                                                                                                100%   73KB   3.6MB/s   00:00
+cloud-init-output.log                                                                                   100% 3153   456.2KB/s   00:00
+dmesg.0                                                                                                 100%   46KB   2.0MB/s   00:00
+alternatives.log                                                                                        100%   28KB   4.3MB/s   00:00
+media-info                                                                                              100%   67     6.1KB/s   00:00
+subiquity-server-info.log.1645                                                                          100% 7872     1.2MB/s   00:00
+probe-data.json                                                                                         100%   46KB   5.5MB/s   00:00
+discover.log                                                                                            100%   24KB   3.1MB/s   00:00
+subiquity-client-info.log                                                                               100% 2699     1.0MB/s   00:00
+autoinstall-user-data                                                                                   100% 2980   467.8KB/s   00:00
+subiquity-client-debug.log                                                                              100%   18KB   4.6MB/s   00:00
+installer-journal.txt                                                                                   100%  534KB   8.3MB/s   00:00
+subiquity-server-info.log                                                                               100% 7872   669.2KB/s   00:00
+casper-md5check.json                                                                                    100%   52     6.7KB/s   00:00
+subiquity-client-debug.log.1622                                                                         100%   18KB   1.2MB/s   00:00
+cloud-init-output.log                                                                                   100% 3118   248.9KB/s   00:00
+subiquity-server-debug.log                                                                              100%  113KB   2.8MB/s   00:00
+subiquity-server-debug.log.1645                                                                         100%  113KB   4.3MB/s   00:00
+cloud-init.log                                                                                          100%   49KB   3.7MB/s   00:00
+subiquity-partitioning.conf                                                                             100% 1771   157.5KB/s   00:00
+subiquity-extract.conf                                                                                  100% 2820   128.8KB/s   00:00
+subiquity-curtin-apt.conf                                                                               100%  469    83.9KB/s   00:00
+subiquity-curthooks.conf                                                                                100% 2820   306.3KB/s   00:00
+subiquity-initial.conf                                                                                  100%  340    63.8KB/s   00:00
+curtin-install.log                                                                                      100%  140KB   8.8MB/s   00:00
+subiquity-client-info.log.1622                                                                          100% 2699   189.6KB/s   00:00
+device-map.json                                                                                         100%  155    17.1KB/s   00:00
+btmp                                                                                                    100% 6528   625.4KB/s   00:00
+user-1000@11f72472c4fe41b1b4f9bed6f6169ce0-0000000000001b64-0006573f96e9b22d.journal                    100% 8192KB  10.3MB/s   00:00
+system@11f72472c4fe41b1b4f9bed6f6169ce0-00000000000017e7-0006573f90de1146.journal                       100% 8192KB  11.6MB/s   00:00
+user-1000@d80a8b49e69c4c2b981f56bf7cbee044-0000000000000d02-000657313ddbd497.journal                    100% 8192KB  13.2MB/s   00:00
+system@0006573128280ead-70fd07393e273516.journal~                                                       100% 8192KB  28.2MB/s   00:00
+system@0006573f90e3e59b-ec0918eef45004be.journal~                                                       100% 8192KB  43.7MB/s   00:00
+user-1000@7c860b91c7af4660b721d13467668757-0000000000001776-00065731a45aadbc.journal                    100% 8192KB  51.5MB/s   00:00
+system@7a2b399c1ebf482db43bf315d1bb36fc-0000000000001dfb-000657d1c32603e2.journal                       100% 8192KB  51.7MB/s   00:00
+system@0006573193fafe3c-5298d541f87a51d4.journal~                                                       100% 8192KB  74.2MB/s   00:00
+user-1000.journal                                                                                       100% 8192KB  68.1MB/s   00:00
+system@000657318d0dbab8-5db909e9e9a471ea.journal~                                                       100% 8192KB  74.2MB/s   00:00
+system@11f72472c4fe41b1b4f9bed6f6169ce0-0000000000001b65-0006573f96eb9967.journal                       100% 8192KB  54.3MB/s   00:00
+system.journal                                                                                          100% 8192KB  61.8MB/s   00:00
+system@74b1efd637434b328e60fb5ea9ce9c45-0000000000000d51-000657318d09da9c.journal                       100% 8192KB  27.4MB/s   00:00
+user-1000@000657313ddbd5a2-a124681b12b105b6.journal~                                                    100% 8192KB  72.1MB/s   00:00
+system@000657319bf72c4e-320e9c07762b515c.journal~                                                       100% 8192KB  72.0MB/s   00:00
+user-1000@00065731a45aae94-c84acade711a3c86.journal~                                                    100% 8192KB  26.8MB/s   00:00
+user-1000@0006573130ccc4d3-9b5edf166a0f23ba.journal~                                                    100% 8192KB  29.5MB/s   00:00
+system@0006573135ea41e8-dec4131d0d203e4c.journal~                                                       100% 8192KB  77.3MB/s   00:00
+dpkg.log                                                                                                100%  707KB  28.9MB/s   00:00
+dmesg.2.gz                                                                                              100%   15KB   2.5MB/s   00:00
+cloud-init.log                                                                                          100%   70KB  13.8MB/s   00:00
+README                                                                                                  100% 1041   143.3KB/s   00:00
+bootstrap.log                                                                                           100%   60KB   8.7MB/s   00:00
+total 2940
+-rw-r--r--  1 root root   28135 Jul 30 11:26 alternatives.log
+-rw-r-----  1 root root       0 Jul 30 11:26 apport.log
+drwxr-xr-x  2 root root    4096 Jul 30 11:26 apt
+-rw-r-----  1 root root   73044 Jul 30 11:26 auth.log
+-rw-r--r--  1 root root   61229 Jul 30 11:27 bootstrap.log
+-rw-r-----  1 root root    6528 Jul 30 11:26 btmp
+-rw-r-----  1 root root   71249 Jul 30 11:27 cloud-init.log
+-rw-r-----  1 root root    3153 Jul 30 11:26 cloud-init-output.log
+drwxr-xr-x  2 root root    4096 Jul 30 11:26 dist-upgrade
+-rw-r-----  1 root root   48051 Jul 30 11:26 dmesg
+-rw-r-----  1 root root   47490 Jul 30 11:26 dmesg.0
+-rw-r-----  1 root root   15265 Jul 30 11:26 dmesg.1.gz
+-rw-r-----  1 root root   15352 Jul 30 11:27 dmesg.2.gz
+-rw-r-----  1 root root   15212 Jul 30 11:26 dmesg.3.gz
+-rw-r-----  1 root root   15143 Jul 30 11:26 dmesg.4.gz
+-rw-r--r--  1 root root  709706 Jul 30 11:27 dpkg.log
+-rw-r--r--  1 root root       0 Jul 30 11:26 faillog
+drwxr-x---  4 root root    4096 Jul 30 11:26 installer
+drwxr-xr-x  3 root root    4096 Jul 30 11:26 journal
+-rw-r-----  1 root root  470632 Jul 30 11:26 kern.log
+drwxr-xr-x  2 root root    4096 Jul 30 11:26 landscape
+-rw-r--r--  1 root root  292292 Jul 30 11:26 lastlog
+drwxr-xr-x 10 root root    4096 Jul 30 11:28 log
+drwx------  2 root root    4096 Jul 30 11:26 private
+-rw-r--r--  1 root root    1041 Jul 30 11:27 README
+-rw-r-----  1 root root 1047607 Jul 30 11:26 syslog
+drwxr-xr-x  2 root root    4096 Jul 30 11:26 sysstat
+drwxr-x---  2 root root    4096 Jul 30 11:26 unattended-upgrades
+-rw-r--r--  1 root root   28032 Jul 30 11:26 wtmp
+================================================================================
+Question 96: COPY FILE & SET ACL PERMISSIONS
+================================================================================
+
+Task Requirements:
+- Copy /etc/fstab to /var/tmp/fstab
+- Owner: root, Group: root
+- natasha: read/write (rw-)
+- harry: no permissions (---)
+- others: read-only (r--)
+
+Commands Executed:
+sudo cp /etc/fstab /var/tmp/fstab
+sudo chown root:root /var/tmp/fstab
+sudo chmod 644 /var/tmp/fstab
+sudo setfacl -m u:natasha:rw /var/tmp/fstab
+sudo setfacl -m u:harry:--- /var/tmp/fstab
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo cp /etc/fstab /var/tmp/fstab
+akshay@servera:~/linux-system-administration-tasks$ sudo chown root:root /var/tmp/fstab
+akshay@servera:~/linux-system-administration-tasks$ sudo chmod 644 /var/tmp/fstab
+akshay@servera:~/linux-system-administration-tasks$ sudo setfacl -m u:natasha:rw /var/tmp/fstab
+akshay@servera:~/linux-system-administration-tasks$ sudo setfacl -m u:harry:--- /var/tmp/fstab
+setfacl: Option -m: Invalid argument near character 3
+akshay@servera:~/linux-system-administration-tasks$ sudo useradd harry
+akshay@servera:~/linux-system-administration-tasks$ sudo setfacl -m u:harry:--- /var/tmp/fstab
+akshay@servera:~/linux-system-administration-tasks$ getfacl /var/tmp/fstab
+getfacl: Removing leading '/' from absolute path names
+# file: var/tmp/fstab
+# owner: root
+# group: root
+user::rw-
+user:natasha:rw-
+user:harry:---
+group::r--
+mask::rw-
+other::r--
+
+akshay@servera:~/linux-system-administration-tasks$
+
+================================================================================
+Question 97: FIND FILES - Copy files owned by 'era' to /root/findfiles
+================================================================================
+
+Task Requirements:
+- Find all files owned by user 'era'
+- Copy all identified files into /root/findfiles
+
+Commands Executed:
+sudo mkdir -p /root/findfiles
+sudo find / -user era -type f -exec cp -a {} /root/findfiles/ \; 2>/dev/null
+
+OUTPUT
+
+
+
+akshay@servera:~/linux-system-administration-tasks$ sudo mkdir -p /root/findfiles
+akshay@servera:~/linux-system-administration-tasks$ sudo useradd era
+akshay@servera:~/linux-system-administration-tasks$ sudo find / -user era -type f -exec cp -a {} /root/findfiles/ \; 2>/dev/null
+akshay@servera:~/linux-system-administration-tasks$ sudo touch /tmp/era_file1.txt /var/tmp/era_file2.txt
+sudo chown era:era /tmp/era_file1.txt /var/tmp/era_file2.txt
+akshay@servera:~/linux-system-administration-tasks$ sudo find / -user era -type f -exec cp -a {} /root/findfiles/ \; 2>/dev/null
+akshay@servera:~/linux-system-administration-tasks$ sudo ls -la /root/findfiles
+total 8
+drwxr-xr-x 2 root root 4096 Jul 30 11:54 .
+drwx------ 5 root root 4096 Jul 30 11:50 ..
+-rw-r--r-- 1 era  era     0 Jul 30 11:53 era_file1.txt
+-rw-r--r-- 1 era  era     0 Jul 30 11:53 era_file2.txt
+akshay@servera:~/linux-system-administration-tasks$ ^C
+================================================================================
+Question 98: SEARCH WORDS - Find matches for "seismic" in /usr/share/dict/words
+================================================================================
+
+Task Requirements:
+- Display matches for the word "seismic" in /usr/share/dict/words
+- Save output to /root/wordlist
+
+Commands Executed:
+sudo grep "seismic" /usr/share/dict/words | sudo tee /root/wordlist > /dev/null
+
+OUTPUT
+
+akshay@servera:~/linux-system-administration-tasks$ sudo grep "seismic" /usr/share/dict/words | sudo tee /root/wordlist > /dev/null
+akshay@servera:~/linux-system-administration-tasks$ sudo cat /root/wordlist
+seismic
+seismically
+akshay@servera:~/linux-system-administration-tasks$ sudo ls -l /root/wordlist
+-rw-r--r-- 1 root root 20 Jul 30 12:00 /root/wordlist
+
