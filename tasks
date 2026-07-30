@@ -767,3 +767,66 @@ sda                         8:0    0   25G  0 disk
   └─ubuntu--vg-ubuntu--lv 252:0    0 11.5G  0 lvm  /
 sr0                        11:0    1 1024M  1 rom
 
+================================================================================
+Question 69: Create 1G MBR vfat partition on HDD1 mounted persistently on /mnt/songs
+================================================================================
+
+step1
+sudo parted -s /dev/loop0 mklabel msdos
+sudo parted -s /dev/loop0 mkpart primary fat32 1MiB 1025MiB
+
+step2
+sudo mkfs.vfat /dev/loop0p1
+
+step3
+sudo mkdir -p /mnt/songs
+
+step4
+sudo mount /dev/loop0p1 /mnt/songs
+
+step5
+echo '/dev/loop0p1 /mnt/songs vfat defaults 0 0' | sudo tee -a /etc/fstab
+
+OUTPUT 
+
+akshay@servera:~/linux-system-administration-tasks$ sudo parted -s /dev/vdb mklabel msdos
+sudo parted -s /dev/vdb mkpart primary fat32 1MiB 1025MiB
+[sudo] password for akshay:
+Error: Could not stat device /dev/vdb - No such file or directory.
+Error: Could not stat device /dev/vdb - No such file or directory.
+akshay@servera:~/linux-system-administration-tasks$ ^C
+akshay@servera:~/linux-system-administration-tasks$ lsblk
+NAME                      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda                         8:0    0   25G  0 disk
+├─sda1                      8:1    0    1M  0 part
+├─sda2                      8:2    0    2G  0 part /boot
+└─sda3                      8:3    0   23G  0 part
+  └─ubuntu--vg-ubuntu--lv 252:0    0 11.5G  0 lvm  /
+sr0                        11:0    1 1024M  1 rom
+akshay@servera:~/linux-system-administration-tasks$ ^C
+akshay@servera:~/linux-system-administration-tasks$ sudo losetup -fP /disks/hdd1.img && sudo losetup -fP /disks/hdd2.img && sudo losetup -fP /disks/hdd3.img
+akshay@servera:~/linux-system-administration-tasks$ lsblk
+NAME                      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+loop0                       7:0    0    5G  0 loop
+loop1                       7:1    0    7G  0 loop
+loop2                       7:2    0    8G  0 loop
+sda                         8:0    0   25G  0 disk
+├─sda1                      8:1    0    1M  0 part
+├─sda2                      8:2    0    2G  0 part /boot
+└─sda3                      8:3    0   23G  0 part
+  └─ubuntu--vg-ubuntu--lv 252:0    0 11.5G  0 lvm  /
+sr0                        11:0    1 1024M  1 rom
+akshay@servera:~/linux-system-administration-tasks$ sudo parted -s /dev/loop0 mklabel msdos
+sudo parted -s /dev/loop0 mkpart primary fat32 1MiB 1025MiB
+akshay@servera:~/linux-system-administration-tasks$ sudo mkfs.vfat /dev/loop0p1
+mkfs.fat 4.2 (2021-01-31)
+akshay@servera:~/linux-system-administration-tasks$ sudo mkdir -p /mnt/songs
+akshay@servera:~/linux-system-administration-tasks$ sudo mount /dev/loop0p1 /mnt/songs
+akshay@servera:~/linux-system-administration-tasks$ echo '/dev/loop0p1 /mnt/songs vfat defaults 0 0' | sudo tee -a /etc/fstab
+/dev/loop0p1 /mnt/songs vfat defaults 0 0
+akshay@servera:~/linux-system-administration-tasks$ df -h /mnt/songs
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/loop0p1   1022M  4.0K 1022M   1% /mnt/songs
+akshay@servera:~/linux-system-administration-tasks$ grep '/mnt/songs' /etc/fstab
+/dev/loop0p1 /mnt/songs vfat defaults 0 0
+
