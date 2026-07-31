@@ -1379,3 +1379,544 @@ sdb                         8:16   0    5G  0 disk
 sdc                         8:32   0    8G  0 disk
 sdd                         8:48   0    7G  0 disk
 sr0                        11:0    1 1024M  1 rom
+
+================================================================================
+Question 111: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+# Install NFS Server
+sudo apt update
+sudo apt install nfs-kernel-server -y
+
+# Create shared directory
+sudo mkdir -p /data/rhome/remoteuser1
+
+# Configure NFS export
+echo '/data/rhome/remoteuser1 *(rw,sync,no_subtree_check,no_root_squash)' | sudo tee /etc/exports
+
+# Apply configuration
+sudo exportfs -ra
+
+# Start and enable NFS
+sudo systemctl enable --now nfs-kernel-server
+
+# Verify
+showmount -e localhost
+hostname -I
+
+
+# Install required packages
+sudo apt update
+sudo apt install autofs nfs-common -y
+
+# Create user
+sudo useradd -m -d /rhome/remoteuser1 remoteuser1
+
+# Set password
+sudo passwd remoteuser1
+flectrag
+cat << 'EOF' >> tasks
+================================================================================
+Question 111: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+# Install NFS Server
+sudo apt update
+sudo apt install nfs-kernel-server -y
+
+# Create shared directory
+sudo mkdir -p /data/rhome/remoteuser1
+
+# Configure NFS export
+echo '/data/rhome/remoteuser1 *(rw,sync,no_subtree_check,no_root_squash)' | sudo tee /etc/exports
+
+# Apply configuration
+sudo exportfs -ra
+
+# Start and enable NFS
+sudo systemctl enable --now nfs-kernel-server
+
+# Verify
+showmount -e localhost
+hostname -I
+
+
+# Install required packages
+sudo apt update
+sudo apt install autofs nfs-common -y
+
+# Create user
+sudo useradd -m -d /rhome/remoteuser1 remoteuser1
+
+# Set password
+sudo passwd remoteuser1
+flectrag
+
+
+
+
+cat << 'EOF' >> tasks
+================================================================================
+Question 111: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+# Install NFS Server
+sudo apt update
+sudo apt install nfs-kernel-server -y
+
+# Create shared directory
+sudo mkdir -p /data/rhome/remoteuser1
+
+# Configure NFS export
+echo '/data/rhome/remoteuser1 *(rw,sync,no_subtree_check,no_root_squash)' | sudo tee /etc/exports
+
+# Apply configuration
+sudo exportfs -ra
+
+# Start and enable NFS
+sudo systemctl enable --now nfs-kernel-server
+
+# Verify
+showmount -e localhost
+hostname -I
+
+
+# Install required packages
+sudo apt update
+sudo apt install autofs nfs-common -y
+
+# Create user
+sudo useradd -m -d /rhome/remoteuser1 remoteuser1
+
+# Set password
+sudo passwd remoteuser1
+flectrag
+cat << 'EOF' >> tasks
+================================================================================
+Question 111: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+# Install NFS Server
+sudo apt update
+sudo apt install nfs-kernel-server -y
+
+# Create shared directoa
+eof
+================================================================================
+Question 111: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+# Install NFS Server
+sudo apt update
+sudo apt install nfs-kernel-server -y
+
+# Create shared directory
+sudo mkdir -p /data/rhome/remoteuser1
+
+# Configure NFS export
+echo '/data/rhome/remoteuser1 *(rw,sync,no_subtree_check,no_root_squash)' | sudo tee /etc/exports
+
+# Apply configuration
+sudo exportfs -ra
+
+# Start and enable NFS
+sudo systemctl enable --now nfs-kernel-server
+
+# Verify
+showmount -e localhost
+hostname -I
+
+
+# Install required packages
+sudo apt update
+sudo apt install autofs nfs-common -y
+
+# Create user
+sudo useradd -m -d /rhome/remoteuser1 remoteuser1
+
+# Set password
+sudo passwd remoteuser1
+flectrag
+cat << 'EOF' >> tasks
+================================================================================
+Question 111: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+# Install NFS Server
+sudo apt update
+sudo apt install nfs-kernel-server -y
+
+# Create shared directory
+sudo mkdir -p /data/rhome/remoteuser1
+
+# Configure NFS export
+echo '/data/rhome/remoteuser1 *(rw,sync,no_subtree_check,no_root_squash)' | sudo tee /etc/exports
+
+# Apply configuration
+sudo exportfs -ra
+
+# Start and enable NFS
+sudo systemctl enable --now nfs-kernel-server
+
+# Verify
+showmount -e localhost
+hostname -I
+
+
+# Install required packages
+sudo apt update
+sudo apt install autofs nfs-common -y
+
+# Create user
+sudo useradd -m -d /rhome/remoteuser1 remoteuser1
+
+# Set password
+sudo passwd remoteuser1
+flectrag
+
+
+
+
+cat << 'EOF' >> tasks
+================================================================================
+Question 111: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+# Install NFS Server
+sudo apt update
+sudo apt install nfs-kernel-server -y
+
+# Create shared directory
+sudo mkdir -p /data/rhome/remoteuser1
+
+# Configure NFS export
+echo '/data/rhome/remoteuser1 *(rw,sync,no_subtree_check,no_root_squash)' | sudo tee /etc/exports
+
+# Apply configuration
+sudo exportfs -ra
+
+# Start and enable NFS
+sudo systemctl enable --now nfs-kernel-server
+
+# Verify
+showmount -e localhost
+hostname -I
+
+WORKSTATION
+
+# Install required packages
+sudo apt update
+sudo apt install autofs nfs-common -y
+
+# Create user
+sudo useradd -m -d /rhome/remoteuser1 remoteuser1
+
+# Set password
+sudo passwd remoteuser1
+flectrag
+
+
+echo '/rhome /etc/auto.rhome' | sudo tee /etc/auto.master.d/rhome.autofs
+
+echo 'remoteuser1 -rw,sync 192.168.50.226:/data/rhome/remoteuser1' | sudo tee /etc/auto.rhome
+
+sudo systemctl restart autofs
+
+Verification
+
+showmount -e 192.168.50.134
+
+sudo automount -m
+
+cd /rhome/remoteuser1
+
+mount | grep remoteuser1
+
+touch /rhome/remoteuser1/testfile
+
+ls -l /rhome/remoteuser1
+
+OUTPUT
+
+
+akshay@akshay:~/linux-system-administration-tasks$ hostname
+akshay
+akshay@akshay:~/linux-system-administration-tasks$ ls -ld /data/rhome/remoteuser1
+drwxrwxrwx 2 root root 4096 Jul 31 07:21 /data/rhome/remoteuser1
+akshay@akshay:~/linux-system-administration-tasks$ systemctl status nfs-kernel-server
+● nfs-server.service - NFS server and services
+     Loaded: loaded (/usr/lib/systemd/system/nfs-server.service; enabled; preset: enabled)
+    Drop-In: /run/systemd/generator/nfs-server.service.d
+             └─order-with-mounts.conf
+     Active: active (exited) since Fri 2026-07-31 07:53:19 UTC; 2h 57min ago
+   Main PID: 18930 (code=exited, status=0/SUCCESS)
+        CPU: 26ms
+
+Jul 31 07:53:19 akshay exportfs[18928]: exportfs: /etc/exports [2]: Neither 'subtree_check' or 'no_subtree_check' specified for export "*>
+Jul 31 07:53:19 akshay exportfs[18928]:   Assuming default behaviour ('no_subtree_check').
+Jul 31 07:53:19 akshay exportfs[18928]:   NOTE: this default has changed since nfs-utils version 1.0.x
+Jul 31 07:53:19 akshay exportfs[18928]: exportfs: incompatible duplicated export entries:
+Jul 31 07:53:19 akshay exportfs[18928]: exportfs:         *:/data/rhome/remoteuser1 (0x420) [IGNORED]
+Jul 31 07:53:19 akshay exportfs[18928]: exportfs:         *:/data/rhome/remoteuser1 (0x424)
+Jul 31 07:53:19 akshay exportfs[18928]: exportfs: incompatible duplicated export entries:
+Jul 31 07:53:19 akshay exportfs[18928]: exportfs:         *:/data/rhome/remoteuser1 (0x420) [IGNORED]
+Jul 31 07:53:19 akshay exportfs[18928]: exportfs:         *:/data/rhome/remoteuser1 (0x424)
+Jul 31 07:53:19 akshay systemd[1]: Finished nfs-server.service - NFS server and services.
+
+akshay@akshay:~/linux-system-administration-tasks$ cat /etc/exports
+/data/rhome/remoteuser1 *(rw,sync)
+/data/rhome/remoteuser1 *(rw,sync,no_root_squash)
+/data/rhome/remoteuser1 *(rw,sync,no_subtree_check,no_root_squash)
+akshay@akshay:~/linux-system-administration-tasks$ ^C
+akshay@akshay:~/linux-system-administration-tasks$ hostname -I
+
+
+
+workstation 
+
+
+
+akshay@akshay-VirtualBox:~$ hostname
+akshay-VirtualBox
+akshay@akshay-VirtualBox:~$ id remoteuser1
+uid=1001(remoteuser1) gid=1001(remoteuser1) groups=1001(remoteuser1)
+akshay@akshay-VirtualBox:~$ getent passwd remoteuser1
+remoteuser1:x:1001:1001::/rhome/remoteuser1:/bin/sh
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ showmount -e 192.168.50.134
+Export list for 192.168.50.134:
+/data/rhome/remoteuser1 *
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ systemctl status autofs
+● autofs.service - Automounts filesystems on demand
+     Loaded: loaded (/usr/lib/systemd/system/autofs.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-07-31 17:59:55 AWST; 1h 5min ago
+       Docs: man:autofs(8)
+   Main PID: 6254 (automount)
+      Tasks: 5 (limit: 3412)
+     Memory: 1.7M (peak: 3.1M)
+        CPU: 77ms
+     CGroup: /system.slice/autofs.service
+             └─6254 /usr/sbin/automount --pid-file /var/run/autofs.pid
+
+Jul 31 17:59:55 akshay-VirtualBox systemd[1]: Starting autofs.service - Automounts filesystems on demand...
+Jul 31 17:59:55 akshay-VirtualBox automount[6254]: setautomntent: lookup(sss): setautomountent: entry for map auto.master not found
+Jul 31 17:59:55 akshay-VirtualBox systemd[1]: Started autofs.service - Automounts filesystems on demand.
+Jul 31 18:02:10 akshay-VirtualBox automount[6254]: add_host_addrs: hostname lookup for servera failed: Name or service not known
+akshay@akshay-VirtualBox:~$ pwd
+/home/akshay
+akshay@akshay-VirtualBox:~$ systemctl status autofs
+● autofs.service - Automounts filesystems on demand
+     Loaded: loaded (/usr/lib/systemd/system/autofs.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-07-31 17:59:55 AWST; 1h 19min ago
+       Docs: man:autofs(8)
+   Main PID: 6254 (automount)
+      Tasks: 5 (limit: 3412)
+     Memory: 1.7M (peak: 3.1M)
+        CPU: 77ms
+     CGroup: /system.slice/autofs.service
+             └─6254 /usr/sbin/automount --pid-file /var/run/autofs.pid
+
+Jul 31 17:59:55 akshay-VirtualBox systemd[1]: Starting autofs.service - Automounts filesystems on demand...
+Jul 31 17:59:55 akshay-VirtualBox automount[6254]: setautomntent: lookup(sss): setautomountent: entry for map auto.master not found
+Jul 31 17:59:55 akshay-VirtualBox systemd[1]: Started autofs.service - Automounts filesystems on demand.
+Jul 31 18:02:10 akshay-VirtualBox automount[6254]: add_host_addrs: hostname lookup for servera failed: Name or service not known
+akshay@akshay-VirtualBox:~$ cd /rhome/remoteuser1
+-bash: cd: /rhome/remoteuser1: No such file or directory
+akshay@akshay-VirtualBox:~$ ls
+Desktop    Downloads  Music     Public         setup_task.yml  task1.yml       Templates
+Documents  hosts      Pictures  setup_lab.yml  snap            task1.yml.save  Videos
+akshay@akshay-VirtualBox:~$ sudo su - remoteuser1
+[sudo] password for akshay:
+Sorry, try again.
+[sudo] password for akshay:
+Sorry, try again.
+[sudo] password for akshay:
+su: warning: cannot change directory to /rhome/remoteuser1: No such file or directory
+$ ^C
+$ cd /rhome/remoteuser1
+-sh: 1: cd: can't cd to /rhome/remoteuser1
+$ ^C
+$ ls -ld /rhome
+drwxr-xr-x 2 root root 0 Jul 31 19:25 /rhome
+$ cat /etc/auto.master
+#
+# Sample auto.master file
+# This is a 'master' automounter map and it has the following format:
+# mount-point [map-type[,format]:]map [options]
+# For details of the format look at auto.master(5).
+#
+#/misc  /etc/auto.misc
+#
+# NOTE: mounts done from a hosts map will be mounted with the
+#       "nosuid" and "nodev" options unless the "suid" and "dev"
+#       options are explicitly given.
+#
+#/net   -hosts
+#
+# Include /etc/auto.master.d/*.autofs
+# To add an extra map using this mechanism you will need to add
+# two configuration items - one /etc/auto.master.d/extra.autofs file
+# (using the same line format as the auto.master file)
+# and a separate mount map (e.g. /etc/auto.extra or an auto.extra NIS map)
+# that is referred to by the extra.autofs file.
+#
++dir:/etc/auto.master.d
+#
+# If you have fedfs set up and the related binaries, either
+# built as part of autofs or installed from another package,
+# uncomment this line to use the fedfs program map to access
+# your fedfs mounts.
+#/nfs4  /usr/sbin/fedfs-map-nfs4 nobind
+#
+# Include central master map if it can be found using
+# nsswitch sources.
+#
+# Note that if there are entries for /net or /misc (as
+# above) in the included master map any keys that are the
+# same will not be seen as the first read key seen takes
+# precedence.
+#
++auto.master
+$
+$ exit
+akshay@akshay-VirtualBox:~$ ls -ld /rhome
+drwxr-xr-x 2 root root 0 Jul 31 19:25 /rhome
+akshay@akshay-VirtualBox:~$ cat /etc/auto.master
+#
+# Sample auto.master file
+# This is a 'master' automounter map and it has the following format:
+# mount-point [map-type[,format]:]map [options]
+# For details of the format look at auto.master(5).
+#
+#/misc  /etc/auto.misc
+#
+# NOTE: mounts done from a hosts map will be mounted with the
+#       "nosuid" and "nodev" options unless the "suid" and "dev"
+#       options are explicitly given.
+#
+#/net   -hosts
+#
+# Include /etc/auto.master.d/*.autofs
+# To add an extra map using this mechanism you will need to add
+# two configuration items - one /etc/auto.master.d/extra.autofs file
+# (using the same line format as the auto.master file)
+# and a separate mount map (e.g. /etc/auto.extra or an auto.extra NIS map)
+# that is referred to by the extra.autofs file.
+#
++dir:/etc/auto.master.d
+#
+# If you have fedfs set up and the related binaries, either
+# built as part of autofs or installed from another package,
+# uncomment this line to use the fedfs program map to access
+# your fedfs mounts.
+#/nfs4  /usr/sbin/fedfs-map-nfs4 nobind
+#
+# Include central master map if it can be found using
+# nsswitch sources.
+#
+# Note that if there are entries for /net or /misc (as
+# above) in the included master map any keys that are the
+# same will not be seen as the first read key seen takes
+# precedence.
+#
++auto.master
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ ls -l /etc/auto.master.d
+total 4
+-rw-r--r-- 1 root root 23 Jul 31 17:59 rhome.autofs
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ cat /etc/auto.master.d/rhome.autofs
+/rhome /etc/auto.rhome
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ cat /etc/auto.rhome
+remoteuser1 -rw,sync servera:/data/rhome/remoteuser1
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ ping -c 2 servera
+PING servera (192.168.50.226) 56(84) bytes of data.
+64 bytes from servera (192.168.50.226): icmp_seq=1 ttl=64 time=0.182 ms
+64 bytes from servera (192.168.50.226): icmp_seq=2 ttl=64 time=0.094 ms
+
+--- servera ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1013ms
+rtt min/avg/max/mdev = 0.094/0.138/0.182/0.044 ms
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ sudo systemctl restart autofs
+[sudo] password for akshay:
+akshay@akshay-VirtualBox:~$ sudo systemctl status autofs
+● autofs.service - Automounts filesystems on demand
+     Loaded: loaded (/usr/lib/systemd/system/autofs.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-07-31 19:40:30 AWST; 13s ago
+       Docs: man:autofs(8)
+    Process: 24516 ExecStart=/usr/sbin/automount $OPTIONS --pid-file /var/run/autofs.pid (code=exited, status=0/SUCCESS)
+   Main PID: 24517 (automount)
+      Tasks: 5 (limit: 3412)
+     Memory: 1.4M (peak: 2.3M)
+        CPU: 137ms
+     CGroup: /system.slice/autofs.service
+             └─24517 /usr/sbin/automount --pid-file /var/run/autofs.pid
+
+Jul 31 19:40:30 akshay-VirtualBox systemd[1]: Starting autofs.service - Automounts filesystems on demand...
+Jul 31 19:40:30 akshay-VirtualBox (utomount)[24516]: autofs.service: Referenced but unset environment variable evaluates to an empty stri>
+Jul 31 19:40:30 akshay-VirtualBox automount[24517]: setautomntent: lookup(sss): setautomountent: entry for map auto.master not found
+Jul 31 19:40:30 akshay-VirtualBox systemd[1]: Started autofs.service - Automounts filesystems on demand.
+
+akshay@akshay-VirtualBox:~$ ls /rhome
+akshay@akshay-VirtualBox:~$ pwd
+/home/akshay
+akshay@akshay-VirtualBox:~$ cd /rhome/remoteuser1
+pwd
+-bash: cd: /rhome/remoteuser1: No such file or directory
+/home/akshay
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ sudo automount -m
+setautomntent: lookup(sss): setautomountent: entry for map auto.master not found
+
+autofs dump map information
+===========================
+
+global options: none configured
+
+Mount point: /rhome
+
+source(s):
+
+  instance type(s): file
+  map: /etc/auto.rhome
+
+  remoteuser1 | -rw,sync servera:/data/rhome/remoteuser1
+
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ sudo ls /rhome/remoteuser1
+ls: cannot access '/rhome/remoteuser1': No such file or directory
+akshay@akshay-VirtualBox:~$ sudo journalctl -u autofs -n 20 --no-pager
+Jul 31 17:58:18 akshay-VirtualBox systemd[1]: Starting autofs.service - Automounts filesystems on demand...
+Jul 31 17:58:18 akshay-VirtualBox (utomount)[5153]: autofs.service: Referenced but unset environment variable evaluates to an empty string: OPTIONS
+Jul 31 17:58:18 akshay-VirtualBox automount[5155]: setautomntent: lookup(sss): setautomountent: entry for map auto.master not found
+Jul 31 17:58:18 akshay-VirtualBox systemd[1]: Started autofs.service - Automounts filesystems on demand.
+Jul 31 17:59:55 akshay-VirtualBox systemd[1]: Stopping autofs.service - Automounts filesystems on demand...
+Jul 31 17:59:55 akshay-VirtualBox systemd[1]: autofs.service: Deactivated successfully.
+Jul 31 17:59:55 akshay-VirtualBox systemd[1]: Stopped autofs.service - Automounts filesystems on demand.
+Jul 31 17:59:55 akshay-VirtualBox (utomount)[6253]: autofs.service: Referenced but unset environment variable evaluates to an empty string: OPTIONS
+Jul 31 17:59:55 akshay-VirtualBox systemd[1]: Starting autofs.service - Automounts filesystems on demand...
+Jul 31 17:59:55 akshay-VirtualBox automount[6254]: setautomntent: lookup(sss): setautomountent: entry for map auto.master not found
+Jul 31 17:59:55 akshay-VirtualBox systemd[1]: Started autofs.service - Automounts filesystems on demand.
+Jul 31 18:02:10 akshay-VirtualBox automount[6254]: add_host_addrs: hostname lookup for servera failed: Name or service not known
+Jul 31 19:40:29 akshay-VirtualBox systemd[1]: Stopping autofs.service - Automounts filesystems on demand...
+Jul 31 19:40:30 akshay-VirtualBox systemd[1]: autofs.service: Deactivated successfully.
+Jul 31 19:40:30 akshay-VirtualBox systemd[1]: Stopped autofs.service - Automounts filesystems on demand.
+Jul 31 19:40:30 akshay-VirtualBox systemd[1]: Starting autofs.service - Automounts filesystems on demand...
+Jul 31 19:40:30 akshay-VirtualBox (utomount)[24516]: autofs.service: Referenced but unset environment variable evaluates to an empty string: OPTIONS
+Jul 31 19:40:30 akshay-VirtualBox automount[24517]: setautomntent: lookup(sss): setautomountent: entry for map auto.master not found
+Jul 31 19:40:30 akshay-VirtualBox systemd[1]: Started autofs.service - Automounts filesystems on demand.
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ getent hosts servera
+192.168.50.226  servera
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ showmount -e servera
+Export list for servera:
+akshay@akshay-VirtualBox:~$ showmount -e 192.168.50.134
+Export list for 192.168.50.134:
+/data/rhome/remoteuser1 *
+akshay@akshay-VirtualBox:~$ ^C
+akshay@akshay-VirtualBox:~$ sudo nano /etc/auto.rhome
+akshay@akshay-VirtualBox:~$ sudo systemctl restart autofs
+akshay@akshay-VirtualBox:~$ cd /rhome/remoteuser1
+pwd
+/rhome/remoteuser1
+akshay@akshay-VirtualBox:/rhome/remoteuser1$ mount | grep remoteuser1
+192.168.50.134:/data/rhome/remoteuser1 on /rhome/remoteuser1 type nfs4 (rw,relatime,sync,vers=4.2,rsize=262144,wsize=262144,namlen=255,hard,fatal_neterrors=none,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=192.168.50.226,local_lock=none,addr=192.168.50.134)
+akshay@akshay-VirtualBox:/rhome/remoteuser1$
