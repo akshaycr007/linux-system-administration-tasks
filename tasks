@@ -2601,3 +2601,139 @@ akshay@akshay:~/linux-system-administration-tasks$ df -h | grep movies
 akshay@akshay:~/linux-system-administration-tasks$ cat /etc/fstab | grep movies
 UUID=2470cc95-aedd-46d5-8913-061d99d0c9bf  /mnt/movies ext4 defaults 0 0
 
+
+================================================================================
+Question 71: Create a swap partition on servera  on HDD2   
+Size should be twise the size of RAM    
+swap should be persitant  
+================================================================================
+step1 
+free -h
+
+step2
+sudo fdisk /dev/sdc
+
+n
+2
++4G
+t
+2
+19
+w
+
+
+step3
+sudo mkswap /dev/sdc2
+
+step4 
+sudo blkid /dev/sdc2
+
+step5 
+sudo nano /etc/fstab
+
+step6 
+sudo swapoff /dev/sdc2
+sudo swapon -a
+
+OUTPUT 
+
+akshay@akshay:~/linux-system-administration-tasks$ free -h
+               total        used        free      shared  buff/cache   available
+Mem:           1.9Gi       403Mi       975Mi       1.2Mi       739Mi       1.5Gi
+Swap:          2.0Gi          0B       2.0Gi
+akshay@akshay:~/linux-system-administration-tasks$ lsblk
+NAME                      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda                         8:0    0 50.5G  0 disk
+├─sda1                      8:1    0    1M  0 part
+├─sda2                      8:2    0    2G  0 part /boot
+└─sda3                      8:3    0 48.5G  0 part
+  └─ubuntu--vg-ubuntu--lv 252:0    0 24.2G  0 lvm  /
+sdb                         8:16   0    5G  0 disk
+└─sdb1                      8:17   0    1G  0 part /mnt/songs
+sdc                         8:32   0    8G  0 disk
+└─sdc1                      8:33   0  1.5G  0 part /mnt/movies
+sdd                         8:48   0    7G  0 disk
+sr0                        11:0    1 1024M  1 rom
+akshay@akshay:~/linux-system-administration-tasks$ ^C
+akshay@akshay:~/linux-system-administration-tasks$ sudo fdisk /dev/sdc
+[sudo] password for akshay:
+
+Welcome to fdisk (util-linux 2.39.3).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+This disk is currently in use - repartitioning is probably a bad idea.
+It's recommended to umount all file systems, and swapoff all swap
+partitions on this disk.
+
+
+Command (m for help): n
+Partition number (2-128, default 2): 2
+First sector (3147776-16777182, default 3147776):
+Last sector, +/-sectors or +/-size{K,M,G,T,P} (3147776-16777182, default 16775167): +4G
+
+Created a new partition 2 of type 'Linux filesystem' and of size 4 GiB.
+
+Command (m for help): t
+Partition number (1,2, default 2): 2
+Partition type or alias (type L to list all): 19
+
+Changed type of partition 'Linux filesystem' to 'Linux swap'.
+
+Command (m for help): p
+Disk /dev/sdc: 8 GiB, 8589934592 bytes, 16777216 sectors
+Disk model: VBOX HARDDISK
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: gpt
+Disk identifier: 16A6FECB-C668-468E-89CB-BAD561729814
+
+Device       Start      End Sectors  Size Type
+/dev/sdc1     2048  3147775 3145728  1.5G Linux filesystem
+/dev/sdc2  3147776 11536383 8388608    4G Linux swap
+
+Command (m for help): w
+The partition table has been altered.
+Syncing disks.
+
+akshay@akshay:~/linux-system-administration-tasks$ lsblk
+NAME                      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda                         8:0    0 50.5G  0 disk
+├─sda1                      8:1    0    1M  0 part
+├─sda2                      8:2    0    2G  0 part /boot
+└─sda3                      8:3    0 48.5G  0 part
+  └─ubuntu--vg-ubuntu--lv 252:0    0 24.2G  0 lvm  /
+sdb                         8:16   0    5G  0 disk
+└─sdb1                      8:17   0    1G  0 part /mnt/songs
+sdc                         8:32   0    8G  0 disk
+├─sdc1                      8:33   0  1.5G  0 part /mnt/movies
+└─sdc2                      8:34   0    4G  0 part
+sdd                         8:48   0    7G  0 disk
+sr0                        11:0    1 1024M  1 rom
+akshay@akshay:~/linux-system-administration-tasks$ sudo mkswap /dev/sdc2
+Setting up swapspace version 1, size = 4 GiB (4294963200 bytes)
+no label, UUID=598ec2b7-7465-48e9-8c83-88803528d57d
+akshay@akshay:~/linux-system-administration-tasks$ sudo swapon /dev/sdc2
+akshay@akshay:~/linux-system-administration-tasks$ swapon --show
+NAME      TYPE      SIZE USED PRIO
+/swap.img file        2G   0B   -2
+/dev/sdc2 partition   4G   0B   -3
+akshay@akshay:~/linux-system-administration-tasks$ sudo blkid /dev/sdc2
+/dev/sdc2: UUID="598ec2b7-7465-48e9-8c83-88803528d57d" TYPE="swap" PARTUUID="c030960e-8a91-45c2-ad51-e9b1239b8c11"
+akshay@akshay:~/linux-system-administration-tasks$ ^C
+akshay@akshay:~/linux-system-administration-tasks$ sudo nano /etc/fstab
+akshay@akshay:~/linux-system-administration-tasks$ sudo nano /etc/fstab^C
+akshay@akshay:~/linux-system-administration-tasks$ sudo nano /etc/fstab
+akshay@akshay:~/linux-system-administration-tasks$ sudo swapoff /dev/sdc2
+akshay@akshay:~/linux-system-administration-tasks$ sudo swapon -a
+akshay@akshay:~/linux-system-administration-tasks$ swapon --show
+NAME      TYPE      SIZE USED PRIO
+/swap.img file        2G   0B   -2
+/dev/sdc2 partition   4G   0B   -3
+akshay@akshay:~/linux-system-administration-tasks$ free -h
+               total        used        free      shared  buff/cache   available
+Mem:           1.9Gi       407Mi       968Mi       1.2Mi       743Mi       1.5Gi
+Swap:          6.0Gi          0B       6.0Gi
+
+
