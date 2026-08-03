@@ -2483,8 +2483,121 @@ mount: (hint) your fstab has been modified, but systemd still uses
 akshay@akshay:~/linux-system-administration-tasks$ df -h | grep songs
 /dev/sdb1                         1022M  4.0K 1022M   1% /mnt/songs
 akshay@akshay:~/linux-system-administration-tasks$ cat /etc/fstab | grep songs
-UUID=251E-A27A  /mnt/songs  vfat  defaults  0  0
+UUID=251E-A27A  /mnt/songs  vfat  defaults  0 
 
 
 
+================================================================================
+Question 70: On servera create an GPT partion with 1.5G   on HDD2  
+File sytem should be ext4 and mounted on /mnt/movies  
+Mount should be persistant  
+================================================================================
+step1 
+sudo fdisk /dev/sdc
+
+g = Create GPT partition table
+n = New partition
+1 = Partition number 1
++1.5G = Partition size
+p = Print partition table
+w = Save changes
+
+lsblk /dev/sdc
+
+step3 
+sudo mkfs.ext4 /dev/sdc1
+
+step4 
+sudo mkdir -p /mnt/movies
+
+step5 
+sudo mount /dev/sdc1 /mnt/movies
+
+step6
+df -h | grep movies
+
+step7
+sudo blkid /dev/sdc1
+
+step8
+sudo nano /etc/fstab
+
+step9
+sudo umount /mnt/movies
+sudo mount -a
+
+OUTPUT 
+
+
+akshay@akshay:~/linux-system-administration-tasks$ sudo fdisk /dev/sdc
+[sudo] password for akshay:
+
+Welcome to fdisk (util-linux 2.39.3).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+Device does not contain a recognized partition table.
+Created a new DOS (MBR) disklabel with disk identifier 0xead6c01c.
+
+Command (m for help): g
+Created a new GPT disklabel (GUID: 16A6FECB-C668-468E-89CB-BAD561729814).
+
+Command (m for help): n
+Partition number (1-128, default 1): 1
+First sector (2048-16777182, default 2048):
+Last sector, +/-sectors or +/-size{K,M,G,T,P} (2048-16777182, default 16775167): +1.5G
+
+Created a new partition 1 of type 'Linux filesystem' and of size 1.5 GiB.
+
+Command (m for help): p
+Disk /dev/sdc: 8 GiB, 8589934592 bytes, 16777216 sectors
+Disk model: VBOX HARDDISK
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: gpt
+Disk identifier: 16A6FECB-C668-468E-89CB-BAD561729814
+
+Device     Start     End Sectors  Size Type
+/dev/sdc1   2048 3147775 3145728  1.5G Linux filesystem
+
+Command (m for help): w
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks.
+
+akshay@akshay:~/linux-system-administration-tasks$ lsblk /dev/sdc
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sdc      8:32   0    8G  0 disk
+└─sdc1   8:33   0  1.5G  0 part
+akshay@akshay:~/linux-system-administration-tasks$ sudo mkfs.ext4 /dev/sdc1
+mke2fs 1.47.0 (5-Feb-2023)
+Creating filesystem with 393216 4k blocks and 98304 inodes
+Filesystem UUID: 2470cc95-aedd-46d5-8913-061d99d0c9bf
+Superblock backups stored on blocks:
+        32768, 98304, 163840, 229376, 294912
+
+Allocating group tables: done
+Writing inode tables: done
+Creating journal (8192 blocks): done
+Writing superblocks and filesystem accounting information: done
+
+akshay@akshay:~/linux-system-administration-tasks$ sudo mkdir -p /mnt/movies
+akshay@akshay:~/linux-system-administration-tasks$ sudo mount /dev/sdc1 /mnt/movies
+mount: (hint) your fstab has been modified, but systemd still uses
+       the old version; use 'systemctl daemon-reload' to reload.
+akshay@akshay:~/linux-system-administration-tasks$ df -h | grep movies
+/dev/sdc1                          1.5G   24K  1.4G   1% /mnt/movies
+akshay@akshay:~/linux-system-administration-tasks$ sudo blkid /dev/sdc1
+/dev/sdc1: UUID="2470cc95-aedd-46d5-8913-061d99d0c9bf" BLOCK_SIZE="4096" TYPE="ext4" PARTUUID="0fece995-7271-4f46-9279-a224de2036ea"
+akshay@akshay:~/linux-system-administration-tasks$ ^C
+akshay@akshay:~/linux-system-administration-tasks$ sudo nano /etc/fstab
+akshay@akshay:~/linux-system-administration-tasks$ sudo umount /mnt/movies
+akshay@akshay:~/linux-system-administration-tasks$ sudo mount -a
+mount: (hint) your fstab has been modified, but systemd still uses
+       the old version; use 'systemctl daemon-reload' to reload.
+akshay@akshay:~/linux-system-administration-tasks$ df -h | grep movies
+/dev/sdc1                          1.5G   24K  1.4G   1% /mnt/movies
+akshay@akshay:~/linux-system-administration-tasks$ cat /etc/fstab | grep movies
+UUID=2470cc95-aedd-46d5-8913-061d99d0c9bf  /mnt/movies ext4 defaults 0 0
 
