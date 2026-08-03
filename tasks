@@ -1920,3 +1920,571 @@ pwd
 akshay@akshay-VirtualBox:/rhome/remoteuser1$ mount | grep remoteuser1
 192.168.50.134:/data/rhome/remoteuser1 on /rhome/remoteuser1 type nfs4 (rw,relatime,sync,vers=4.2,rsize=262144,wsize=262144,namlen=255,hard,fatal_neterrors=none,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=192.168.50.226,local_lock=none,addr=192.168.50.134)
 akshay@akshay-VirtualBox:/rhome/remoteuser1$
+================================================================================
+Question 69: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+
+Step1 
+Create MBR partition table and 1GB partition
+sudo fdisk /dev/sdb
+o     = Create MBR (msdos) partition table
+n     = New partition
+p     = Primary partition
+1     = Partition number 1
++1G   = Size 1 GB
+w     = Save changes
+lsblk
+
+
+step2
+
+sudo mkfs.vfat /dev/sdb1
+
+step3
+sudo mkdir -p /mnt/songs
+
+step4
+
+sudo mkdir -p /mnt/songs
+
+step5
+
+sudo mount /dev/sdb1 /mnt/songs
+
+step6
+
+sudo blkid /dev/sdb1
+
+Copy the UUID.
+
+open fstab 
+
+sudo nano /etc/fstab
+
+UUID=ABCD-1234  /mnt/songs  vfat  defaults  0  0
+replace UUID and save 
+
+step 7
+
+sudo umount /mnt/songs
+sudo mount -a
+cat << 'EOF' >> tasks
+================================================================================
+Question 69: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+
+Step1 
+Create MBR partition table and 1GB partition
+sudo fdisk /dev/sdb
+o     = Create MBR (msdos) partition table
+n     = New partition
+p     = Primary partition
+1     = Partition number 1
++1G   = Size 1 GB
+w     = Save changes
+lsblk
+
+
+step2
+
+sudo mkfs.vfat /dev/sdb1
+
+step3
+sudo mkdir -p /mnt/songs
+
+step4
+
+sudo mkdir -p /mnt/songs
+
+step5
+
+sudo mount /dev/sdb1 /mnt/songs
+
+step6
+
+sudo blkid /dev/sdb1
+
+Copy the UUID.
+
+open fstab 
+
+sudo nano /etc/fstab
+
+UUID=ABCD-1234  /mnt/songs  vfat  defaults  0  0
+replace UUID and save 
+
+step 7
+
+sudo umount /mnt/songs
+sudo mount -a
+
+
+cat << 'EOF' >> tasks
+================================================================================
+Question 69: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+
+Step1 
+Create MBR partition table and 1GB partition
+sudo fdisk /dev/sdb
+o     = Create MBR (msdos) partition table
+n     = New partition
+p     = Primary partition
+1     = Partition number 1
++1G   = Size 1 GB
+w     = Save changes
+lsblk
+
+
+step2
+
+sudo mkfs.vfat /dev/sdb1
+
+step3
+sudo mkdir -p /mnt/songs
+
+step4
+
+sudo mkdir -p /mnt/songs
+
+step5
+
+sudo mount /dev/sdb1 /mnt/songs
+
+step6
+
+sudo blkid /dev/sdb1
+
+Copy the UUID.
+
+open fstab 
+
+sudo nano /etc/fstab
+
+UUID=ABCD-1234  /mnt/songs  vfat  defaults  0  0
+replace UUID and save 
+
+step 7
+
+sudo umount /mnt/songs
+sudo mount -a
+cat << 'EOF' >> tasks
+================================================================================
+Question 69: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+
+Step1 
+Create MBR partition table and 1GB partition
+sudo fdisk /dev/sdb
+o     = Create MBR (msdos) partition table
+n     = New partition
+p     = Primary partition
+1     = Partition number 1
++1G   = Size 1 GB
+w     = Save changes
+lsblk
+
+
+step2
+
+sudo mkfs.vfat /dev/sdb1
+
+step3
+sudo mkdir -p /mnt/songs
+
+step4
+
+sudo mkdir -p /mnt/songs
+
+step5
+
+sudo mount /dev/sdb1 /mnt/songs
+
+step6
+
+sudo blkid /dev/sdb1
+
+Copy the UUID.
+
+open fstab 
+
+sudo nano /etc/fstab
+
+UUID=ABCD-1234  /mnt/songs  vfat  defaults  0  0
+replace UUID and save 
+
+step 7
+
+sudo umount /mnt/songs
+sudo mount -a
+
+
+
+cat << 'EOF' >> tasks
+================================================================================
+Question 69: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+
+Step1 
+Create MBR partition table and 1GB partition
+sudo fdisk /dev/sdb
+o     = Create MBR (msdos) partition table
+n     = New partition
+p     = Primary partition
+1     = Partition number 1
++1G   = Size 1 GB
+w     = Save changes
+lsblk
+
+
+step2
+
+sudo mkfs.vfat /dev/sdb1
+
+step3
+sudo mkdir -p /mnt/songs
+
+step4
+
+sudo mkdir -p /mnt/songs
+
+step5
+
+sudo mount /dev/sdb1 /mnt/songs
+
+step6
+
+sudo blkid /dev/sdb1
+
+Copy the UUID.
+
+open fstab 
+
+sudo nano /etc/fstab
+
+UUID=ABCD-1234  /mnt/songs  vfat  defaults  0  0
+replace UUID and save 
+
+step 7
+
+sudo umount /mnt/songs
+sudo mount -a
+cat << 'EOF' >> tasks
+================================================================================
+Question 69: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+
+Step1 
+Create MBR partition table and 1GB partition
+sudo fdisk /dev/sdb
+o     = Create MBR (msdos) partition table
+n     = New partition
+p     = Primary partition
+1     = Partition number 1
++1G   = Size 1 GB
+w     = Save changes
+lsblk
+
+
+step2
+
+sudo mkfs.vfat /dev/sdb1
+
+step3
+sudo mkdir -p /mnt/songs
+
+step4
+
+sudo mkdir -p /mnt/songs
+
+step5
+
+sudo mount /dev/sdb1 /mnt/songs
+
+step6
+
+sudo blkid /dev/sdb1
+
+Copy the UUID.
+
+open fstab 
+
+sudo nano /etc/fstab
+
+UUID=ABCD-1234  /mnt/songs  vfat  defaults  0  0
+replace UUID and save 
+
+step 7
+
+sudo umount /mnt/songs
+sudo mount -a
+
+
+cat << 'EOF' >> tasks
+================================================================================
+Question 69: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+
+Step1 
+Create MBR partition table and 1GB partition
+sudo fdisk /dev/sdb
+o     = Create MBR (msdos) partition table
+n     = New partition
+p     = Primary partition
+1     = Partition number 1
++1G   = Size 1 GB
+w     = Save changes
+lsblk
+
+
+step2
+
+sudo mkfs.vfat /dev/sdb1
+
+step3
+sudo mkdir -p /mnt/songs
+
+step4
+
+sudo mkdir -p /mnt/songs
+
+step5
+
+sudo mount /dev/sdb1 /mnt/songs
+
+step6
+
+sudo blkid /dev/sdb1
+
+Copy the UUID.
+
+open fstab 
+
+sudo nano /etc/fstab
+
+UUID=ABCD-1234  /mnt/songs  vfat  defaults  0  0
+replace UUID and save 
+
+step 7
+
+sudo umount /mnt/songs
+sudo mount -a
+cat << 'EOF' >> tasks
+================================================================================
+Question 69: NFS Share Configuration on servera (Ubuntu)
+================================================================================
+
+Step1 
+Create MBR partition table and 1GB partition
+sudo fdisk /dev/sdb
+o     = Create MBR (msdos) partition table
+n     = New partition
+p     = Primary partition
+1     = Partition number 1
++1G   = Size 1 GB
+w     = Save changes
+lsblk
+
+
+step2
+
+sudo mkfs.vfat /dev/sdb1
+
+step3
+sudo mkdir -p /mnt/songs
+
+step4
+
+sudo mkdir -p /mnt/songs
+
+step5
+
+sudo mount /dev/sdb1 /mnt/songs
+
+step6
+
+sudo blkid /dev/sdb1
+
+Copy the UUID.
+
+open fstab 
+
+sudo nano /etc/fstab
+
+UUID=ABCD-1234  /mnt/songs  vfat  defaults  0  0
+replace UUID and save 
+
+step 7
+
+sudo umount /mnt/songs
+sudo mount -a
+
+OUTPUT
+
+akshay@akshay:~/linux-system-administration-tasks$ lsblk
+NAME                      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda                         8:0    0 50.5G  0 disk
+├─sda1                      8:1    0    1M  0 part
+├─sda2                      8:2    0    2G  0 part /boot
+└─sda3                      8:3    0 48.5G  0 part
+  └─ubuntu--vg-ubuntu--lv 252:0    0 24.2G  0 lvm  /
+sdb                         8:16   0    5G  0 disk
+sdc                         8:32   0    8G  0 disk
+sdd                         8:48   0    7G  0 disk
+sr0                        11:0    1 1024M  1 rom
+akshay@akshay:~/linux-system-administration-tasks$ lsblk^C
+akshay@akshay:~/linux-system-administration-tasks$ sudo fdisk /dev/sdb
+[sudo] password for akshay:
+
+Welcome to fdisk (util-linux 2.39.3).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+Device does not contain a recognized partition table.
+Created a new DOS (MBR) disklabel with disk identifier 0x3d603e6e.
+
+Command (m for help): o
+n
+p
+1
+
++1G
+w
+Created a new DOS (MBR) disklabel with disk identifier 0x6ddf19e9.
+
+Command (m for help):
+All unwritten changes will be lost, do you really want to quit? (y/n)n
+
+Command (m for help): w
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks.
+
+akshay@akshay:~/linux-system-administration-tasks$ ^C
+akshay@akshay:~/linux-system-administration-tasks$ sudo fdisk /dev/sdb`
+> ^C
+akshay@akshay:~/linux-system-administration-tasks$ sudo fdisk /dev/sdb
+
+Welcome to fdisk (util-linux 2.39.3).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+
+Command (m for help): o
+Created a new DOS (MBR) disklabel with disk identifier 0x3e0a8130.
+
+Command (m for help): n
+Partition type
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended (container for logical partitions)
+Select (default p): 1
+Value out of range.
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended (container for logical partitions)
+Select (default p):
+
+Using default response p.
+Partition number (1-4, default 1): +1G
+Value out of range.
+Partition number (1-4, default 1): w
+Value out of range.
+Partition number (1-4, default 1):
+Command (m for help):
+All unwritten changes will be lost, do you really want to quit? (y/n)y
+
+akshay@akshay:~/linux-system-administration-tasks$ sudo fdisk /dev/sdb
+
+Welcome to fdisk (util-linux 2.39.3).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+
+Command (m for help): o
+Created a new DOS (MBR) disklabel with disk identifier 0xfe335a86.
+
+Command (m for help): n
+Partition type
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended (container for logical partitions)
+Select (default p): p
+Partition number (1-4, default 1): 1
+First sector (2048-10485759, default 2048):
+Last sector, +/-sectors or +/-size{K,M,G,T,P} (2048-10485759, default 10485759): +1G
+
+Created a new partition 1 of type 'Linux' and of size 1 GiB.
+
+Command (m for help): p
+Disk /dev/sdb: 5 GiB, 5368709120 bytes, 10485760 sectors
+Disk model: VBOX HARDDISK
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0xfe335a86
+
+Device     Boot Start     End Sectors Size Id Type
+/dev/sdb1        2048 2099199 2097152   1G 83 Linux
+
+Command (m for help): w
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks.
+
+akshay@akshay:~/linux-system-administration-tasks$ lsblk /dev/sdb
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINTS
+sdb      8:16   0   5G  0 disk
+└─sdb1   8:17   0   1G  0 part
+akshay@akshay:~/linux-system-administration-tasks$ sudo apt update
+sudo apt install dosfstools -y
+Hit:1 http://mirrors.edge.kernel.org/ubuntu noble InRelease
+Get:2 http://mirrors.edge.kernel.org/ubuntu noble-updates InRelease [126 kB]
+Get:3 http://mirrors.edge.kernel.org/ubuntu noble-backports InRelease [126 kB]
+Get:4 http://mirrors.edge.kernel.org/ubuntu noble-security InRelease [126 kB]
+Get:5 http://mirrors.edge.kernel.org/ubuntu noble-updates/main amd64 Components [180 kB]
+Get:6 http://mirrors.edge.kernel.org/ubuntu noble-updates/universe amd64 Packages [1,680 kB]
+Get:7 http://mirrors.edge.kernel.org/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:8 http://mirrors.edge.kernel.org/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:9 http://mirrors.edge.kernel.org/ubuntu noble-backports/main amd64 Components [5,764 B]
+Get:10 http://mirrors.edge.kernel.org/ubuntu noble-backports/universe amd64 Packages [31.0 kB]
+Get:11 http://mirrors.edge.kernel.org/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+Get:12 http://mirrors.edge.kernel.org/ubuntu noble-security/main amd64 Packages [897 kB]
+Get:13 http://mirrors.edge.kernel.org/ubuntu noble-security/main amd64 Components [46.3 kB]
+Get:14 http://mirrors.edge.kernel.org/ubuntu noble-security/universe amd64 Packages [1,199 kB]
+Ign:14 http://mirrors.edge.kernel.org/ubuntu noble-security/universe amd64 Packages
+Get:15 http://mirrors.edge.kernel.org/ubuntu noble-security/universe amd64 Components [76.3 kB]
+Get:14 http://mirrors.edge.kernel.org/ubuntu noble-security/universe amd64 Packages [1,199 kB]
+Fetched 3,748 kB in 1min 9s (54.4 kB/s)
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+51 packages can be upgraded. Run 'apt list --upgradable' to see them.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+dosfstools is already the newest version (4.2-1.1build1).
+dosfstools set to manually installed.
+0 upgraded, 0 newly installed, 0 to remove and 51 not upgraded.
+akshay@akshay:~/linux-system-administration-tasks$ sudo mkfs.vfat /dev/sdb1
+mkfs.fat 4.2 (2021-01-31)
+akshay@akshay:~/linux-system-administration-tasks$ sudo mkdir -p /mnt/songs
+akshay@akshay:~/linux-system-administration-tasks$ sudo mount /dev/sdb1 /mnt/songs
+akshay@akshay:~/linux-system-administration-tasks$ df -h | grep songs
+/dev/sdb1                         1022M  4.0K 1022M   1% /mnt/songs
+akshay@akshay:~/linux-system-administration-tasks$ sudo blkid /dev/sdb1
+/dev/sdb1: UUID="251E-A27A" BLOCK_SIZE="512" TYPE="vfat" PARTUUID="fe335a86-01"
+akshay@akshay:~/linux-system-administration-tasks$ ^C
+akshay@akshay:~/linux-system-administration-tasks$ sudo nano /etc/fstab
+akshay@akshay:~/linux-system-administration-tasks$ ^C
+akshay@akshay:~/linux-system-administration-tasks$ sudo nano /etc/fstab
+akshay@akshay:~/linux-system-administration-tasks$ sudo umount /mnt/songs
+akshay@akshay:~/linux-system-administration-tasks$ sudo mount -a
+mount: (hint) your fstab has been modified, but systemd still uses
+       the old version; use 'systemctl daemon-reload' to reload.
+akshay@akshay:~/linux-system-administration-tasks$ df -h | grep songs
+/dev/sdb1                         1022M  4.0K 1022M   1% /mnt/songs
+akshay@akshay:~/linux-system-administration-tasks$ cat /etc/fstab | grep songs
+UUID=251E-A27A  /mnt/songs  vfat  defaults  0  0
+
+
+
+
