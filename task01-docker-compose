@@ -1,0 +1,841 @@
+LIGHT WIEGHT IMAGE PULL AND RUN TASKS
+
+STEP1 
+docker --version
+
+step2
+docker pull alpine:latest 
+
+step3 
+docker run -it --name alpine-test alpine sh
+
+step4 
+cat /etc/os-release
+
+step5 
+pwd 
+
+step6
+whoami 
+
+step7
+adduser name 
+
+OUTPUT
+
+akshay@akshay:~$ ls
+linux-system-administration-tasks  tasks
+akshay@akshay:~$ mkdir linmkdir docker-compose-tasks
+cd docker-compose-tasks
+akshay@akshay:~/docker-compose-tasks$ touch tasks
+akshay@akshay:~/docker-compose-tasks$ ls
+tasks
+akshay@akshay:~/docker-compose-tasks$ nano tasks
+akshay@akshay:~/docker-compose-tasks$ docker --version
+Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2
+akshay@akshay:~/docker-compose-tasks$ docker images
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+akshay@akshay:~/docker-compose-tasks$ sudo docker images
+[sudo] password for akshay:
+                                                                                                                      i Info →   U  In Use
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+akshay@akshay:~/docker-compose-tasks$ docker pull alpine:latest
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+akshay@akshay:~/docker-compose-tasks$ sudo docker pull alpine:latest
+latest: Pulling from library/alpine
+55afa1ecc21d: Pull complete
+f5124fb579e2: Download complete
+56dceff11b33: Download complete
+Digest: sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+Status: Downloaded newer image for alpine:latest
+docker.io/library/alpine:latest
+akshay@akshay:~/docker-compose-tasks$ Docker images
+Command 'Docker' not found, did you mean:
+  command 'docker' from deb docker.io (29.1.3-0ubuntu3~24.04.2)
+  command 'docker' from deb podman-docker (4.9.3+ds1-1ubuntu0.2)
+Try: sudo apt install <deb name>
+akshay@akshay:~/docker-compose-tasks$ docker images
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+akshay@akshay:~/docker-compose-tasks$ sudo docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE           ID             DISK USAGE   CONTENT SIZE   EXTRA
+alpine:latest   28bd5fe8b56d         13MB         3.93MB
+akshay@akshay:~/docker-compose-tasks$ docker run -it --name alpine-test alpine sh
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+akshay@akshay:~/docker-compose-tasks$ sudo su
+[sudo] password for akshay:
+root@akshay:/home/akshay/docker-compose-tasks# ls
+tasks
+root@akshay:/home/akshay/docker-compose-tasks# docker run -it --name alpine-test alpine sh
+/ # cat /etc/os-release
+NAME="Alpine Linux"
+ID=alpine
+VERSION_ID=3.24.1
+PRETTY_NAME="Alpine Linux v3.24"
+HOME_URL="https://alpinelinux.org/"
+BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"
+/ # pwd
+/
+/ # ls /
+bin    dev    etc    home   lib    media  mnt    opt    proc   root   run    sbin   srv    sys    tmp    usr    var
+/ # whoami
+root
+/ # adduser amal
+Changing password for amal
+New password:
+Bad password: too weak
+Retype password:
+passwd: password for amal changed by root
+/ # sudo su - amal
+sh: sudo: not found
+/ # cat /etc/passwd | grep akshay
+/ # whoami
+root
+/ # cat /etc/passwd | grep akshay
+
+
+BUSYBOX IMAGE
+
+
+Step 1: Pull BusyBox
+docker pull busybox:latest
+
+Step 2: Compare Image Sizes
+docker images
+
+Step 3: Run BusyBox Container
+docker run -it --name busybox-test busybox sh
+
+cat /etc/os-release
+busybox
+ls /
+whoami
+mkdir /lab
+echo "BusyBox Test" > /lab/test.txt
+cat /lab/test.txt
+adduser abhi
+
+
+OUTPUT 
+
+
+akshay@akshay:~/docker-compose-tasks$ docker images
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+akshay@akshay:~/docker-compose-tasks$ sudo docker images
+[sudo] password for akshay:
+                                                                                                                      i Info →   U  In Use
+IMAGE           ID             DISK USAGE   CONTENT SIZE   EXTRA
+alpine:latest   28bd5fe8b56d         13MB         3.93MB    U
+akshay@akshay:~/docker-compose-tasks$ docker pull busybox:latest
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+akshay@akshay:~/docker-compose-tasks$ ^C
+akshay@akshay:~/docker-compose-tasks$ groups
+akshay adm cdrom sudo dip plugdev lxd
+akshay@akshay:~/docker-compose-tasks$ sudo usermod -aG docker $USER
+akshay@akshay:~/docker-compose-tasks$ docker pull busybox:latest
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+akshay@akshay:~/docker-compose-tasks$ newgrp docker
+akshay@akshay:~/docker-compose-tasks$ groups
+docker adm cdrom sudo dip plugdev lxd akshay
+akshay@akshay:~/docker-compose-tasks$ docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE           ID             DISK USAGE   CONTENT SIZE   EXTRA
+alpine:latest   28bd5fe8b56d         13MB         3.93MB    U
+akshay@akshay:~/docker-compose-tasks$ docker pull busybox:latest
+latest: Pulling from library/busybox
+b05093807bb0: Pull complete
+7270b3e1860c: Download complete
+Digest: sha256:dc2d74b28e4cf8984fa52af1f39bc7c3d9c73760b41a74d629f5d11b1ab28616
+Status: Downloaded newer image for busybox:latest
+docker.io/library/busybox:latest
+akshay@akshay:~/docker-compose-tasks$ docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE            ID             DISK USAGE   CONTENT SIZE   EXTRA
+alpine:latest    28bd5fe8b56d         13MB         3.93MB    U
+busybox:latest   dc2d74b28e4c       6.81MB         2.23MB
+akshay@akshay:~/docker-compose-tasks$ docker run -it --name busybox-test busybox sh
+/ # cat /etc/os-release
+cat: can't open '/etc/os-release': No such file or directory
+/ # busybox
+BusyBox v1.38.0 (2026-05-13 02:21:49 UTC) multi-call binary.
+BusyBox is copyrighted by many authors between 1998-2015.
+Licensed under GPLv2. See source distribution for detailed
+copyright notices.
+
+Usage: busybox [function [arguments]...]
+   or: busybox --list[-full]
+   or: busybox --show SCRIPT
+   or: busybox --install [-s] [DIR]
+   or: function [arguments]...
+
+        BusyBox is a multi-call binary that combines many common Unix
+        utilities into a single executable.  Most people will create a
+        link to busybox for each function they wish to use and BusyBox
+        will act like whatever it was invoked as.
+
+Currently defined functions:
+        [, [[, acpid, add-shell, addgroup, adduser, adjtimex, ar, arch, arp, arping, ascii, ash, awk, base32, base64, basename, bc, beep,
+        blkdiscard, blkid, blockdev, bootchartd, brctl, bunzip2, bzcat, bzip2, cal, cat, chat, chattr, chgrp, chmod, chown, chpasswd,
+        chpst, chroot, chrt, chvt, cksum, clear, cmp, comm, conspy, cp, cpio, crc32, crond, crontab, cryptpw, cttyhack, cut, date, dc,
+        dd, deallocvt, delgroup, deluser, depmod, devmem, df, dhcprelay, diff, dirname, dmesg, dnsd, dnsdomainname, dos2unix, dpkg,
+        dpkg-deb, du, dumpkmap, dumpleases, echo, ed, egrep, eject, env, envdir, envuidgid, ether-wake, expand, expr, factor, fakeidentd,
+        fallocate, false, fatattr, fbset, fbsplash, fdflush, fdformat, fdisk, fgconsole, fgrep, find, findfs, flock, fold, free,
+        freeramdisk, fsck, fsck.minix, fsfreeze, fstrim, fsync, ftpd, ftpget, ftpput, fuser, getfattr, getopt, getty, grep, groups,
+        gunzip, gzip, halt, hd, hdparm, head, hexdump, hexedit, hostid, hostname, httpd, hush, hwclock, i2cdetect, i2cdump, i2cget,
+        i2cset, i2ctransfer, id, ifconfig, ifdown, ifenslave, ifplugd, ifup, inetd, init, inotifyd, insmod, install, ionice, iostat, ip,
+        ipaddr, ipcalc, ipcrm, ipcs, iplink, ipneigh, iproute, iprule, iptunnel, kbd_mode, kill, killall, killall5, klogd, last, less,
+        link, linux32, linux64, linuxrc, ln, loadfont, loadkmap, logger, login, logname, logread, losetup, lpd, lpq, lpr, ls, lsattr,
+        lsblk, lsmod, lsof, lspci, lsscsi, lsusb, lzcat, lzma, lzop, makedevs, makemime, man, md5sum, mdev, mesg, microcom, mim, mkdir,
+        mkdosfs, mke2fs, mkfifo, mkfs.ext2, mkfs.minix, mkfs.vfat, mknod, mkpasswd, mkswap, mktemp, modinfo, modprobe, more, mount,
+        mountpoint, mpstat, mt, mv, nameif, nanddump, nandwrite, nbd-client, nc, netstat, nice, nl, nmeter, nohup, nologin, nproc,
+        nsenter, nslookup, ntpd, od, openvt, partprobe, passwd, paste, patch, pgrep, pidof, ping, ping6, pipe_progress, pivot_root,
+        pkill, pmap, popmaildir, poweroff, powertop, printenv, printf, ps, pscan, pstree, pwd, pwdx, raidautorun, rdate, rdev, readahead,
+        readlink, readprofile, realpath, reboot, reformime, remove-shell, renice, reset, resize, resume, rev, rm, rmdir, rmmod, route,
+        rpm, rpm2cpio, rtcwake, run-init, run-parts, runlevel, runsv, runsvdir, rx, script, scriptreplay, sed, seedrng, sendmail, seq,
+        setarch, setconsole, setfattr, setfont, setkeycodes, setlogcons, setpriv, setserial, setsid, setuidgid, sh, sha1sum, sha256sum,
+        sha384sum, sha3sum, sha512sum, showkey, shred, shuf, slattach, sleep, smemcap, softlimit, sort, split, ssl_client, ssl_server,
+        start-stop-daemon, stat, strings, stty, su, sulogin, sum, sv, svc, svlogd, svok, swapoff, swapon, switch_root, sync, sysctl,
+        syslogd, tac, tail, tar, taskset, tc, tcpsvd, tee, telnet, telnetd, test, tftp, tftpd, time, timeout, top, touch, tr, traceroute,
+        traceroute6, tree, true, truncate, ts, tsort, tty, ttysize, tunctl, ubiattach, ubidetach, ubimkvol, ubirename, ubirmvol,
+        ubirsvol, ubiupdatevol, udhcpc, udhcpc6, udhcpd, udpsvd, uevent, umount, uname, unexpand, uniq, unix2dos, unlink, unlzma,
+        unshare, unxz, unzip, uptime, users, usleep, uudecode, uuencode, uuidgen, vconfig, vi, vlock, vmstat, volname, w, wall, watch,
+        watchdog, wc, wget, which, who, whoami, whois, xargs, xxd, xz, xzcat, yes, zcat, zcip
+/ # ls /
+bin    dev    etc    home   lib    lib64  proc   root   sys    tmp    usr    var
+/ # whoami
+root
+/ # mkdir /lab
+/ # ls /
+bin    dev    etc    home   lab    lib    lib64  proc   root   sys    tmp    usr    var
+/ # echo "BusyBox Test" > /lab/test.txt
+/ # cat /lab/test.txt
+BusyBox Test
+/ # adduser abhi
+Changing password for abhi
+New password:
+Bad password: too many similar characters
+Retype password:
+Passwords don't match
+passwd: password for abhi is unchanged
+/ # exit
+
+
+Nginx:alpine
+
+
+Step 1 - Pull Image
+docker pull nginx:alpine
+
+Step 2 - Check Image
+docker images
+
+Step 3 - Run Nginx Container
+docker run -d --name nginx-test -p 8080:80 nginx:alpine
+
+Step 4 - Verify Container
+docker ps
+
+Step 5 - Test Nginx
+curl localhost:8080
+
+Step 6 - Browser Test
+http://192.168.50.176:8080
+
+Step 7 - Enter the Container
+docker exec -it nginx-test sh
+
+Step 8 - Check Web Files
+ls /usr/share/nginx/html
+
+cat /usr/share/nginx/html/index.html
+
+Task: Customize the Website
+echo "<h1>Welcome to Akshay Docker Lab</h1>" > /usr/share/nginx/html/index.html
+
+OUTPUT
+
+
+akshay@akshay:~/docker-compose-tasks$ docker pull nginx:alpine
+alpine: Pulling from library/nginx
+139c372786b9: Download complete
+46519e7231d2: Pull complete
+62bec68d7c31: Pull complete
+3cd534fe98c6: Pull complete
+1223f016b4e4: Pull complete
+d0008c891db4: Pull complete
+46f977ee452f: Pull complete
+390dc935348d: Pull complete
+cd757d6c129e: Download complete
+Digest: sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752
+Status: Downloaded newer image for nginx:alpine
+docker.io/library/nginx:alpine
+akshay@akshay:~/docker-compose-tasks$ docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE            ID             DISK USAGE   CONTENT SIZE   EXTRA
+alpine:latest    28bd5fe8b56d         13MB         3.93MB    U
+busybox:latest   dc2d74b28e4c       6.81MB         2.23MB    U
+nginx:alpine     4a73073bd557       93.6MB           27MB
+akshay@akshay:~/docker-compose-tasks$ docker run -d --name nginx-test -p 8080:80 nginx:alpine
+780394222ed910269ec744d83404e4c8658d52c0118bbc1b97e70982d0deec5b
+akshay@akshay:~/docker-compose-tasks$ docker ps
+CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS          PORTS                                     NAMES
+780394222ed9   nginx:alpine   "/docker-entrypoint.…"   25 seconds ago   Up 24 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   nginx-test
+akshay@akshay:~/docker-compose-tasks$ curl localhost:8080
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, nginx is successfully installed and working.
+Further configuration is required for the web server, reverse proxy,
+API gateway, load balancer, content cache, or other features.</p>
+
+<p>For online documentation and support please refer to
+<a href="https://nginx.org/">nginx.org</a>.<br/>
+To engage with the community please visit
+<a href="https://community.nginx.org/">community.nginx.org</a>.<br/>
+For enterprise grade support, professional services, additional
+security features and capabilities please refer to
+<a href="https://f5.com/nginx">f5.com/nginx</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+akshay@akshay:~/docker-compose-tasks$ docker exec -it nginx-test sh
+/ # ls /usr/share/nginx/html
+50x.html    index.html
+/ # cat /usr/share/nginx/html/index.html
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, nginx is successfully installed and working.
+Further configuration is required for the web server, reverse proxy,
+API gateway, load balancer, content cache, or other features.</p>
+
+<p>For online documentation and support please refer to
+<a href="https://nginx.org/">nginx.org</a>.<br/>
+To engage with the community please visit
+<a href="https://community.nginx.org/">community.nginx.org</a>.<br/>
+For enterprise grade support, professional services, additional
+security features and capabilities please refer to
+<a href="https://f5.com/nginx">f5.com/nginx</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+/ # echo "<h1>Welcome to Akshay Docker Lab</h1>" > /usr/share/nginx/html/index.html
+/ # exit
+
+--------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------
+
+Task 2 - Custom Image Creation
+
+step1 
+nano Dockerfile
+
+inside 
+
+Dockerfile:
+
+FROM debian:12-slim
+
+RUN apt update && \
+    apt install -y nginx && \
+    useradd -m appuser && \
+    mkdir -p /app/data && \
+    echo "<h1>Welcome to My Project</h1>" > /app/data/index.html && \
+    cp /app/data/index.html /var/www/html/index.html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+
+step2 
+docker build -t project:v1 .
+
+step3
+docker images
+
+step4
+docker run -d --name project-test -p 8080:80 project:v1
+
+step5
+docker ps
+
+step6
+curl localhost:8080
+also checked browser 
+
+step7 
+docker exec -it project-test bash
+
+inside container verify 
+--------
+id appuser
+ls /home
+ls -R /app
+cat /var/www/html/index.html
+whoami
+hostname
+
+OUTPUT
+
+
+akshay@akshay:~$ cd docker-compose-tasks/
+akshay@akshay:~/docker-compose-tasks$ ls
+tasks
+akshay@akshay:~/docker-compose-tasks$ mkdir custom-image-lab
+akshay@akshay:~/docker-compose-tasks$ pwd
+/home/akshay/docker-compose-tasks
+akshay@akshay:~/docker-compose-tasks$ cd custom-image-lab/
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ pwd
+/home/akshay/docker-compose-tasks/custom-image-lab
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ nano Dockerfile
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ ls
+Dockerfile
+
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ docker build -t project:v1 .
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  2.048kB
+Step 1/4 : FROM debian:12-slim
+12-slim: Pulling from library/debian
+597c6c618d36: Pulling fs layer
+dd4c9b96e22e: Download complete
+597c6c618d36: Download complete
+597c6c618d36: Pull complete
+Digest: sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818
+Status: Downloaded newer image for debian:12-slim
+ ---> 7b140f374b28
+Step 2/4 : RUN apt-get update &&     apt-get install -y nginx &&     useradd -m appuser &&     mkdir -p /app/data &&     echo "<h1>Welcome to My Project</h1>" > /app/data/index.html &&     cp /app/data/index.html /var/www/html/index.html
+ ---> Running in 1d26b6ec17c6
+Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [34.8 kB]
+Ign:3 http://deb.debian.org/debian-security bookworm-security InRelease
+Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8790 kB]
+Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [6924 B]
+Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [34.8 kB]
+Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [321 kB]
+Fetched 9326 kB in 1min 14s (126 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  iproute2 krb5-locales libatm1 libbpf1 libbsd0 libcap2-bin libelf1
+  libgssapi-krb5-2 libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libmnl0
+  libpam-cap libssl3 libtirpc-common libtirpc3 libxtables12 nginx-common
+Suggested packages:
+  iproute2-doc python3:any krb5-doc krb5-user fcgiwrap nginx-doc ssl-cert
+The following NEW packages will be installed:
+  iproute2 krb5-locales libatm1 libbpf1 libbsd0 libcap2-bin libelf1
+  libgssapi-krb5-2 libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libmnl0
+  libpam-cap libssl3 libtirpc-common libtirpc3 libxtables12 nginx nginx-common
+0 upgraded, 20 newly installed, 0 to remove and 0 not upgraded.
+Need to get 5076 kB of archives.
+After this operation, 16.1 MB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian bookworm/main amd64 libelf1 amd64 0.188-2.1 [174 kB]
+Get:2 http://deb.debian.org/debian bookworm/main amd64 libbpf1 amd64 1:1.1.2-0+deb12u1 [145 kB]
+Get:3 http://deb.debian.org/debian bookworm/main amd64 libbsd0 amd64 0.11.7-2 [117 kB]
+Get:4 http://deb.debian.org/debian bookworm/main amd64 libmnl0 amd64 1.0.4-3 [12.5 kB]
+Get:5 http://deb.debian.org/debian bookworm/main amd64 libkrb5support0 amd64 1.20.1-2+deb12u5 [33.2 kB]
+Get:6 http://deb.debian.org/debian bookworm/main amd64 libk5crypto3 amd64 1.20.1-2+deb12u5 [79.7 kB]
+Get:7 http://deb.debian.org/debian bookworm/main amd64 libkeyutils1 amd64 1.6.3-2 [8808 B]
+Ign:7 http://deb.debian.org/debian bookworm/main amd64 libkeyutils1 amd64 1.6.3-2
+Ign:8 http://deb.debian.org/debian bookworm/main amd64 libssl3 amd64 3.0.20-1~deb12u2
+Get:9 http://deb.debian.org/debian bookworm/main amd64 libkrb5-3 amd64 1.20.1-2+deb12u5 [332 kB]
+Get:10 http://deb.debian.org/debian bookworm/main amd64 libgssapi-krb5-2 amd64 1.20.1-2+deb12u5 [135 kB]
+Get:11 http://deb.debian.org/debian bookworm/main amd64 libtirpc-common all 1.3.3+ds-1 [14.0 kB]
+Get:12 http://deb.debian.org/debian bookworm/main amd64 libtirpc3 amd64 1.3.3+ds-1 [85.2 kB]
+Get:13 http://deb.debian.org/debian bookworm/main amd64 libxtables12 amd64 1.8.9-2 [30.8 kB]
+Ign:13 http://deb.debian.org/debian bookworm/main amd64 libxtables12 amd64 1.8.9-2
+Get:14 http://deb.debian.org/debian bookworm/main amd64 libcap2-bin amd64 1:2.66-4+deb12u3+b1 [35.2 kB]
+Ign:15 http://deb.debian.org/debian bookworm/main amd64 iproute2 amd64 6.1.0-3
+Get:16 http://deb.debian.org/debian bookworm/main amd64 krb5-locales all 1.20.1-2+deb12u5 [63.5 kB]
+Get:17 http://deb.debian.org/debian bookworm/main amd64 libatm1 amd64 1:2.5.1-4+b2 [68.3 kB]
+Get:18 http://deb.debian.org/debian bookworm/main amd64 libpam-cap amd64 1:2.66-4+deb12u3+b1 [15.1 kB]
+Get:19 http://deb.debian.org/debian bookworm/main amd64 nginx-common all 1.22.1-9+deb12u9 [115 kB]
+Get:20 http://deb.debian.org/debian bookworm/main amd64 nginx amd64 1.22.1-9+deb12u9 [530 kB]
+Ign:20 http://deb.debian.org/debian bookworm/main amd64 nginx amd64 1.22.1-9+deb12u9
+Get:7 http://deb.debian.org/debian bookworm/main amd64 libkeyutils1 amd64 1.6.3-2 [8808 B]
+Get:8 http://deb.debian.org/debian bookworm/main amd64 libssl3 amd64 3.0.20-1~deb12u2 [2036 kB]
+Get:13 http://deb.debian.org/debian bookworm/main amd64 libxtables12 amd64 1.8.9-2 [30.8 kB]
+Get:15 http://deb.debian.org/debian bookworm/main amd64 iproute2 amd64 6.1.0-3 [1046 kB]
+
+Ign:15 http://deb.debian.org/debian bookworm/main amd64 iproute2 amd64 6.1.0-3
+Get:20 http://deb.debian.org/debian bookworm/main amd64 nginx amd64 1.22.1-9+deb12u9 [530 kB]
+Get:15 http://deb.debian.org/debian bookworm/main amd64 iproute2 amd64 6.1.0-3 [1046 kB]
+debconf: delaying package configuration, since apt-utils is not installed
+Fetched 4359 kB in 3min 33s (20.4 kB/s)
+Selecting previously unselected package libelf1:amd64.
+(Reading database ... 6096 files and directories currently installed.)
+Preparing to unpack .../00-libelf1_0.188-2.1_amd64.deb ...
+Unpacking libelf1:amd64 (0.188-2.1) ...
+Selecting previously unselected package libbpf1:amd64.
+Preparing to unpack .../01-libbpf1_1%3a1.1.2-0+deb12u1_amd64.deb ...
+Unpacking libbpf1:amd64 (1:1.1.2-0+deb12u1) ...
+Selecting previously unselected package libbsd0:amd64.
+Preparing to unpack .../02-libbsd0_0.11.7-2_amd64.deb ...
+Unpacking libbsd0:amd64 (0.11.7-2) ...
+Selecting previously unselected package libmnl0:amd64.
+Preparing to unpack .../03-libmnl0_1.0.4-3_amd64.deb ...
+Unpacking libmnl0:amd64 (1.0.4-3) ...
+Selecting previously unselected package libkrb5support0:amd64.
+Preparing to unpack .../04-libkrb5support0_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libkrb5support0:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libk5crypto3:amd64.
+Preparing to unpack .../05-libk5crypto3_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libk5crypto3:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libkeyutils1:amd64.
+Preparing to unpack .../06-libkeyutils1_1.6.3-2_amd64.deb ...
+Unpacking libkeyutils1:amd64 (1.6.3-2) ...
+Selecting previously unselected package libssl3:amd64.
+Preparing to unpack .../07-libssl3_3.0.20-1~deb12u2_amd64.deb ...
+Unpacking libssl3:amd64 (3.0.20-1~deb12u2) ...
+Selecting previously unselected package libkrb5-3:amd64.
+Preparing to unpack .../08-libkrb5-3_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libkrb5-3:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libgssapi-krb5-2:amd64.
+Preparing to unpack .../09-libgssapi-krb5-2_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libgssapi-krb5-2:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libtirpc-common.
+Preparing to unpack .../10-libtirpc-common_1.3.3+ds-1_all.deb ...
+Unpacking libtirpc-common (1.3.3+ds-1) ...
+Selecting previously unselected package libtirpc3:amd64.
+Preparing to unpack .../11-libtirpc3_1.3.3+ds-1_amd64.deb ...
+Unpacking libtirpc3:amd64 (1.3.3+ds-1) ...
+Selecting previously unselected package libxtables12:amd64.
+Preparing to unpack .../12-libxtables12_1.8.9-2_amd64.deb ...
+Unpacking libxtables12:amd64 (1.8.9-2) ...
+Selecting previously unselected package libcap2-bin.
+Preparing to unpack .../13-libcap2-bin_1%3a2.66-4+deb12u3+b1_amd64.deb ...
+Unpacking libcap2-bin (1:2.66-4+deb12u3+b1) ...
+Selecting previously unselected package iproute2.
+Preparing to unpack .../14-iproute2_6.1.0-3_amd64.deb ...
+Unpacking iproute2 (6.1.0-3) ...
+Selecting previously unselected package krb5-locales.
+Preparing to unpack .../15-krb5-locales_1.20.1-2+deb12u5_all.deb ...
+Unpacking krb5-locales (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libatm1:amd64.
+Preparing to unpack .../16-libatm1_1%3a2.5.1-4+b2_amd64.deb ...
+Unpacking libatm1:amd64 (1:2.5.1-4+b2) ...
+Selecting previously unselected package libpam-cap:amd64.
+Preparing to unpack .../17-libpam-cap_1%3a2.66-4+deb12u3+b1_amd64.deb ...
+Unpacking libpam-cap:amd64 (1:2.66-4+deb12u3+b1) ...
+Selecting previously unselected package nginx-common.
+Preparing to unpack .../18-nginx-common_1.22.1-9+deb12u9_all.deb ...
+Unpacking nginx-common (1.22.1-9+deb12u9) ...
+Selecting previously unselected package nginx.
+Preparing to unpack .../19-nginx_1.22.1-9+deb12u9_amd64.deb ...
+Unpacking nginx (1.22.1-9+deb12u9) ...
+Setting up libkeyutils1:amd64 (1.6.3-2) ...
+Setting up libtirpc-common (1.3.3+ds-1) ...
+Setting up libssl3:amd64 (3.0.20-1~deb12u2) ...
+Setting up nginx-common (1.22.1-9+deb12u9) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+Setting up krb5-locales (1.20.1-2+deb12u5) ...
+Setting up libatm1:amd64 (1:2.5.1-4+b2) ...
+Setting up libkrb5support0:amd64 (1.20.1-2+deb12u5) ...
+Setting up libcap2-bin (1:2.66-4+deb12u3+b1) ...
+Setting up libmnl0:amd64 (1.0.4-3) ...
+Setting up libk5crypto3:amd64 (1.20.1-2+deb12u5) ...
+Setting up libxtables12:amd64 (1.8.9-2) ...
+Setting up libkrb5-3:amd64 (1.20.1-2+deb12u5) ...
+Setting up libbsd0:amd64 (0.11.7-2) ...
+Setting up libelf1:amd64 (0.188-2.1) ...
+Setting up libpam-cap:amd64 (1:2.66-4+deb12u3+b1) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+Setting up libbpf1:amd64 (1:1.1.2-0+deb12u1) ...
+Setting up libgssapi-krb5-2:amd64 (1.20.1-2+deb12u5) ...
+Setting up libtirpc3:amd64 (1.3.3+ds-1) ...
+Setting up iproute2 (6.1.0-3) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+Setting up nginx (1.22.1-9+deb12u9) ...
+invoke-rc.d: could not determine current runlevel
+invoke-rc.d: policy-rc.d denied execution of start.
+Processing triggers for libc-bin (2.36-9+deb12u14) ...
+ ---> Removed intermediate container 1d26b6ec17c6
+ ---> b9c1ec5c9038
+Step 3/4 : EXPOSE 80
+ ---> Running in 10d7bfd8fce4
+ ---> Removed intermediate container 10d7bfd8fce4
+ ---> cd7a1eefbae4
+Step 4/4 : CMD ["nginx", "-g", "daemon off;"]
+ ---> Running in 18b228ef6588
+ ---> Removed intermediate container 18b228ef6588
+ ---> c8cf3d32565b
+Successfully built c8cf3d32565b
+Successfully tagged project:v1
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE            ID             DISK USAGE   CONTENT SIZE   EXTRA
+alpine:latest    28bd5fe8b56d         13MB         3.93MB    U
+busybox:latest   dc2d74b28e4c       6.81MB         2.23MB    U
+debian:12-slim   7b140f374b28        116MB         30.6MB
+nginx:alpine     4a73073bd557       93.6MB           27MB    U
+project:v1       c8cf3d32565b        171MB         49.5MB
+ubuntu:24.04     561618e2c15b        119MB         31.7MB    U
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ rm -rf ^C
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ rm -rf  561618e2c15b
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE            ID             DISK USAGE   CONTENT SIZE   EXTRA
+alpine:latest    28bd5fe8b56d         13MB         3.93MB    U
+busybox:latest   dc2d74b28e4c       6.81MB         2.23MB    U
+debian:12-slim   7b140f374b28        116MB         30.6MB
+nginx:alpine     4a73073bd557       93.6MB           27MB    U
+project:v1       c8cf3d32565b        171MB         49.5MB
+ubuntu:24.04     561618e2c15b        119MB         31.7MB    U
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ docker run -d --name project-test -p 8080:80 project:v1
+b3dd338bcd608577f6571ab7b605ab0e084b9afbf0f3d2d751a00a8d82f712b8
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ curl localhost:8080
+<h1>Welcome to My Project</h1>
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS                  NAMES
+b3dd338bcd60   project:v1   "nginx -g 'daemon of…"   2 minutes ago   Up 2 minutes   0.0.0.0:8080->80/tcp   project-test
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ hostaname
+Command 'hostaname' not found, did you mean:
+  command 'hostname' from deb hostname (3.23+nmu1ubuntu1)
+Try: sudo apt install <deb name>
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ hostname
+akshay
+akshay@akshay:~/docker-compose-tasks/custom-image-lab$ docker exec -it project-test bash
+root@b3dd338bcd60:/# hostname
+b3dd338bcd60
+root@b3dd338bcd60:/# ls -R app
+app:
+data
+
+app/data:
+index.html
+root@b3dd338bcd60:/# cat /app/data/index.html
+<h1>Welcome to My Project</h1>
+root@b3dd338bcd60:/# id appuser
+uid=1000(appuser) gid=1000(appuser) groups=1000(appuser)
+root@b3dd338bcd60:/# ls/home
+bash: ls/home: No such file or directory
+root@b3dd338bcd60:/# ls /home
+appuser
+root@b3dd338bcd60:/# exit
+exit
+
+-----------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------
+image push to Dockerhub and pull to another vm 
+
+vm1
+
+step1 
+docker login 
+
+step2 
+docker images
+(find image)
+
+step3 
+docker push akshay852/project:v1
+
+vm2 
+
+step1
+docker login 
+
+step2 
+docker pull akshay852/project:v1
+
+step3 
+docker images
+
+step4
+docker run -d --name project-test -p 8080:80 akshay852/project:v1
+
+step5 
+curl localhost:8080
+
+step6
+docker exec -it project-test bash
+
+inside 
+id appuser
+ls -R /app
+ls /home
+ls -R /app
+cat /var/www/html/index.html
+
+
+OUTPUT
+
+VM1
+
+akshay@akshay:~/docker-compose-tasks$ docker login -u akshay852
+
+i Info → A Personal Access Token (PAT) can be used instead.
+         To create a PAT, visit https://app.docker.com/settings
+
+
+Password:
+Error response from daemon: Get "https://registry-1.docker.io/v2/": net/http: TLS handshake timeout
+akshay@akshay:~/docker-compose-tasks$ docker login -u akshay852
+
+i Info → A Personal Access Token (PAT) can be used instead.
+         To create a PAT, visit https://app.docker.com/settings
+
+
+Password:
+
+WARNING! Your credentials are stored unencrypted in '/home/akshay/.docker/config.json'.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/go/credential-store/
+
+Login Succeeded
+akshay@akshay:~/docker-compose-tasks$ docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE            ID             DISK USAGE   CONTENT SIZE   EXTRA
+alpine:latest    28bd5fe8b56d         13MB         3.93MB    U
+busybox:latest   dc2d74b28e4c       6.81MB         2.23MB    U
+debian:12-slim   7b140f374b28        116MB         30.6MB
+nginx:alpine     4a73073bd557       93.6MB           27MB    U
+project:v1       c8cf3d32565b        171MB         49.5MB    U
+ubuntu:24.04     561618e2c15b        119MB         31.7MB    U
+akshay@akshay:~/docker-compose-tasks$ docker tag project:v1 akshay852/project:v1
+akshay@akshay:~/docker-compose-tasks$ docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE                  ID             DISK USAGE   CONTENT SIZE   EXTRA
+akshay852/project:v1   c8cf3d32565b        171MB         49.5MB    U
+alpine:latest          28bd5fe8b56d         13MB         3.93MB    U
+busybox:latest         dc2d74b28e4c       6.81MB         2.23MB    U
+debian:12-slim         7b140f374b28        116MB         30.6MB
+nginx:alpine           4a73073bd557       93.6MB           27MB    U
+project:v1             c8cf3d32565b        171MB         49.5MB    U
+ubuntu:24.04           561618e2c15b        119MB         31.7MB    U
+akshay@akshay:~/docker-compose-tasks$ docker push akshay852/project:v1
+The push refers to repository [docker.io/akshay852/project]
+314e13f36eae: Waiting
+597c6c618d36: Waiting
+authentication required - access token has insufficient scopes
+akshay@akshay:~/docker-compose-tasks$ docker push akshay852/project:v1
+The push refers to repository [docker.io/akshay852/project]
+314e13f36eae: Waiting
+597c6c618d36: Waiting
+authentication required - access token has insufficient scopes
+akshay@akshay:~/docker-compose-tasks$ ^C
+akshay@akshay:~/docker-compose-tasks$ docker login -u akshay852
+
+i Info → A Personal Access Token (PAT) can be used instead.
+         To create a PAT, visit https://app.docker.com/settings
+
+
+Password:
+
+WARNING! Your credentials are stored unencrypted in '/home/akshay/.docker/config.json'.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/go/credential-store/
+
+Login Succeeded
+akshay@akshay:~/docker-compose-tasks$ docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE                  ID             DISK USAGE   CONTENT SIZE   EXTRA
+akshay852/project:v1   c8cf3d32565b        171MB         49.5MB    U
+alpine:latest          28bd5fe8b56d         13MB         3.93MB    U
+busybox:latest         dc2d74b28e4c       6.81MB         2.23MB    U
+debian:12-slim         7b140f374b28        116MB         30.6MB
+nginx:alpine           4a73073bd557       93.6MB           27MB    U
+project:v1             c8cf3d32565b        171MB         49.5MB    U
+ubuntu:24.04           561618e2c15b        119MB         31.7MB    U
+akshay@akshay:~/docker-compose-tasks$ docker push akshay852/project:v1
+The push refers to repository [docker.io/akshay852/project]
+597c6c618d36: Mounted from library/debian
+314e13f36eae: Pushed
+v1: digest: sha256:c8cf3d32565b77eb47f1a4943afd31f8d5224c8dce870e15221dacfa7deb60a6 size: 751
+akshay@akshay:~/docker-compose-tasks$ nano tasks
+
+
+
+VM2
+
+akshay@akshay-VirtualBox:~$ docker login
+
+USING WEB-BASED LOGIN
+
+i Info → To sign in with credentials on the command line, use 'docker login -u <username>'
+
+
+Your one-time device confirmation code is: SLRM-BLSG
+Press ENTER to open your browser or submit your device code here: https://login.docker.com/activate
+
+Waiting for authentication in the browser…
+^Clogin canceled
+akshay@akshay-VirtualBox:~$ docker login -u akshay852
+
+i Info → A Personal Access Token (PAT) can be used instead.
+         To create a PAT, visit https://app.docker.com/settings
+
+
+Password:
+
+WARNING! Your credentials are stored unencrypted in '/home/akshay/.docker/config.json'.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/go/credential-store/
+
+Login Succeeded
+akshay@akshay-VirtualBox:~$ sudo docker pull akshay852/project:v1
+v1: Pulling from akshay852/project
+314e13f36eae: Pull complete
+597c6c618d36: Pull complete
+Digest: sha256:c8cf3d32565b77eb47f1a4943afd31f8d5224c8dce870e15221dacfa7deb60a6
+Status: Downloaded newer image for akshay852/project:v1
+docker.io/akshay852/project:v1
+akshay@akshay-VirtualBox:~$ sudo docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE                  ID             DISK USAGE   CONTENT SIZE   EXTRA
+akshay852/project:v1   c8cf3d32565b        171MB         49.5MB
+akshay@akshay-VirtualBox:~$ docker exec -it project-test bash
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+akshay@akshay-VirtualBox:~$ sudo docker exec -it project-test bash
+root@8745a22ac1d5:/# id appuser
+ls -R /app
+uid=1000(appuser) gid=1000(appuser) groups=1000(appuser)
+/app:
+data
+
+/app/data:
+index.html
+root@8745a22ac1d5:/# cat /app/data/index.html
+<h1>Welcome to My Project</h1>
+
