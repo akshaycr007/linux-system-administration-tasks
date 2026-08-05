@@ -1,5 +1,7 @@
 requirement-1
 -----------------------
+Configure the secondary 50 GB disk (/dev/sdb) by creating a 30 GB LVM partition, formatting it with ext4, and mounting it at /myhome with persistent mounting across reboots.
+
 step1 
 sudo fdisk /dev/sdb
 
@@ -198,6 +200,45 @@ mount: (hint) your fstab has been modified, but systemd still uses
 ubuntu@tsb-dev-playground:~$ df -h | grep myhome
 /dev/mapper/myhome_vg-myhome_lv   30G   24K   28G   1% /myhome
 
+-------------
+Create a user named appuser with the home directory set to /myhome/appuser, ensuring the directory is created with the correct ownership and permissions.Create a user named appuser with the home directory set to /myhome/appuser, ensuring the directory is created with the correct ownership and permissions.Create a user named appuser with the home directory set to /myhome/appuser, ensuring the directory is created with the correct ownership and permissions.
+
+step1 
+sudo useradd -m -d /myhome/appuser -s /bin/bash appuser
+
+step2
+sudo passwd appuser
+
+verification
+id appuser
+grep appuser /etc/passwd
+ls -ld /myhome/appuser
+su - appuser
+touch testfile
+ls
+rm testfile
+
+OUTPUT 
+
+ubuntu@tsb-dev-playground:~$ sudo useradd -m -d /myhome/appuser -s /bin/bash appuser
+[sudo] password for ubuntu:
+ubuntu@tsb-dev-playground:~$ sudo passwd appuser
+New password:
+Retype new password:
+passwd: password updated successfully
+ubuntu@tsb-dev-playground:~$ id appuser
+uid=1002(appuser) gid=1002(appuser) groups=1002(appuser)
+ubuntu@tsb-dev-playground:~$ grep appuser /etc/passwd
+appuser:x:1002:1002::/myhome/appuser:/bin/bash
+ubuntu@tsb-dev-playground:~$ ls -ld /myhome/appuser
+drwxr-x--- 2 appuser appuser 4096 Aug  5 10:21 /myhome/appuser
+ubuntu@tsb-dev-playground:~$ su - appuser
+Password:
+appuser@tsb-dev-playground:~$ touch testfile
+appuser@tsb-dev-playground:~$ ls
+testfile
+appuser@tsb-dev-playground:~$ rm testfile
+appuser@tsb-dev-playground:~$ ls
 
 
 
