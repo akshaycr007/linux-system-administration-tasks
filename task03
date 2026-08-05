@@ -240,6 +240,239 @@ testfile
 appuser@tsb-dev-playground:~$ rm testfile
 appuser@tsb-dev-playground:~$ ls
 
+------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------
+Requirement 2
+
+Create a custom Docker image for an NGINX web server with ngx_pagespeed, ModSecurity, PHP-FPM, and the OWASP Core Rule Set enabled.
+
+step1 
+docker --version
+
+step2
+sudo apt install -y docker.io 
+
+step3
+sudo systemctl start docker
+
+step4
+sudo systemctl enable docker 
+
+step5
+sudo systemctl status docker 
+
+step6 
+mkdir -p ~/custom-nginx-php/app
+cd ~/custom-nginx-php
+
+step7
+nano app/phpinfo.php
+
+<?php
+phpinfo();
+?>
+
+step8
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OUTPUT
+ubuntu@tsb-dev-playground:~$ docker --version
+Command 'docker' not found, but can be installed with:
+sudo snap install docker         # version 29.6.1, or
+sudo snap install docker         # version 29.3.1
+sudo apt  install docker.io      # version 29.1.3-0ubuntu3~24.04.2
+sudo apt  install podman-docker  # version 4.9.3+ds1-1ubuntu0.2
+See 'snap info <snapname>' for additional versions.
+ubuntu@tsb-dev-playground:~$ sudo apt update
+[sudo] password for ubuntu:
+Sorry, try again.
+[sudo] password for ubuntu:
+Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
+Get:2 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Get:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Hit:4 http://archive.ubuntu.com/ubuntu noble-backports InRelease
+Get:5 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [918 kB]
+Get:6 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1,181 kB]
+Get:7 http://security.ubuntu.com/ubuntu noble-security/main Translation-en [200 kB]
+Get:8 http://archive.ubuntu.com/ubuntu noble-updates/main Translation-en [281 kB]
+Get:9 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1,304 kB]
+Get:10 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1,410 kB]
+Get:11 http://security.ubuntu.com/ubuntu noble-security/restricted Translation-en [298 kB]
+Get:12 http://archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [320 kB]
+Get:13 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1,199 kB]
+Get:14 http://security.ubuntu.com/ubuntu noble-security/universe Translation-en [239 kB]
+Fetched 7,602 kB in 4s (1,994 kB/s)
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+52 packages can be upgraded. Run 'apt list --upgradable' to see them.
+ubuntu@tsb-dev-playground:~$ sudo apt install -y docker.io
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  bridge-utils containerd dns-root-data dnsmasq-base pigz runc ubuntu-fan
+Suggested packages:
+  ifupdown aufs-tools cgroupfs-mount | cgroup-lite debootstrap docker-buildx docker-compose-v2 docker-doc rinse zfs-fuse | zfsutils
+The following NEW packages will be installed:
+  bridge-utils containerd dns-root-data dnsmasq-base docker.io pigz runc ubuntu-fan
+0 upgraded, 8 newly installed, 0 to remove and 52 not upgraded.
+Need to get 73.8 MB of archives.
+After this operation, 279 MB of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu noble/universe amd64 pigz amd64 2.8-1 [65.6 kB]
+Get:2 http://archive.ubuntu.com/ubuntu noble/main amd64 bridge-utils amd64 1.7.1-1ubuntu2 [33.9 kB]
+Get:3 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 runc amd64 1.3.4-0ubuntu1~24.04.1 [9,574 kB]
+Get:4 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 containerd amd64 2.2.1-0ubuntu1~24.04.3 [28.1 MB]
+Get:5 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 dns-root-data all 2024071801~ubuntu0.24.04.1 [5,918 B]
+Get:6 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 dnsmasq-base amd64 2.90-2ubuntu0.4 [376 kB]
+Get:7 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 docker.io amd64 29.1.3-0ubuntu3~24.04.2 [35.6 MB]
+Get:8 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 ubuntu-fan all 0.12.16+24.04.1 [34.2 kB]
+Fetched 73.8 MB in 27s (2,759 kB/s)
+Preconfiguring packages ...
+Selecting previously unselected package pigz.
+(Reading database ... 90113 files and directories currently installed.)
+Preparing to unpack .../0-pigz_2.8-1_amd64.deb ...
+Unpacking pigz (2.8-1) ...
+Selecting previously unselected package bridge-utils.
+Preparing to unpack .../1-bridge-utils_1.7.1-1ubuntu2_amd64.deb ...
+Unpacking bridge-utils (1.7.1-1ubuntu2) ...
+Selecting previously unselected package runc.
+Preparing to unpack .../2-runc_1.3.4-0ubuntu1~24.04.1_amd64.deb ...
+Unpacking runc (1.3.4-0ubuntu1~24.04.1) ...
+Selecting previously unselected package containerd.
+Preparing to unpack .../3-containerd_2.2.1-0ubuntu1~24.04.3_amd64.deb ...
+Unpacking containerd (2.2.1-0ubuntu1~24.04.3) ...
+Selecting previously unselected package dns-root-data.
+Preparing to unpack .../4-dns-root-data_2024071801~ubuntu0.24.04.1_all.deb ...
+Unpacking dns-root-data (2024071801~ubuntu0.24.04.1) ...
+Selecting previously unselected package dnsmasq-base.
+Preparing to unpack .../5-dnsmasq-base_2.90-2ubuntu0.4_amd64.deb ...
+Unpacking dnsmasq-base (2.90-2ubuntu0.4) ...
+Selecting previously unselected package docker.io.
+Preparing to unpack .../6-docker.io_29.1.3-0ubuntu3~24.04.2_amd64.deb ...
+Unpacking docker.io (29.1.3-0ubuntu3~24.04.2) ...
+Selecting previously unselected package ubuntu-fan.
+Preparing to unpack .../7-ubuntu-fan_0.12.16+24.04.1_all.deb ...
+Unpacking ubuntu-fan (0.12.16+24.04.1) ...
+Setting up dnsmasq-base (2.90-2ubuntu0.4) ...
+Setting up runc (1.3.4-0ubuntu1~24.04.1) ...
+Setting up dns-root-data (2024071801~ubuntu0.24.04.1) ...
+Setting up bridge-utils (1.7.1-1ubuntu2) ...
+Setting up pigz (2.8-1) ...
+Setting up containerd (2.2.1-0ubuntu1~24.04.3) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/containerd.service → /usr/lib/systemd/system/containerd.service.
+Setting up ubuntu-fan (0.12.16+24.04.1) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/ubuntu-fan.service → /usr/lib/systemd/system/ubuntu-fan.service.
+Setting up docker.io (29.1.3-0ubuntu3~24.04.2) ...
+info: Selecting GID from range 100 to 999 ...
+info: Adding group `docker' (GID 110) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/docker.service → /usr/lib/systemd/system/docker.service.
+Created symlink /etc/systemd/system/sockets.target.wants/docker.socket → /usr/lib/systemd/system/docker.socket.
+Processing triggers for dbus (1.14.10-4ubuntu4.1) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+Scanning processes...
+Scanning linux images...
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-playground:~$ sudo systemctl enable docker
+ubuntu@tsb-dev-playground:~$ sudo systemctl start docker
+ubuntu@tsb-dev-playground:~$ sudo systemctl status docker
+● docker.service - Docker Application Container Engine
+     Loaded: loaded (/usr/lib/systemd/system/docker.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-08-05 12:02:58 UTC; 1min 0s ago
+TriggeredBy: ● docker.socket
+       Docs: https://docs.docker.com
+   Main PID: 118328 (dockerd)
+      Tasks: 9
+     Memory: 23.4M (peak: 23.6M)
+        CPU: 752ms
+     CGroup: /system.slice/docker.service
+             └─118328 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+
+Aug 05 12:02:57 tsb-dev-playground dockerd[118328]: time="2026-08-05T12:02:57.253493743Z" level=info msg="Restoring containers: start."
+Aug 05 12:02:57 tsb-dev-playground dockerd[118328]: time="2026-08-05T12:02:57.397032056Z" level=info msg="Deleting nftables IPv4 rules" e>
+Aug 05 12:02:57 tsb-dev-playground dockerd[118328]: time="2026-08-05T12:02:57.416858555Z" level=info msg="Deleting nftables IPv6 rules" e>
+Aug 05 12:02:58 tsb-dev-playground dockerd[118328]: time="2026-08-05T12:02:58.791300461Z" level=info msg="Loading containers: done."
+Aug 05 12:02:58 tsb-dev-playground dockerd[118328]: time="2026-08-05T12:02:58.835299882Z" level=info msg="Docker daemon" commit="29.1.3-0>
+Aug 05 12:02:58 tsb-dev-playground dockerd[118328]: time="2026-08-05T12:02:58.835691120Z" level=info msg="Initializing buildkit"
+Aug 05 12:02:58 tsb-dev-playground dockerd[118328]: time="2026-08-05T12:02:58.866985652Z" level=info msg="Completed buildkit initializati>
+Aug 05 12:02:58 tsb-dev-playground dockerd[118328]: time="2026-08-05T12:02:58.895503673Z" level=info msg="Daemon has completed initializa>
+Aug 05 12:02:58 tsb-dev-playground systemd[1]: Started docker.service - Docker Application Container Engine.
+Aug 05 12:02:58 tsb-dev-playground dockerd[118328]: time="2026-08-05T12:02:58.898957876Z" level=info msg="API listen on /run/docker.sock"
+lines 1-22/22 (END)
+ubuntu@tsb-dev-playground:~$ docker run --vesion
+unknown flag: --vesion
+
+Usage:  docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
+
+Run 'docker run --help' for more information
+ubuntu@tsb-dev-playground:~$ docker run --version
+unknown flag: --version
+
+Usage:  docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
+
+Run 'docker run --help' for more information
+ubuntu@tsb-dev-playground:~$ docker --version
+Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2
+ubuntu@tsb-dev-playground:~$ ping -c 2 google.com
+PING google.com (142.250.187.46) 56(84) bytes of data.
+64 bytes from pnfjra-ag-in-f14.1e100.net (142.250.187.46): icmp_seq=1 ttl=117 time=6.38 ms
+64 bytes from pnfjra-ag-in-f14.1e100.net (142.250.187.46): icmp_seq=2 ttl=117 time=6.19 ms
+
+--- google.com ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1001ms
+rtt min/avg/max/mdev = 6.189/6.283/6.377/0.094 ms
+ubuntu@tsb-dev-playground:~$ docker pull nginx
+Using default tag: latest
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+ubuntu@tsb-dev-playground:~$ sudo docker pull nginx
+[sudo] password for ubuntu:
+Using default tag: latest
+latest: Pulling from library/nginx
+5a4222b844e8: Pull complete
+26c307b5e35a: Pull complete
+3c55dc422a81: Pull complete
+d84ae7b21412: Pull complete
+c0df8d325117: Pull complete
+b8b80b9bc028: Pull complete
+f5de6e85ac74: Pull complete
+0f03cb4db0ef: Download complete
+92fcf0fc2ef2: Download complete
+Digest: sha256:640dee81b9ada2bf929ae17c2c7e88930f244216aa6418306226ce9bdc3271e6
+Status: Downloaded newer image for nginx:latest
+docker.io/library/nginx:latest
+ubuntu@tsb-dev-playground:~$ mkdir -p ~/custom-nginx-php/app
+cd ~/custom-nginx-php
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ nano app/phpinfo.php
+
+
 
 
 
