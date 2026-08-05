@@ -1,0 +1,24 @@
+Requirement-1:
+* Configure the secondary 50 GB disk (/dev/sdb) by creating a 30 GB LVM partition, formatting it with ext4, and mounting it at /myhome with persistent mounting across reboots.
+* Create a user named appuser with the home directory set to /myhome/appuser, ensuring the directory is created with the correct ownership and permissions.
+
+Requirement-2:
+* Create a custom Docker image for an NGINX web server with ngx_pagespeed, ModSecurity, PHP-FPM, and the OWASP Core Rule Set enabled.
+* Configure it to serve a sample PHP application with a phpinfo() page showing the loaded PHP modules.
+* Verify the NGINX modules using nginx -V, demonstrate that PageSpeed and ModSecurity are working
+
+Requirement-3:
+* The appuser should be able to run Docker commands without using sudo.
+* Run the container on server 172.30.7.144 and expose the application on port 7071 so it is accessible at http://172.30.7.144:7071.
+* execute Docker commands using the appuser account.
+
+Requirement-4:
+* Deploy PostgreSQL as a Docker container and store its persistent database data under: /myhome/appuser/postgresql-data
+* The PostgreSQL container and PHP application must communicate through a Docker network.
+
+Add-on: Sample PHP Application
+
+* Using the custom NGINX image, create a sample PHP application with the following pages:
+   create.php — Display a form to enter and save sample data into PostgreSQL.
+   list.php — Retrieve and display the saved records from PostgreSQL.
+* The application must validate user input, display appropriate success or error messages, and confirm that newly created records appear on the listing page.
