@@ -242,9 +242,14 @@ appuser@tsb-dev-playground:~$ ls
 
 ------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------
-Requirement 2
 
+Requirement 2
 Create a custom Docker image for an NGINX web server with ngx_pagespeed, ModSecurity, PHP-FPM, and the OWASP Core Rule Set enabled.
+Configure it to serve a sample PHP application with a phpinfo() page showing the loaded PHP modules.
+Verify the NGINX modules using nginx -V, demonstrate that PageSpeed and ModSecurity are working
+
+
+
 
 step1 
 docker --version
@@ -482,18 +487,6 @@ nginx -V 2>&1
 
 step37
 nginx -T 2>/dev/null | grep load_module
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 OUTPUT
