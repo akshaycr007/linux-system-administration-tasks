@@ -873,6 +873,111 @@ load_module modules/ngx_http_modsecurity_module.so;
 load_module modules/ngx_pagespeed_module.so;
 
 
+---------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------
 
 
+Requirement3
+
+The appuser should be able to run Docker commands without using sudo.
+Run the container on server 172.30.7.144 and expose the application on port 7071 so it is accessible at http://172.30.7.144:7071.
+execute Docker commands using the appuser account.
+
+
+step1
+getent group docker
+
+step2
+sudo usermod -aG docker appuser
+
+step3
+groups appuser
+
+step4
+su - appuser
+
+step5
+docker ps
+
+step6
+docker images
+
+step7
+docker ps -a 
+
+step8 
+docker run -d \
+  --name final-app \
+  -p 7071:80 \
+  php-image:v3
+
+
+step9
+docker ps
+
+step10 
+curl http://localhost:7071
+
+
+OUTPUT 
+
+ubuntu@tsb-dev-playground:~/linux-system-administration-tasks$ getent group docker
+docker:x:110:
+ubuntu@tsb-dev-playground:~/linux-system-administration-tasks$ cd ..
+ubuntu@tsb-dev-playground:~$ su - appuser
+Password:
+appuser@tsb-dev-playground:~$ exit
+logout
+ubuntu@tsb-dev-playground:~$ getent group docker
+docker:x:110:
+ubuntu@tsb-dev-playground:~$ sudo usermod -aG docker appuser
+[sudo] password for ubuntu:
+ubuntu@tsb-dev-playground:~$ groups appuser
+appuser : appuser docker
+ubuntu@tsb-dev-playground:~$ su - appuser
+Password:
+appuser@tsb-dev-playground:~$ whoami
+appuser
+appuser@tsb-dev-playground:~$ docker ps
+CONTAINER ID   IMAGE          COMMAND       CREATED       STATUS       PORTS                                     NAMES
+639c8fad1fea   php-image:v3   "/start.sh"   2 hours ago   Up 2 hours   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   php-test-v3
+appuser@tsb-dev-playground:~$ docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE          ID             DISK USAGE   CONTENT SIZE   EXTRA
+nginx:latest   640dee81b9ad        241MB           66MB
+php-image:v1   8508e2928f67        456MB          129MB    U
+php-image:v2   4c012cc2f362        456MB          129MB
+php-image:v3   38fabcfde351        464MB          131MB    U
+ubuntu:24.04   561618e2c15b        119MB         31.7MB
+appuser@tsb-dev-playground:~$ docker ps -a
+CONTAINER ID   IMAGE          COMMAND                  CREATED       STATUS                   PORTS                                     NAMES
+639c8fad1fea   php-image:v3   "/start.sh"              2 hours ago   Up 2 hours               0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   php-test-v3
+450f42856e3e   php-image:v1   "nginx -g 'daemon of…"   7 hours ago   Exited (0) 7 hours ago                                             test1
+appuser@tsb-dev-playground:~$ docker run -d \
+  --name final-app \
+  -p 7071:80 \
+  php-image:v3
+fa4cfce23ebc391f0431adf437baec5d1f4c4a31db8edd3c003bc38270d32952
+appuser@tsb-dev-playground:~$ docker ps
+CONTAINER ID   IMAGE          COMMAND       CREATED          STATUS          PORTS                                     NAMES
+fa4cfce23ebc   php-image:v3   "/start.sh"   13 seconds ago   Up 12 seconds   0.0.0.0:7071->80/tcp, [::]:7071->80/tcp   final-app
+639c8fad1fea   php-image:v3   "/start.sh"   2 hours ago      Up 2 hours      0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   php-test-v3
+appuser@tsb-dev-playground:~$ curl http://localhost:7071
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Akshay Demo Website</title>
+</head>
+<body>
+    <h1>Welcome to Akshay's Website</h1>
+
+    <p>Requirement 2 Demo Application</p>
+
+    <p>PHP is working successfully.</p>
+
+    <p>
+        <a href="phpinfo.php">View PHP Information</a>
+    </p>
+</body>
+</html>
 
