@@ -273,10 +273,181 @@ phpinfo();
 ?>
 
 step8
+nano app/index.php
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Akshay Demo Website</title>
+</head>
+<body>
+    <h1>Welcome to Akshay's Website</h1>
+
+    <p>Requirement 2 Demo Application</p>
+
+    <p>PHP is working successfully.</p>
+
+    <p>
+        <a href="phpinfo.php">View PHP Information</a>
+    </p>
+</body>
+</html>
 
 
+step9
+ls -l app
+
+step10
+ls -l app
+
+step11
+checking pacakages installed
+
+sudo docker run --rm ubuntu:24.04 bash -c "apt-get update >/dev/null 2>&1 && apt-cache search modsecurity"
+
+step12 
+Create NGINX PHP Configuration
+nano default.conf
+
+server {
+    listen 80;
+
+    root /var/www/html;
+    index index.php index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+    }
+}
 
 
+step12
+startup script 
+
+nano start.sh
+#!/bin/bash
+
+service php8.3-fpm start
+
+nginx -g "daemon off;"
+
+
+step13
+chmod +x start.sh
+
+step14
+creating a Dockerfile 
+
+nano Dockerfile 
+
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y \
+    nginx \
+    php-fpm \
+    curl \
+    wget \
+    unzip \
+    libnginx-mod-http-modsecurity \
+    modsecurity-crs
+
+COPY app/ /var/www/html/
+
+COPY default.conf /etc/nginx/sites-available/default
+
+COPY start.sh /start.sh
+ chmod +x /start.sh
+
+EXPOSE 80
+
+CMD ["/start.sh"]
+
+step15 
+build image
+
+sudo docker build -t php-image:v2 .
+
+step16 
+run container
+
+sudo docker run -d \
+--name php-test \
+-p 8080:80 \
+php-image:v2
+
+step17
+sudo docker ps
+
+step18
+sudo docker exec -it php-test ps aux
+
+step19
+sudo docker exec -it php-test bash
+
+step20
+dpkg -l | grep modsecurity
+Check whether ModSecurity and CRS packages are installed.
+
+step21
+nginx -T 2>/dev/null | grep -i modsecurity
+Check NGINX loaded ModSecurity module.
+
+step22
+grep "SecRuleEngine" /etc/nginx/modsecurity.conf
+Enable ModSecurity engine.
+
+step23
+cat /etc/nginx/sites-available/default
+
+modsecurity on;
+modsecurity_rules_file /etc/nginx/modsecurity.conf;
+
+using cat <<EOF>>
+
+step24
+nginx -t
+
+step25 
+nginx -s reload
+Reload NGINX so new ModSecurity configuration becomes active.
+
+step26
+nginx -T 2>/dev/null | grep -A2 -B2 modsecurity
+Final verification that NGINX is using ModSecurity.
+
+error trouble shooted  
+CRS rules were not loading
+step1
+ls -l /usr/share/modsecurity-crs/rules | head
+step2
+cat /usr/share/modsecurity-crs/owasp-crs.load
+
+step3
+cat > /etc/nginx/modsecurity_includes.conf <<'EOF'
+Include /etc/modsecurity/crs/crs-setup.conf
+Include /usr/share/modsecurity-crs/rules/*.conf
+EOF
+
+step4 
+nginx -t
+
+step5
+nginx -T 2>/dev/null | grep -A2 -B2 modsecurity
+
+---
+
+step27
+curl "http://localhost:8080/?id=1%27%20OR%201=1"
+
+step28 
 
 
 
@@ -471,7 +642,126 @@ docker.io/library/nginx:latest
 ubuntu@tsb-dev-playground:~$ mkdir -p ~/custom-nginx-php/app
 cd ~/custom-nginx-php
 ubuntu@tsb-dev-playground:~/custom-nginx-php$ nano app/phpinfo.php
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ ls
+phpinfo.php
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ cd ..
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ nano app/index.php
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ ls -l app
+total 8
+-rw-rw-r-- 1 ubuntu ubuntu 298 Aug  6 04:39 index.php
+-rw-rw-r-- 1 ubuntu ubuntu  20 Aug  5 12:31 phpinfo.php
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ nano default.conf
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ nano start.sh
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ chmod +x start.sh
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ nano Dockerfile
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ sudo docker build -t php-image:v2 .
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
 
+Sending build context to Docker daemon  6.656kB
+Step 1/9 : FROM ubuntu:24.04
+ ---> 561618e2c15b
+Step 2/9 : ENV DEBIAN_FRONTEND=noninteractive
+ ---> Using cache
+ ---> 2d1b751d3ec6
+Step 3/9 : RUN apt-get update &&     apt-get install -y     nginx     php-fpm     curl     wget     unzip     libnginx-mod-http-modsecurity     modsecurity-crs
+ ---> Using cache
+ ---> 15c548202097
+Step 4/9 : COPY app/ /var/www/html/
+ ---> Using cache
+ ---> 51ea3f706463
+Step 5/9 : COPY default.conf /etc/nginx/sites-available/default
+ ---> 52e8664e0468
+Step 6/9 : COPY start.sh /start.sh
+ ---> 1e6e47bcabda
+Step 7/9 : RUN chmod +x /start.sh
+ ---> Running in de0ceb177081
+ ---> Removed intermediate container de0ceb177081
+ ---> 1b99e51e6016
+Step 8/9 : EXPOSE 80
+ ---> Running in 39c096ca87e7
+ ---> Removed intermediate container 39c096ca87e7
+ ---> 0e6aa55df282
+Step 9/9 : CMD ["/start.sh"]
+ ---> Running in 721535e19624
+ ---> Removed intermediate container 721535e19624
+ ---> 4c012cc2f362
+Successfully built 4c012cc2f362
+Successfully tagged php-image:v2
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ sudo docker images
+                                                                                                                      i Info →   U  In Use
+IMAGE          ID             DISK USAGE   CONTENT SIZE   EXTRA
+nginx:latest   640dee81b9ad        241MB           66MB
+php-image:v1   8508e2928f67        456MB          129MB    U
+php-image:v2   4c012cc2f362        456MB          129MB
+ubuntu:24.04   561618e2c15b        119MB         31.7MB
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ sudo docker run -d \
+--name php-test \
+-p 8080:80 \
+php-image:v2
+0a5d201df017c9a2a1aa54fcc66041bdb62d851112d018433c01900c6dc2d956
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ sudo docker ps
+CONTAINER ID   IMAGE          COMMAND       CREATED          STATUS          PORTS                                     NAMES
+0a5d201df017   php-image:v2   "/start.sh"   17 seconds ago   Up 16 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   php-test
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ sudo docker exec -it php-test ps aux
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.1  0.0   4324  3544 ?        Ss   05:32   0:00 /bin/bash /start.sh
+root          17  0.0  0.1 203808  7000 ?        Ss   05:32   0:00 php-fpm: master process (/etc/php/8.3/fpm/php-fpm.conf)
+www-data      18  0.0  0.1 203808  6424 ?        S    05:32   0:00 php-fpm: pool www
+www-data      19  0.0  0.1 203808  6424 ?        S    05:32   0:00 php-fpm: pool www
+root          20  0.0  0.4  63468 16784 ?        S    05:32   0:00 nginx: master process nginx -g daemon off;
+www-data      21  0.0  0.1  63788  4368 ?        S    05:32   0:00 nginx: worker process
+www-data      22  0.0  0.1  63788  4284 ?        S    05:32   0:00 nginx: worker process
+root          23 66.6  0.1   7888  4060 pts/0    Rs+  05:32   0:00 ps aux
+root@0a5d201df017:/# cat /usr/share/modsecurity-crs/owasp-crs.load
+##
+## This file loads OWASP CRS's rules when the package is installed
+## It is Included by libapache2-mod-security2
+##
+Include /etc/modsecurity/crs/crs-setup.conf
+IncludeOptional /etc/modsecurity/crs/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf
+Include /usr/share/modsecurity-crs/rules/*.conf
+IncludeOptional /etc/modsecurity/crs/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf
+root@0a5d201df017:/# ^C
+root@0a5d201df017:/# ls -l /usr/share/modsecurity-crs
+total 12
+-rw-r--r--  1 root root  373 Oct  1  2023 owasp-crs.load
+drwxr-xr-x  2 root root 4096 Aug  6 05:01 rules
+drwxr-xr-x 11 root root 4096 Aug  6 05:01 util
+root@0a5d201df017:/# cat > /etc/nginx/modsecurity_includes.conf <<'EOF'
+Include /etc/modsecurity/crs/crs-setup.conf
+Include /usr/share/modsecurity-crs/rules/*.conf
+EOF
+root@0a5d201df017:/# cat /etc/nginx/modsecurity_includes.conf
+Include /etc/modsecurity/crs/crs-setup.conf
+Include /usr/share/modsecurity-crs/rules/*.conf
+root@0a5d201df017:/# nginx -t
+2026/08/06 07:57:40 [notice] 353#353: ModSecurity-nginx v1.0.3 (rules loaded inline/local/remote: 0/921/0)
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+root@0a5d201df017:/# ^C
+root@0a5d201df017:/# nginx -s reload
+2026/08/06 07:58:15 [notice] 354#354: ModSecurity-nginx v1.0.3 (rules loaded inline/local/remote: 0/921/0)
+2026/08/06 07:58:15 [notice] 354#354: signal process started
+root@0a5d201df017:/# exit
+exit
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ curl "http://localhost:8080/?id=1%27%20OR%201=1"
+<html>
+<head><title>403 Forbidden</title></head>
+<body>
+<center><h1>403 Forbidden</h1></center>
+<hr><center>nginx/1.24.0 (Ubuntu)</center>
+</body>
+</html>
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ curl "http://localhost:8080/?test=<script>alert(1)</script>"
+<html>
+<head><title>403 Forbidden</title></head>
+<body>
+<center><h1>403 Forbidden</h1></center>
+<hr><center>nginx/1.24.0 (Ubuntu)</center>
+</body>
+</html>
 
 
 
