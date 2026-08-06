@@ -448,9 +448,40 @@ step27
 curl "http://localhost:8080/?id=1%27%20OR%201=1"
 
 step28 
+sudo docker exec -it php-test bash
+
+step29
+curl -fsSL https://packages.modpagespeed.com/install.sh | sh
+
+step30
+apt install -y nginx-module-pagespeed
 
 
+step31
+ls -l /usr/lib/nginx/modules | grep page
 
+step32
+cat > /etc/nginx/conf.d/pagespeed.conf <<'EOF'
+pagespeed on;
+pagespeed FileCachePath /var/cache/ngx_pagespeed;
+EOF
+
+step33
+mkdir -p /var/cache/ngx_pagespeed
+
+step34
+nginx -t
+nginx -s reload
+
+
+step35
+curl -I http://localhost:8080
+
+step36
+nginx -V 2>&1
+
+step37
+nginx -T 2>/dev/null | grep load_module
 
 
 
@@ -762,6 +793,91 @@ ubuntu@tsb-dev-playground:~/custom-nginx-php$ curl "http://localhost:8080/?test=
 <hr><center>nginx/1.24.0 (Ubuntu)</center>
 </body>
 </html>
+root@639c8fad1fea:/# curl -fsSL https://packages.modpagespeed.com/install.sh | sh
+==> fetching signing key from https://packages.modpagespeed.com/pubkey.gpg
+==> writing /etc/apt/sources.list.d/modpagespeed.list
+==> apt-get update
+
+mod_pagespeed apt repository configured.
+
+Next:
+  Apache (1.15): sudo apt-get install mod-pagespeed
+  nginx (1.15):  sudo apt-get install nginx-module-pagespeed
+  nginx (2.0):   sudo apt-get install modpagespeed-2-nginx        # post-2.0 GA
+
+root@639c8fad1fea:/# apt-get install -y nginx-module-pagespeed
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following NEW packages will be installed:
+  nginx-module-pagespeed
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Need to get 15.9 MB of archives.
+After this operation, 62.1 MB of additional disk space will be used.
+Get:1 https://packages.modpagespeed.com/apt noble/main amd64 nginx-module-pagespeed amd64 1.15.0-r21~noble [15.9 MB]
+Fetched 15.9 MB in 5s (2915 kB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package nginx-module-pagespeed.
+(Reading database ... 8818 files and directories currently installed.)
+Preparing to unpack .../nginx-module-pagespeed_1.15.0-r21~noble_amd64.deb ...
+Unpacking nginx-module-pagespeed (1.15.0-r21~noble) ...
+Setting up nginx-module-pagespeed (1.15.0-r21~noble) ...
+root@639c8fad1fea:/# ls -l /usr/lib/nginx/modules | grep page
+-rw-r--r-- 1 root root 62053584 Aug  1 17:58 ngx_pagespeed_module.so
+root@639c8fad1fea:/# cat > /etc/nginx/conf.d/pagespeed.conf <<'EOF'
+pagespeed on;
+pagespeed FileCachePath /var/cache/ngx_pagespeed;
+EOF
+root@639c8fad1fea:/# mkdir -p /var/cache/ngx_pagespeed
+root@639c8fad1fea:/# cat /etc/nginx/conf.d/pagespeed.conf
+pagespeed on;
+pagespeed FileCachePath /var/cache/ngx_pagespeed;
+root@639c8fad1fea:/# nginx -t
+2026/08/06 10:34:58 [warn] 342#342: [ngx_pagespeed 1.15.0] PageSpeed optimization threads: 1 rewrite, 1 expensive rewrite (per server process). Could not determine how many server processes share this machine, so the minimum was used; set NumRewriteThreads and NumExpensiveRewriteThreads to choose the counts yourself. Effective CPU budget: 2 whole cores (limited by online CPUs).
+2026/08/06 10:34:58 [info] 342#342: pagespeed: rollback gzip, explicit configuration in /etc/nginx/nginx.conf:46
+2026/08/06 10:34:58 [notice] 342#342: ModSecurity-nginx v1.0.3 (rules loaded inline/local/remote: 0/921/0)
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+root@639c8fad1fea:/# nginx -s reload
+2026/08/06 10:35:06 [warn] 347#347: [ngx_pagespeed 1.15.0] PageSpeed optimization threads: 1 rewrite, 1 expensive rewrite (per server process). Could not determine how many server processes share this machine, so the minimum was used; set NumRewriteThreads and NumExpensiveRewriteThreads to choose the counts yourself. Effective CPU budget: 2 whole cores (limited by online CPUs).
+2026/08/06 10:35:06 [notice] 347#347: ModSecurity-nginx v1.0.3 (rules loaded inline/local/remote: 0/921/0)
+2026/08/06 10:35:06 [notice] 347#347: signal process started
+root@639c8fad1fea:/# nginx -T 2>/dev/null | grep pagespeed
+# configuration file /etc/nginx/modules-enabled/50-mod-pagespeed.conf:
+# ngx_pagespeed dynamic module (We-Amp mod_pagespeed 1.15).
+load_module modules/ngx_pagespeed_module.so;
+# configuration file /etc/nginx/conf.d/pagespeed.conf:
+pagespeed on;
+pagespeed FileCachePath /var/cache/ngx_pagespeed;
+root@639c8fad1fea:/# exit
+exit
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ curl -I http://localhost:8080
+HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Content-Type: text/html; charset=UTF-8
+Connection: keep-alive
+Date: Thu, 06 Aug 2026 10:35:34 GMT
+X-Page-Speed: 1.15.0
+x-pagespeed-warn: unlicensed
+Cache-Control: max-age=0, no-cache
+
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ ^C
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ sudo docker exec -it php-test-v3 bash
+root@639c8fad1fea:/# nginx -V 2>&1
+nginx version: nginx/1.24.0 (Ubuntu)
+built with OpenSSL 3.0.13 30 Jan 2024
+TLS SNI support enabled
+configure arguments: --with-cc-opt='-g -O2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/build/nginx-HZGdE1/nginx-1.24.0=. -flto=auto -ffat-lto-objects -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -fdebug-prefix-map=/build/nginx-HZGdE1/nginx-1.24.0=/usr/src/nginx-1.24.0-2ubuntu7.15 -fPIC -Wdate-time -D_FORTIFY_SOURCE=3' --with-ld-opt='-Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -Wl,-z,relro -Wl,-z,now -fPIC' --prefix=/usr/share/nginx --conf-path=/etc/nginx/nginx.conf --http-log-path=/var/log/nginx/access.log --error-log-path=stderr --lock-path=/var/lock/nginx.lock --pid-path=/run/nginx.pid --modules-path=/usr/lib/nginx/modules --http-client-body-temp-path=/var/lib/nginx/body --http-fastcgi-temp-path=/var/lib/nginx/fastcgi --http-proxy-temp-path=/var/lib/nginx/proxy --http-scgi-temp-path=/var/lib/nginx/scgi --http-uwsgi-temp-path=/var/lib/nginx/uwsgi --with-compat --with-debug --with-pcre-jit --with-http_ssl_module --with-http_stub_status_module --with-http_realip_module --with-http_auth_request_module --with-http_v2_module --with-http_dav_module --with-http_slice_module --with-threads --with-http_addition_module --with-http_flv_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_mp4_module --with-http_random_index_module --with-http_secure_link_module --with-http_sub_module --with-mail_ssl_module --with-stream_ssl_module --with-stream_ssl_preread_module --with-stream_realip_module --with-http_geoip_module=dynamic --with-http_image_filter_module=dynamic --with-http_perl_module=dynamic --with-http_xslt_module=dynamic --with-mail=dynamic --with-stream=dynamic --with-stream_geoip_module=dynamic
+root@639c8fad1fea:/# nginx -V 2>&1 | grep -i modsecurity
+root@639c8fad1fea:/# nginx -V 2>&1 | grep -i modsecurity
+root@639c8fad1fea:/# nginx -V 2>&1 | grep -i page
+
+ubuntu@tsb-dev-playground:~/linux-system-administration-tasks$ sudo docker exec -it php-test-v3 bash
+[sudo] password for ubuntu:
+root@639c8fad1fea:/# nginx -T 2>/dev/null | grep load_module
+load_module modules/ndk_http_module.so;
+load_module modules/ngx_http_modsecurity_module.so;
+load_module modules/ngx_pagespeed_module.so;
 
 
 
