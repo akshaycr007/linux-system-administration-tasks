@@ -1303,3 +1303,280 @@ appdb=# \q
 root@fa4cfce23ebc:/# exit
 exit
 
+--------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------
+
+
+Add-on: Sample PHP Application
+
+* Using the custom NGINX image, create a sample PHP application with the following pages:
+   create.php — Display a form to enter and save sample data into PostgreSQL.
+   list.php — Retrieve and display the saved records from PostgreSQL.
+* The application must validate user input, display appropriate success or error messages, and confirm that newly created records appear on the listing page.
+
+
+
+
+
+
+step1
+sudo docker ps
+
+step2
+sudo docker exec -it postgres-db env | grep POSTGRES
+
+step3
+php -m | grep pgsql
+
+step4
+sudo docker exec -it final-app bash
+
+step5
+inside container
+docker restart final-app
+
+step6
+php -m | grep pgsql
+
+step7
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL
+);
+
+step8
+cd ~/custom-nginx-php/app
+
+step9
+cat > db.php << 'EOF'
+<?php
+
+$host = "postgres-db";
+$dbname = "appdb";
+$user = "admin";
+$password = "admin123";
+
+try {
+    $pdo = new PDO(
+        "pgsql:host=$host;dbname=$dbname",
+        $user,
+        $password
+    );
+
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+} catch (PDOException $e) {
+    die("Database Connection Failed: " . $e->getMessage());
+}
+?>
+EOF
+
+step10
+cat > testdb.php << 'EOF'
+<?php
+require 'db.php';
+echo "Database Connected Successfully";
+?>
+EOF
+
+step11
+http://SERVER-IP:7071/testdb.php
+
+step12
+nano create.php
+
+step13
+sudo docker cp ~/custom-nginx-php/app/create.php final-app:/var/www/html/
+
+step14
+sudo docker restart final-app
+
+step15
+nano list.php
+
+step16
+sudo docker cp ~/custom-nginx-php/app/list.php final-app:/var/www/html/
+
+step17
+sudo docker exec -it postgres-db psql -U admin -d appdb
+
+
+
+
+OUTPUT
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ sudo docker exec -it final-app bash
+[sudo] password for ubuntu:
+root@fa4cfce23ebc:/# apt update
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://archive.ubuntu.com/ubuntu noble InRelease
+Hit:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:4 http://archive.ubuntu.com/ubuntu noble-backports InRelease
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+All packages are up to date.
+root@fa4cfce23ebc:/# apt install -y php-pgsql
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  php8.3-pgsql
+The following NEW packages will be installed:
+  php-pgsql php8.3-pgsql
+0 upgraded, 2 newly installed, 0 to remove and 0 not upgraded.
+Need to get 64.4 kB of archives.
+After this operation, 241 kB of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 php8.3-pgsql amd64 8.3.6-0ubuntu0.24.04.10 [62.6 kB]
+Get:2 http://archive.ubuntu.com/ubuntu noble/main amd64 php-pgsql all 2:8.3+93ubuntu2 [1846 B]
+Fetched 64.4 kB in 1s (52.5 kB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package php8.3-pgsql.
+(Reading database ... 11134 files and directories currently installed.)
+Preparing to unpack .../php8.3-pgsql_8.3.6-0ubuntu0.24.04.10_amd64.deb ...
+Unpacking php8.3-pgsql (8.3.6-0ubuntu0.24.04.10) ...
+Selecting previously unselected package php-pgsql.
+Preparing to unpack .../php-pgsql_2%3a8.3+93ubuntu2_all.deb ...
+Unpacking php-pgsql (2:8.3+93ubuntu2) ...
+Setting up php8.3-pgsql (8.3.6-0ubuntu0.24.04.10) ...
+
+Creating config file /etc/php/8.3/mods-available/pgsql.ini with new version
+
+Creating config file /etc/php/8.3/mods-available/pdo_pgsql.ini with new version
+Setting up php-pgsql (2:8.3+93ubuntu2) ...
+Processing triggers for php8.3-fpm (8.3.6-0ubuntu0.24.04.10) ...
+invoke-rc.d: could not determine current runlevel
+invoke-rc.d: policy-rc.d denied execution of restart.
+Processing triggers for php8.3-cli (8.3.6-0ubuntu0.24.04.10) ...
+root@fa4cfce23ebc:/# php -m | grep pgsql
+pdo_pgsql
+pgsql
+root@fa4cfce23ebc:/# exit
+exit
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ ^C
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ sudo docker exec -it postgres-db psql -U admin -d appdb
+psql (16.14 (Debian 16.14-1.pgdg13+1))
+Type "help" for help.
+
+appdb=# CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL
+);
+CREATE TABLE
+appdb=# \d users
+                                    Table "public.users"
+ Column |          Type          | Collation | Nullable |              Default
+--------+------------------------+-----------+----------+-----------------------------------
+ id     | integer                |           | not null | nextval('users_id_seq'::regclass)
+ name   | character varying(100) |           | not null |
+ email  | character varying(100) |           | not null |
+Indexes:
+    "users_pkey" PRIMARY KEY, btree (id)
+
+appdb=# \q
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ sudo docker exec -it postgres-db psql -U admin -d appdb -c "\dt"
+       List of relations
+ Schema | Name  | Type  | Owner
+--------+-------+-------+-------
+ public | users | table | admin
+(1 row)
+
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ sudo docker exec -it final-app ls -l /var/www/html
+total 12
+-rw-r--r-- 1 root root 615 Aug  6 10:03 index.nginx-debian.html
+-rw-rw-r-- 1 root root 298 Aug  6 04:39 index.php
+-rw-rw-r-- 1 root root  20 Aug  5 12:31 phpinfo.php
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ ^C
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ sudo docker exec -it final-app bash
+root@fa4cfce23ebc:/# cd /var/www/html
+root@fa4cfce23ebc:/var/www/html# vi db.php
+bash: vi: command not found
+root@fa4cfce23ebc:/var/www/html# nano db.php
+bash: nano: command not found
+root@fa4cfce23ebc:/var/www/html# exit
+exit
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ ls
+app  default.conf  Dockerfile  start.sh
+ubuntu@tsb-dev-playground:~/custom-nginx-php$ cd app
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ ls
+index.php  phpinfo.php
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ cat > db.php << 'EOF'
+<?php
+
+$host = "postgres-db";
+$dbname = "appdb";
+$user = "admin";
+$password = "admin123";
+
+try {
+    $pdo = new PDO(
+        "pgsql:host=$host;dbname=$dbname",
+        $user,
+        $password
+    );
+
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+} catch (PDOException $e) {
+    die("Database Connection Failed: " . $e->getMessage());
+}
+?>
+EOF
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ cat > testdb.php << 'EOF'
+<?php
+require 'db.php';
+echo "Database Connected Successfully";
+?>
+EOF
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ sudo docker cp db.php final-app:/var/www/html/
+sudo docker cp testdb.php final-app:/var/www/html/
+Successfully copied 2.05kB to final-app:/var/www/html/
+Successfully copied 2.05kB to final-app:/var/www/html/
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ sudo docker exec -it final-app ls -l /var/www/html
+total 20
+-rw-rw-r-- 1 ubuntu ubuntu 362 Aug  7 11:05 db.php
+-rw-r--r-- 1 root   root   615 Aug  6 10:03 index.nginx-debian.html
+-rw-rw-r-- 1 root   root   298 Aug  6 04:39 index.php
+-rw-rw-r-- 1 root   root    20 Aug  5 12:31 phpinfo.php
+-rw-rw-r-- 1 ubuntu ubuntu  67 Aug  7 11:06 testdb.php
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ sudo docker exec -it final-app bash
+root@fa4cfce23ebc:/# php -m | grep pgsql
+pdo_pgsql
+pgsql
+root@fa4cfce23ebc:/# exit
+exit
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ sudo docker restart final-app
+final-app
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ nano create.php
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ sudo docker cp ~/custom-nginx-php/app/create.php final-app:/var/www/html/
+Successfully copied 3.07kB to final-app:/var/www/html/
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ sudo docker restart final-app
+final-app
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ sudo docker cp ~/custom-nginx-php/app/create.php final-app:/var/www/html/
+Successfully copied 3.07kB to final-app:/var/www/html/
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ ls
+create.php  db.php  index.php  phpinfo.php  testdb.php
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ nano list.php
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ sudo docker cp ~/custom-nginx-php/app/list.php final-app:/var/www/html/
+Successfully copied 2.56kB to final-app:/var/www/html/
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ sudo docker restart final-app
+final-app
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ sudo docker exec -it postgres-db psql -U admin -d appdb
+psql (16.14 (Debian 16.14-1.pgdg13+1))
+Type "help" for help.
+
+appdb=# SELECT * FROM users;
+ id |   name   |          email
+----+----------+--------------------------
+  1 | Akshay C | akshayakszz007@gmail.com
+  2 | manu     | manu07@gmail.com
+  3 | arun     | arun007@gmail.com
+(3 rows)
+
+appdb=# \q
+ubuntu@tsb-dev-playground:~/custom-nginx-php/app$ exit
+logout
+
+
+
