@@ -981,3 +981,325 @@ appuser@tsb-dev-playground:~$ curl http://localhost:7071
 </body>
 </html>
 
+
+---------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------
+
+	
+Requirement 4 
+
+Deploy PostgreSQL as a Docker container and store its persistent database data under: /myhome/appuser/postgresql-data
+The PostgreSQL container and PHP application must communicate through a Docker network.
+
+
+step1
+mkdir -p /myhome/appuser/postgresql-data
+
+step2 
+docker network create docker-network
+
+step3
+docker run -d \
+  --name postgres-db \
+  --network docker-network \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_PASSWORD=admin123 \
+  -e POSTGRES_DB=appdb \
+  -v /myhome/appuser/postgresql-data:/var/lib/postgresql/data \
+  postgres:16
+
+step4
+verify
+docker ps
+ls -la /myhome/appuser/postgresql-data
+
+step5
+docker network connect docker-network final-app
+
+step6
+docker network inspect docker-network
+
+step7
+docker exec -it final-app bash
+
+step8
+verify
+getent hosts postgres-db
+apt update
+apt install -y postgresql-client
+psql -h postgres-db -U admin -d appdb
+
+SELECT version();
+\q
+
+
+
+OUTPUT
+
+ubuntu@tsb-dev-playground:~$ ls
+custom-nginx-php  custom-nginx-php-backup  linux-system-administration-tasks  pagespeed-test  tasks
+ubuntu@tsb-dev-playground:~$ mkdir -p /myhome/appuser/postgresql-data
+mkdir: cannot create directory ‘/myhome/appuser’: Permission denied
+ubuntu@tsb-dev-playground:~$ sudo mkdir -p /myhome/appuser/postgresql-data
+[sudo] password for ubuntu:
+ubuntu@tsb-dev-playground:~$ ls -ld /myhome/appuser/postgresql-data
+ls: cannot access '/myhome/appuser/postgresql-data': Permission denied
+ubuntu@tsb-dev-playground:~$ sudo ls -ld /myhome/appuser/postgresql-data
+drwxr-xr-x 2 root root 4096 Aug  7 07:53 /myhome/appuser/postgresql-data
+ubuntu@tsb-dev-playground:~$ docker network create docker-network
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+ubuntu@tsb-dev-playground:~$ sudo docker network create docker-network
+36b0a991ba48f109c913c7ce8261f00e20b59e9dad90722aed18889acfd55da3
+ubuntu@tsb-dev-playground:~$ docker network ls
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+ubuntu@tsb-dev-playground:~$ sudo docker network ls
+NETWORK ID     NAME             DRIVER    SCOPE
+57c546636259   bridge           bridge    local
+36b0a991ba48   docker-network   bridge    local
+bc7be6816033   host             host      local
+c9ed5c882511   none             null      local
+ubuntu@tsb-dev-playground:~$ docker run -d \
+  --name postgres-db \
+  --network docker-network \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_PASSWORD=admin123 \
+  -e POSTGRES_DB=appdb \
+  -v /myhome/appuser/postgresql-data:/var/lib/postgresql/data \
+  postgres:16
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+ubuntu@tsb-dev-playground:~$ sudo docker run -d \
+  --name postgres-db \
+  --network docker-network \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_PASSWORD=admin123 \
+  -e POSTGRES_DB=appdb \
+  -v /myhome/appuser/postgresql-data:/var/lib/postgresql/data \
+  postgres:16
+[sudo] password for ubuntu:
+Unable to find image 'postgres:16' locally
+16: Pulling from library/postgres
+5d59b154e183: Pull complete
+bc896de4a313: Pull complete
+21b1510e6796: Pull complete
+1d943b076b0f: Pull complete
+c66dedc53722: Pull complete
+24ae71c6470d: Pull complete
+d015a9a5b43f: Pull complete
+5724f2481726: Pull complete
+6a61619bdfd1: Pull complete
+10e14a8b4766: Pull complete
+bc0701afb397: Pull complete
+0a30060dfa56: Pull complete
+572343b36a41: Pull complete
+90ca4e33e012: Download complete
+f4fc570126c2: Download complete
+Digest: sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b
+Status: Downloaded newer image for postgres:16
+3c06bec4273e8fa45fb1030ad5e3c6746fca344f90c5d8da96d5a94ca07760e9
+ubuntu@tsb-dev-playground:~$ sudo docker ps
+CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS          PORTS                                     NAMES
+3c06bec4273e   postgres:16    "docker-entrypoint.s…"   49 seconds ago   Up 47 seconds   5432/tcp                                  postgres-db
+fa4cfce23ebc   php-image:v3   "/start.sh"              21 hours ago     Up 21 hours     0.0.0.0:7071->80/tcp, [::]:7071->80/tcp   final-app
+639c8fad1fea   php-image:v3   "/start.sh"              23 hours ago     Up 23 hours     0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   php-test-v3
+ubuntu@tsb-dev-playground:~$ sudo ls -la /myhome/appuser/postgresql-data
+total 136
+drwx------ 19 dnsmasq root             4096 Aug  7 09:28 .
+drwxr-x---  4 appuser appuser          4096 Aug  7 07:53 ..
+drwx------  6 dnsmasq systemd-journal  4096 Aug  7 09:28 base
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:29 global
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_commit_ts
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_dynshmem
+-rw-------  1 dnsmasq systemd-journal  5743 Aug  7 09:28 pg_hba.conf
+-rw-------  1 dnsmasq systemd-journal  2640 Aug  7 09:28 pg_ident.conf
+drwx------  4 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_logical
+drwx------  4 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_multixact
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_notify
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_replslot
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_serial
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_snapshots
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_stat
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_stat_tmp
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_subtrans
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_tblspc
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_twophase
+-rw-------  1 dnsmasq systemd-journal     3 Aug  7 09:28 PG_VERSION
+drwx------  3 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_wal
+drwx------  2 dnsmasq systemd-journal  4096 Aug  7 09:28 pg_xact
+-rw-------  1 dnsmasq systemd-journal    88 Aug  7 09:28 postgresql.auto.conf
+-rw-------  1 dnsmasq systemd-journal 29950 Aug  7 09:28 postgresql.conf
+-rw-------  1 dnsmasq systemd-journal    36 Aug  7 09:28 postmaster.opts
+-rw-------  1 dnsmasq systemd-journal    94 Aug  7 09:28 postmaster.pid
+ubuntu@tsb-dev-playground:~$ sudo docker network connect docker-network final-app
+ubuntu@tsb-dev-playground:~$ docker network inspect docker-network
+[]
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+ubuntu@tsb-dev-playground:~$ sudo docker network inspect docker-network
+[
+    {
+        "Name": "docker-network",
+        "Id": "36b0a991ba48f109c913c7ce8261f00e20b59e9dad90722aed18889acfd55da3",
+        "Created": "2026-08-07T09:07:41.949023902Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv4": true,
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "IPRange": "",
+                    "Gateway": "172.18.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Options": {},
+        "Labels": {},
+        "Containers": {
+            "3c06bec4273e8fa45fb1030ad5e3c6746fca344f90c5d8da96d5a94ca07760e9": {
+                "Name": "postgres-db",
+                "EndpointID": "4f0c5876fb2430b6552636ddfc7dd604a51a6383765bddd2d494903eea58c246",
+                "MacAddress": "06:86:9d:c1:1b:e8",
+                "IPv4Address": "172.18.0.2/16",
+                "IPv6Address": ""
+            },
+            "fa4cfce23ebc391f0431adf437baec5d1f4c4a31db8edd3c003bc38270d32952": {
+                "Name": "final-app",
+                "EndpointID": "650bc8f1750236316ae3140831c21636ebe089d7e9d651062fe2206d8b41864f",
+                "MacAddress": "d2:56:b5:f1:36:7b",
+                "IPv4Address": "172.18.0.3/16",
+                "IPv6Address": ""
+            }
+        },
+        "Status": {
+            "IPAM": {
+                "Subnets": {
+                    "172.18.0.0/16": {
+                        "IPsInUse": 5,
+                        "DynamicIPsAvailable": 65531
+                    }
+                }
+            }
+        }
+    }
+]
+ubuntu@tsb-dev-playground:~$ docker exec -it final-app bash
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+ubuntu@tsb-dev-playground:~$ sudo docker exec -it final-app bash
+root@fa4cfce23ebc:/# getent hosts postgres-db
+172.18.0.2      postgres-db
+root@fa4cfce23ebc:/# apt upadte
+E: Invalid operation upadte
+root@fa4cfce23ebc:/# apt update
+Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
+Get:2 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Get:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:4 http://archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:5 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1643 kB]
+Get:6 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [1145 kB]
+Get:7 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [2140 kB]
+Get:8 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1470 kB]
+Fetched 6777 kB in 4s (1787 kB/s)
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+All packages are up to date.
+root@fa4cfce23ebc:/# apt install -y postgresql-client
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  libgdbm-compat4t64 libgdbm6t64 libperl5.38t64 libpq5 perl perl-modules-5.38 postgresql-client-16 postgresql-client-common
+Suggested packages:
+  gdbm-l10n perl-doc libterm-readline-gnu-perl | libterm-readline-perl-perl make libtap-harness-archive-perl postgresql-16
+  postgresql-doc-16
+The following NEW packages will be installed:
+  libgdbm-compat4t64 libgdbm6t64 libperl5.38t64 libpq5 perl perl-modules-5.38 postgresql-client postgresql-client-16
+  postgresql-client-common
+0 upgraded, 9 newly installed, 0 to remove and 0 not upgraded.
+Need to get 9753 kB of archives.
+After this operation, 55.4 MB of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 perl-modules-5.38 all 5.38.2-3.2ubuntu0.3 [3110 kB]
+Get:2 http://archive.ubuntu.com/ubuntu noble/main amd64 libgdbm6t64 amd64 1.23-5.1build1 [34.4 kB]
+Get:3 http://archive.ubuntu.com/ubuntu noble/main amd64 libgdbm-compat4t64 amd64 1.23-5.1build1 [6710 B]
+Get:4 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libperl5.38t64 amd64 5.38.2-3.2ubuntu0.3 [4876 kB]
+Get:5 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 perl amd64 5.38.2-3.2ubuntu0.3 [231 kB]
+Get:6 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libpq5 amd64 16.14-0ubuntu0.24.04.1 [147 kB]
+Get:7 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 postgresql-client-common all 257build1.1 [36.4 kB]
+Get:8 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 postgresql-client-16 amd64 16.14-0ubuntu0.24.04.1 [1300 kB]
+Get:9 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 postgresql-client all 16+257build1.1 [11.6 kB]
+Fetched 9753 kB in 3s (3607 kB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package perl-modules-5.38.
+(Reading database ... 8818 files and directories currently installed.)
+Preparing to unpack .../0-perl-modules-5.38_5.38.2-3.2ubuntu0.3_all.deb ...
+Unpacking perl-modules-5.38 (5.38.2-3.2ubuntu0.3) ...
+Selecting previously unselected package libgdbm6t64:amd64.
+Preparing to unpack .../1-libgdbm6t64_1.23-5.1build1_amd64.deb ...
+Unpacking libgdbm6t64:amd64 (1.23-5.1build1) ...
+Selecting previously unselected package libgdbm-compat4t64:amd64.
+Preparing to unpack .../2-libgdbm-compat4t64_1.23-5.1build1_amd64.deb ...
+Unpacking libgdbm-compat4t64:amd64 (1.23-5.1build1) ...
+Selecting previously unselected package libperl5.38t64:amd64.
+Preparing to unpack .../3-libperl5.38t64_5.38.2-3.2ubuntu0.3_amd64.deb ...
+Unpacking libperl5.38t64:amd64 (5.38.2-3.2ubuntu0.3) ...
+Selecting previously unselected package perl.
+Preparing to unpack .../4-perl_5.38.2-3.2ubuntu0.3_amd64.deb ...
+Unpacking perl (5.38.2-3.2ubuntu0.3) ...
+Selecting previously unselected package libpq5:amd64.
+Preparing to unpack .../5-libpq5_16.14-0ubuntu0.24.04.1_amd64.deb ...
+Unpacking libpq5:amd64 (16.14-0ubuntu0.24.04.1) ...
+Selecting previously unselected package postgresql-client-common.
+Preparing to unpack .../6-postgresql-client-common_257build1.1_all.deb ...
+Unpacking postgresql-client-common (257build1.1) ...
+Selecting previously unselected package postgresql-client-16.
+Preparing to unpack .../7-postgresql-client-16_16.14-0ubuntu0.24.04.1_amd64.deb ...
+Unpacking postgresql-client-16 (16.14-0ubuntu0.24.04.1) ...
+Selecting previously unselected package postgresql-client.
+Preparing to unpack .../8-postgresql-client_16+257build1.1_all.deb ...
+Unpacking postgresql-client (16+257build1.1) ...
+Setting up libgdbm6t64:amd64 (1.23-5.1build1) ...
+Setting up libgdbm-compat4t64:amd64 (1.23-5.1build1) ...
+Setting up libpq5:amd64 (16.14-0ubuntu0.24.04.1) ...
+Setting up perl-modules-5.38 (5.38.2-3.2ubuntu0.3) ...
+Setting up libperl5.38t64:amd64 (5.38.2-3.2ubuntu0.3) ...
+Setting up perl (5.38.2-3.2ubuntu0.3) ...
+Setting up postgresql-client-common (257build1.1) ...
+Setting up postgresql-client-16 (16.14-0ubuntu0.24.04.1) ...
+update-alternatives: using /usr/share/postgresql/16/man/man1/psql.1.gz to provide /usr/share/man/man1/psql.1.gz (psql.1.gz) in auto mode
+Setting up postgresql-client (16+257build1.1) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.8) ...
+root@fa4cfce23ebc:/# docker exec -it postgres-db env | grep POSTGRES
+bash: docker: command not found
+root@fa4cfce23ebc:/# exit
+exit
+ubuntu@tsb-dev-playground:~$ sudo docker exec -it postgres-db env | grep POSTGRES
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=admin123
+POSTGRES_DB=appdb
+ubuntu@tsb-dev-playground:~$ ^C
+ubuntu@tsb-dev-playground:~$ sudo docker exec -it final-app bash
+root@fa4cfce23ebc:/# psql -h postgres-db -U admin -d appdb
+Password for user admin:
+psql (16.14 (Ubuntu 16.14-0ubuntu0.24.04.1))
+Type "help" for help.
+
+appdb=# ^C
+appdb=# SELECT version();
+                                                       version
+----------------------------------------------------------------------------------------------------------------------
+ PostgreSQL 16.14 (Debian 16.14-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+(1 row)
+
+appdb=# \q
+root@fa4cfce23ebc:/# exit
+exit
+
