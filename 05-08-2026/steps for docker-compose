@@ -1,0 +1,286 @@
+Step 1
+
+```bash
+mkdir -p ~/docker-lab-images/image1-base
+cd ~/docker-lab-images/image1-base
+```
+
+Step 2
+
+```bash
+nano Dockerfile
+```
+
+Step 3
+
+```bash
+sudo docker build -t akshaybase:app1 .
+```
+
+Step 4
+
+```bash
+sudo docker run --rm akshaybase:app1 whoami
+```
+
+Step 5
+
+```bash
+mkdir -p ~/docker-lab-images/image2-requirement2
+cd ~/docker-lab-images/image2-requirement2
+```
+
+Step 6
+
+```bash
+cp -r ~/custom-nginx-php/app .
+cp ~/custom-nginx-php/default.conf .
+cp ~/custom-nginx-php/start.sh .
+```
+
+Step 7
+
+```bash
+nano Dockerfile
+```
+
+Step 8
+
+```bash
+sudo docker build -t akshayimage:app1 .
+```
+
+Step 9
+
+```bash
+sudo docker run --rm akshayimage:app1 ls -l /var/www/html
+```
+
+Step 10
+
+```bash
+sudo docker run -d --name akshayapp1 -p 9090:80 akshayimage:app1
+```
+
+Step 11
+
+```bash
+sudo docker ps
+```
+
+Step 12
+
+```bash
+sudo docker exec -it akshayapp1 nginx -T 2>/dev/null | grep -i modsecurity
+```
+
+Step 13
+
+```bash
+sudo docker exec -it akshayapp1 grep SecRuleEngine /etc/nginx/modsecurity.conf
+```
+
+Step 14
+
+```bash
+sudo docker exec -it akshayapp1 cat /etc/nginx/modsecurity_includes.conf
+```
+
+Step 15
+
+```bash
+sudo docker exec -it akshayapp1 ls -l /etc/modsecurity/crs/
+```
+
+Step 16
+
+```bash
+sudo docker exec -it akshayapp1 ls -l /usr/share/modsecurity-crs/rules/ | head
+```
+
+Step 17
+
+```bash
+sudo docker exec -it akshayapp1 nginx -t
+```
+
+Step 18
+
+```bash
+curl -i "http://localhost:9090/?id=1%27%20OR%201=1"
+```
+
+Step 19
+
+```bash
+sudo docker exec -it akshayapp1 tail -50 /var/log/nginx/modsec_audit.log
+```
+
+Step 20
+
+```bash
+sudo docker build --no-cache -t akshayimage:app1-fixed .
+```
+
+Step 21
+
+```bash
+sudo docker run -d --name akshayapp1 -p 9090:80 akshayimage:app1-fixed
+```
+
+Step 22
+
+```bash
+sudo docker login -u akshay852
+```
+
+Step 23
+
+```bash
+sudo docker tag akshayimage:app1-fixed akshay852/akshayimage:app1-fixed
+```
+
+Step 24
+
+```bash
+sudo docker push akshay852/akshayimage:app1-fixed
+```
+
+Step 25
+
+```bash
+sudo docker tag akshaybase:app1 akshay852/akshaybase:app1
+```
+
+Step 26
+
+```bash
+sudo docker push akshay852/akshaybase:app1
+```
+
+Step 27
+
+```bash
+mkdir -p ~/docker-lab-images/image3-requirement3
+cd ~/docker-lab-images/image3-requirement3
+```
+
+Step 28
+
+```bash
+nano Dockerfile
+```
+
+Step 29
+
+```bash
+sudo docker build -t akshayimage:app2 .
+```
+
+Step 30
+
+```bash
+sudo docker run -d --name akshayapp2 -p 7072:80 akshayimage:app2
+```
+
+Step 31
+
+```bash
+sudo docker tag akshayimage:app2 akshay852/akshayimage:app2
+```
+
+Step 32
+
+```bash
+sudo docker push akshay852/akshayimage:app2
+```
+
+Step 33
+
+```bash
+mkdir -p ~/docker-lab-images/image4-requirement4
+cd ~/docker-lab-images/image4-requirement4
+```
+
+Step 34
+
+```bash
+cp -r ~/docker-lab-images/image2-requirement2/app .
+cp ~/docker-lab-images/image2-requirement2/default.conf .
+cp ~/docker-lab-images/image2-requirement2/start.sh .
+```
+
+Step 35
+
+```bash
+cp ~/custom-nginx-php/app/db.php app/
+cp ~/custom-nginx-php/app/create.php app/
+cp ~/custom-nginx-php/app/list.php app/
+cp ~/custom-nginx-php/app/testdb.php app/
+```
+
+Step 36
+
+```bash
+nano Dockerfile
+```
+
+Step 37
+
+```bash
+sudo docker build -t akshayimage:app3 .
+```
+
+Step 38
+
+```bash
+sudo docker run --rm akshayimage:app3 php -m | grep pgsql
+```
+
+Step 39
+
+```bash
+sudo docker run --rm akshayimage:app3 ls -l /var/www/html
+```
+
+Step 40
+
+```bash
+sudo docker network ls
+```
+
+Step 41
+
+```bash
+sudo docker run -d --name akshayapp3 --network docker-network -p 9091:80 akshayimage:app3
+```
+
+Step 42
+
+```bash
+sudo docker exec -it akshayapp3 getent hosts postgres-db
+```
+
+Step 43
+
+```bash
+sudo docker exec -it akshayapp3 psql -h postgres-db -U admin -d appdb
+```
+
+Step 44
+
+```bash
+curl -i "http://localhost:9091/?id=1%27%20OR%201=1"
+```
+
+Step 45
+
+```bash
+sudo docker tag akshayimage:app3 akshay852/akshayimage:app3
+```
+
+Step 46
+
+```bash
+sudo docker push akshay852/akshayimage:app3
+```
