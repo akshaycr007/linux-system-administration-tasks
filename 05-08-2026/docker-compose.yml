@@ -1,0 +1,19 @@
+services:
+  app:
+    image: akshay852/akshayimage:app3
+    ports:
+      - "9091:80"
+    depends_on:
+      - postgres-db
+
+  postgres-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: appdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
