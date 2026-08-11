@@ -1,4 +1,4 @@
-```php
+
 <?php
 
 $host = "postgres-db";
@@ -19,5 +19,11 @@ try {
     die("Database Connection Failed: " . $e->getMessage());
 }
 
+$pdo->exec("
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL
+)
+");
 ?>
-```
