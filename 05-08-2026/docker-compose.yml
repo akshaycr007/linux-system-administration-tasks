@@ -1,22 +1,5 @@
 services:
 
-  base:
-    image: akshay852/akshaybase:app1
-    container_name: base-test
-    command: sleep infinity
-
-  requirement2:
-    image: akshay852/akshayimage:app1
-    container_name: requirement2-test
-    ports:
-      - "9090:80"
-
-  requirement3:
-    image: akshay852/akshayimage:app2
-    container_name: requirement3-test
-    ports:
-      - "7071:80"
-
   postgres-db:
     image: postgres:16
     container_name: postgres-db
@@ -27,9 +10,9 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
-  requirement4:
+  app:
     image: akshay852/akshayimage:app3
-    container_name: requirement4-test
+    container_name: app3-container
     ports:
       - "9091:80"
     depends_on:
