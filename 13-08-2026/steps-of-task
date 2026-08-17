@@ -123,12 +123,10 @@ http://devops-intern-app2.luluex.com/list.php
 -------------------
 
 REQUIRMENT
+
+devops-intern-app2.luluex.com should be accessible over HTTPS. We will share the required SSL certificate shortly.
+
 sudo nano /etc/nginx/sites-available/app3
-
-step21 
-
-
-
 server {
     listen 80;
     server_name devops-intern-app2.luluex.com;
@@ -160,6 +158,7 @@ sudo systectl start nginx
 ----------------------------
 
 REQUIREMENT
+Install and configure Jenkins on devops-intern-app2.luluex.com.
 
 step24
 sudo apt update
@@ -286,6 +285,8 @@ docker ps
 https://devops-intern-app2.luluex.com
 https://devops-intern-app2.luluex.com/create.php
 console output 
+
+
 
 
 

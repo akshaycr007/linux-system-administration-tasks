@@ -1,0 +1,22 @@
+services:
+
+  postgres-db:
+    image: postgres:16
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: appdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  app:
+    image: akshay852/akshayimage:app3
+    container_name: app3-container
+    ports:
+      - "9091:80"
+    depends_on:
+      - postgres-db
+
+volumes:
+  postgres-data:
