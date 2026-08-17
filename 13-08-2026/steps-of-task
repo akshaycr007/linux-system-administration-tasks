@@ -224,6 +224,69 @@ sudo systemctl restart nginx
 step36
 https://devops-intern-app2.luluex.com/jenkins
 
+Requirement 
+Configure Jenkins to build and deploy the app3 application on devops-intern-app2.luluex.com.
+The application deployment should be performed through the Jenkins pipeline instead of manually building and deploying the application.
+
+
+
+step37 
+cp ~/docker-compose.yml ~/linux-system-administration-tasks/
+
+step38
+cd ~/linux-system-administration-tasks
+
+git add docker-compose.yml
+git commit -m "Add docker compose deployment file"
+git push origin main
+
+
+step39
+open jenkins 
+New Item
+→ Pipeline
+
+app3-deploy
+
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Deploy App3') {
+            steps {
+                sh '''
+                cd /home/ubuntu
+
+                docker compose down
+                docker compose pull
+                docker compose up -d
+
+                docker ps
+                '''
+            }
+        }
+    }
+}
+
+step40
+sudo usermod -aG ubuntu jenkins
+
+step41
+sudo systemctl restart jenkins
+
+step42
+build now 
+
+step43
+
+Verification 
+docker ps
+
+https://devops-intern-app2.luluex.com
+https://devops-intern-app2.luluex.com/create.php
+console output 
+
 
 
 
@@ -1974,931 +2037,6 @@ X-Required-Permission: hudson.model.Hudson.Read
 X-Permission-Implied-By: hudson.security.Permission.GenericRead
 X-Permission-Implied-By: hudson.model.Hudson.Administer
 Transfer-Encoding: chunked
-
-ubuntu@tsb-dev-playground2:~$ curl -I http://localhost:8080/jenkins/
-HTTP/1.1 403 Forbidden
-Server: Jetty(12.1.8)
-Date: Fri, 14 Aug 2026 11:21:36 GMT
-X-Content-Type-Options: nosniff
-Reporting-Endpoints: content-security-policy: http://devops-intern-app2.luluex.com:8080/content-security-policy-reporting-endpoint/kRe-1SktcC-zoYf0oHjQelWMz7c5SY6M2jJ4jYAOl94=:YW5vbnltb3Vz::Lw==
-Content-Security-Policy-Report-Only: base-uri 'none'; default-src 'self'; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; script-src 'report-sample' 'self' usage.jenkins.io; style-src 'report-sample' 'self' 'unsafe-inline'; report-to content-security-policy; report-uri http://devops-intern-app2.luluex.com:8080/content-security-policy-reporting-endpoint/kRe-1SktcC-zoYf0oHjQelWMz7c5SY6M2jJ4jYAOl94=:YW5vbnltb3Vz::Lw==
-Set-Cookie: JSESSIONID.a2aa1dc7=node01klrak6fsyzpq1v3zm5ujxap921.node0; Path=/jenkins; HttpOnly; SameSite=Lax
-Expires: Thu, 01 Jan 1970 00:00:00 GMT
-Content-Type: text/html;charset=utf-8
-X-Hudson: 1.395
-X-Jenkins: 2.568.2
-X-Jenkins-Session: f13068f2
-X-You-Are-Authenticated-As: anonymous
-X-You-Are-In-Group-Disabled: JENKINS-39402: use -Dhudson.security.AccessDeniedException2.REPORT_GROUP_HEADERS=true or use /whoAmI to diagnose
-X-Required-Permission: hudson.model.Hudson.Read
-X-Permission-Implied-By: hudson.security.Permission.GenericRead
-X-Permission-Implied-By: hudson.model.Hudson.Administer
-Transfer-Encoding: chunked
-ubuntu@tsb-dev-playground2:~$ sudo apt update
-sudo apt install fontconfig openjdk-21-jre
-java -version
-Hit:1 https://download.docker.com/linux/ubuntu noble InRelease
-Hit:2 http://security.ubuntu.com/ubuntu noble-security InRelease
-Hit:3 http://archive.ubuntu.com/ubuntu noble InRelease
-Hit:4 http://archive.ubuntu.com/ubuntu noble-updates InRelease
-Hit:5 http://archive.ubuntu.com/ubuntu noble-backports InRelease
-Reading package lists... Done
-Building dependency tree... Done
-Reading state information... Done
-58 packages can be upgraded. Run 'apt list --upgradable' to see them.
-Reading package lists... Done
-Building dependency tree... Done
-Reading state information... Done
-The following packages were automatically installed and are no longer required:
-  bridge-utils dns-root-data dnsmasq-base ubuntu-fan
-Use 'sudo apt autoremove' to remove them.
-The following additional packages will be installed:
-  adwaita-icon-theme alsa-topology-conf alsa-ucm-conf at-spi2-common at-spi2-core ca-certificates-java dconf-gsettings-backend dconf-service
-  fonts-dejavu-extra gsettings-desktop-schemas gtk-update-icon-cache hicolor-icon-theme humanity-icon-theme java-common libasound2-data libasound2t64
-  libatk-bridge2.0-0t64 libatk-wrapper-java libatk-wrapper-java-jni libatk1.0-0t64 libatspi2.0-0t64 libavahi-client3 libavahi-common-data libavahi-common3
-  libcairo-gobject2 libcairo2 libcolord2 libcups2t64 libdatrie1 libdconf1 libdrm-amdgpu1 libdrm-intel1 libepoxy0 libgbm1 libgdk-pixbuf-2.0-0
-  libgdk-pixbuf2.0-bin libgdk-pixbuf2.0-common libgif7 libgl1 libgl1-mesa-dri libglvnd0 libglx-mesa0 libglx0 libgraphite2-3 libgtk-3-0t64 libgtk-3-bin
-  libgtk-3-common libharfbuzz0b libice6 liblcms2-2 libllvm20 libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0 libpciaccess0 libpcsclite1 libpixman-1-0
-  librsvg2-2 librsvg2-common libsm6 libthai-data libthai0 libvulkan1 libwayland-client0 libwayland-cursor0 libwayland-egl1 libx11-xcb1 libxaw7
-  libxcb-dri3-0 libxcb-glx0 libxcb-present0 libxcb-randr0 libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 libxcomposite1 libxcursor1
-  libxdamage1 libxfixes3 libxft2 libxi6 libxinerama1 libxkbfile1 libxmu6 libxrandr2 libxrender1 libxshmfence1 libxt6t64 libxtst6 libxv1 libxxf86dga1
-  libxxf86vm1 mesa-libgallium mesa-vulkan-drivers openjdk-21-jre-headless session-migration ubuntu-mono x11-common x11-utils
-Suggested packages:
-  default-jre alsa-utils libasound2-plugins colord cups-common gvfs liblcms2-utils pcscd librsvg2-bin libnss-mdns fonts-ipafont-gothic fonts-ipafont-mincho
-  fonts-wqy-microhei | fonts-wqy-zenhei fonts-indic mesa-utils
-Recommended packages:
-  luit
-The following NEW packages will be installed:
-  adwaita-icon-theme alsa-topology-conf alsa-ucm-conf at-spi2-common at-spi2-core ca-certificates-java dconf-gsettings-backend dconf-service fontconfig
-  fonts-dejavu-extra gsettings-desktop-schemas gtk-update-icon-cache hicolor-icon-theme humanity-icon-theme java-common libasound2-data libasound2t64
-  libatk-bridge2.0-0t64 libatk-wrapper-java libatk-wrapper-java-jni libatk1.0-0t64 libatspi2.0-0t64 libavahi-client3 libavahi-common-data libavahi-common3
-  libcairo-gobject2 libcairo2 libcolord2 libcups2t64 libdatrie1 libdconf1 libdrm-amdgpu1 libdrm-intel1 libepoxy0 libgbm1 libgdk-pixbuf-2.0-0
-  libgdk-pixbuf2.0-bin libgdk-pixbuf2.0-common libgif7 libgl1 libgl1-mesa-dri libglvnd0 libglx-mesa0 libglx0 libgraphite2-3 libgtk-3-0t64 libgtk-3-bin
-  libgtk-3-common libharfbuzz0b libice6 liblcms2-2 libllvm20 libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0 libpciaccess0 libpcsclite1 libpixman-1-0
-  librsvg2-2 librsvg2-common libsm6 libthai-data libthai0 libvulkan1 libwayland-client0 libwayland-cursor0 libwayland-egl1 libx11-xcb1 libxaw7
-  libxcb-dri3-0 libxcb-glx0 libxcb-present0 libxcb-randr0 libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 libxcomposite1 libxcursor1
-  libxdamage1 libxfixes3 libxft2 libxi6 libxinerama1 libxkbfile1 libxmu6 libxrandr2 libxrender1 libxshmfence1 libxt6t64 libxtst6 libxv1 libxxf86dga1
-  libxxf86vm1 mesa-libgallium mesa-vulkan-drivers openjdk-21-jre openjdk-21-jre-headless session-migration ubuntu-mono x11-common x11-utils
-0 upgraded, 103 newly installed, 0 to remove and 58 not upgraded.
-Need to get 122 MB of archives.
-After this operation, 580 MB of additional disk space will be used.
-Do you want to continue? [Y/n] y
-Get:1 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgdk-pixbuf2.0-common all 2.42.10+dfsg-3ubuntu3.3 [8,302 B]
-Get:2 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgdk-pixbuf-2.0-0 amd64 2.42.10+dfsg-3ubuntu3.3 [147 kB]
-Get:3 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 gtk-update-icon-cache amd64 3.24.41-4ubuntu1.3 [51.9 kB]
-Get:4 http://archive.ubuntu.com/ubuntu noble/main amd64 hicolor-icon-theme all 0.17-2 [9,976 B]
-Get:5 http://archive.ubuntu.com/ubuntu noble/main amd64 humanity-icon-theme all 0.6.16 [1,282 kB]
-Get:6 http://archive.ubuntu.com/ubuntu noble/main amd64 ubuntu-mono all 24.04-0ubuntu1 [151 kB]
-Get:7 http://archive.ubuntu.com/ubuntu noble/main amd64 adwaita-icon-theme all 46.0-1 [723 kB]
-Get:8 http://archive.ubuntu.com/ubuntu noble/main amd64 alsa-topology-conf all 1.2.5.1-2 [15.5 kB]
-Get:9 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libasound2-data all 1.2.11-1ubuntu0.3 [21.4 kB]
-Get:10 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libasound2t64 amd64 1.2.11-1ubuntu0.3 [398 kB]
-Get:11 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 alsa-ucm-conf all 1.2.10-1ubuntu5.14 [70.2 kB]
-Get:12 http://archive.ubuntu.com/ubuntu noble/main amd64 at-spi2-common all 2.52.0-1build1 [8,674 B]
-Get:13 http://archive.ubuntu.com/ubuntu noble/main amd64 libxi6 amd64 2:1.8.1-1build1 [32.4 kB]
-Get:14 http://archive.ubuntu.com/ubuntu noble/main amd64 libatspi2.0-0t64 amd64 2.52.0-1build1 [80.5 kB]
-Get:15 http://archive.ubuntu.com/ubuntu noble/main amd64 x11-common all 1:7.7+23ubuntu3 [21.7 kB]
-Get:16 http://archive.ubuntu.com/ubuntu noble/main amd64 libxtst6 amd64 2:1.2.3-1.1build1 [12.6 kB]
-Get:17 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libdconf1 amd64 0.40.0-4ubuntu0.1 [39.6 kB]
-Get:18 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 dconf-service amd64 0.40.0-4ubuntu0.1 [27.6 kB]
-Get:19 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 dconf-gsettings-backend amd64 0.40.0-4ubuntu0.1 [22.1 kB]
-Get:20 http://archive.ubuntu.com/ubuntu noble/main amd64 session-migration amd64 0.3.9build1 [9,034 B]
-Get:21 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 gsettings-desktop-schemas all 46.1-0ubuntu1 [35.6 kB]
-Get:22 http://archive.ubuntu.com/ubuntu noble/main amd64 at-spi2-core amd64 2.52.0-1build1 [56.6 kB]
-Get:23 http://archive.ubuntu.com/ubuntu noble/main amd64 ca-certificates-java all 20240118 [11.6 kB]
-Get:24 http://archive.ubuntu.com/ubuntu noble/main amd64 fontconfig amd64 2.15.0-1.1ubuntu2 [180 kB]
-Get:25 http://archive.ubuntu.com/ubuntu noble/main amd64 fonts-dejavu-extra all 2.37-8 [1,947 kB]
-Get:26 http://archive.ubuntu.com/ubuntu noble/main amd64 java-common all 0.75+exp1 [6,798 B]
-Get:27 http://archive.ubuntu.com/ubuntu noble/main amd64 libatk1.0-0t64 amd64 2.52.0-1build1 [55.3 kB]
-Get:28 http://archive.ubuntu.com/ubuntu noble/main amd64 libatk-bridge2.0-0t64 amd64 2.52.0-1build1 [66.0 kB]
-Get:29 http://archive.ubuntu.com/ubuntu noble/main amd64 libglvnd0 amd64 1.7.0-1build1 [69.6 kB]
-Get:30 http://archive.ubuntu.com/ubuntu noble/main amd64 libx11-xcb1 amd64 2:1.8.7-1build1 [7,800 B]
-Get:31 http://archive.ubuntu.com/ubuntu noble/main amd64 libxcb-dri3-0 amd64 1.15-1ubuntu2 [7,142 B]
-Get:32 http://archive.ubuntu.com/ubuntu noble/main amd64 libxcb-glx0 amd64 1.15-1ubuntu2 [24.8 kB]
-Get:33 http://archive.ubuntu.com/ubuntu noble/main amd64 libxcb-present0 amd64 1.15-1ubuntu2 [5,676 B]
-Get:34 http://archive.ubuntu.com/ubuntu noble/main amd64 libxcb-shm0 amd64 1.15-1ubuntu2 [5,756 B]
-Get:35 http://archive.ubuntu.com/ubuntu noble/main amd64 libxcb-xfixes0 amd64 1.15-1ubuntu2 [10.2 kB]
-Get:36 http://archive.ubuntu.com/ubuntu noble/main amd64 libxxf86vm1 amd64 1:1.1.4-1build4 [9,282 B]
-Get:37 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libdrm-amdgpu1 amd64 2.4.125-1ubuntu0.1~24.04.2 [21.4 kB]
-Get:38 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libpciaccess0 amd64 0.17-3ubuntu0.24.04.2 [18.9 kB]
-Get:39 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libdrm-intel1 amd64 2.4.125-1ubuntu0.1~24.04.2 [63.9 kB]
-Get:40 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libllvm20 amd64 1:20.1.2-0ubuntu1~24.04.3 [30.6 MB]
-Get:41 http://archive.ubuntu.com/ubuntu noble/main amd64 libxcb-randr0 amd64 1.15-1ubuntu2 [17.9 kB]
-Get:42 http://archive.ubuntu.com/ubuntu noble/main amd64 libxcb-sync1 amd64 1.15-1ubuntu2 [9,312 B]
-Get:43 http://archive.ubuntu.com/ubuntu noble/main amd64 libxshmfence1 amd64 1.3-1build5 [4,764 B]
-Get:44 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 mesa-libgallium amd64 25.2.8-0ubuntu0.24.04.2 [10.8 MB]
-Get:45 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgbm1 amd64 25.2.8-0ubuntu0.24.04.2 [34.2 kB]
-Get:46 http://archive.ubuntu.com/ubuntu noble/main amd64 libvulkan1 amd64 1.3.275.0-1build1 [142 kB]
-Get:47 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgl1-mesa-dri amd64 25.2.8-0ubuntu0.24.04.2 [37.9 kB]
-Get:48 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libglx-mesa0 amd64 25.2.8-0ubuntu0.24.04.2 [110 kB]
-Get:49 http://archive.ubuntu.com/ubuntu noble/main amd64 libglx0 amd64 1.7.0-1build1 [38.6 kB]
-Get:50 http://archive.ubuntu.com/ubuntu noble/main amd64 libgl1 amd64 1.7.0-1build1 [102 kB]
-Get:51 http://archive.ubuntu.com/ubuntu noble/main amd64 libice6 amd64 2:1.0.10-1build3 [41.4 kB]
-Get:52 http://archive.ubuntu.com/ubuntu noble/main amd64 libsm6 amd64 2:1.2.3-1build3 [15.7 kB]
-Get:53 http://archive.ubuntu.com/ubuntu noble/main amd64 libxt6t64 amd64 1:1.2.1-1.2build1 [171 kB]
-Get:54 http://archive.ubuntu.com/ubuntu noble/main amd64 libxmu6 amd64 2:1.1.3-3build2 [47.6 kB]
-Get:55 http://archive.ubuntu.com/ubuntu noble/main amd64 libxaw7 amd64 2:1.0.14-1build2 [187 kB]
-Get:56 http://archive.ubuntu.com/ubuntu noble/main amd64 libxcb-shape0 amd64 1.15-1ubuntu2 [6,100 B]
-Get:57 http://archive.ubuntu.com/ubuntu noble/main amd64 libxcomposite1 amd64 1:0.4.5-1build3 [6,320 B]
-Get:58 http://archive.ubuntu.com/ubuntu noble/main amd64 libxrender1 amd64 1:0.9.10-1.1build1 [19.0 kB]
-Get:59 http://archive.ubuntu.com/ubuntu noble/main amd64 libxft2 amd64 2.3.6-1build1 [45.3 kB]
-Get:60 http://archive.ubuntu.com/ubuntu noble/main amd64 libxinerama1 amd64 2:1.1.4-3build1 [6,396 B]
-Get:61 http://archive.ubuntu.com/ubuntu noble/main amd64 libxkbfile1 amd64 1:1.1.0-1build4 [70.0 kB]
-Get:62 http://archive.ubuntu.com/ubuntu noble/main amd64 libxrandr2 amd64 2:1.5.2-2build1 [19.7 kB]
-Get:63 http://archive.ubuntu.com/ubuntu noble/main amd64 libxv1 amd64 2:1.0.11-1.1build1 [10.7 kB]
-Get:64 http://archive.ubuntu.com/ubuntu noble/main amd64 libxxf86dga1 amd64 2:1.1.5-1build1 [11.6 kB]
-Get:65 http://archive.ubuntu.com/ubuntu noble/main amd64 x11-utils amd64 7.7+6build2 [189 kB]
-Get:66 http://archive.ubuntu.com/ubuntu noble/main amd64 libatk-wrapper-java all 0.40.0-3build2 [54.3 kB]
-Get:67 http://archive.ubuntu.com/ubuntu noble/main amd64 libatk-wrapper-java-jni amd64 0.40.0-3build2 [46.4 kB]
-Get:68 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libavahi-common-data amd64 0.8-13ubuntu6.2 [30.1 kB]
-Get:69 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libavahi-common3 amd64 0.8-13ubuntu6.2 [23.4 kB]
-Get:70 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libavahi-client3 amd64 0.8-13ubuntu6.2 [26.8 kB]
-Get:71 http://archive.ubuntu.com/ubuntu noble/main amd64 libpixman-1-0 amd64 0.42.2-1build1 [279 kB]
-Get:72 http://archive.ubuntu.com/ubuntu noble/main amd64 libxcb-render0 amd64 1.15-1ubuntu2 [16.2 kB]
-Get:73 http://archive.ubuntu.com/ubuntu noble/main amd64 libcairo2 amd64 1.18.0-3build1 [566 kB]
-Get:74 http://archive.ubuntu.com/ubuntu noble/main amd64 libcairo-gobject2 amd64 1.18.0-3build1 [127 kB]
-Get:75 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 liblcms2-2 amd64 2.14-2ubuntu0.1 [161 kB]
-Get:76 http://archive.ubuntu.com/ubuntu noble/main amd64 libcolord2 amd64 1.4.7-1build2 [149 kB]
-Get:77 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libcups2t64 amd64 2.4.7-1.2ubuntu7.14 [274 kB]
-Get:78 http://archive.ubuntu.com/ubuntu noble/main amd64 libdatrie1 amd64 0.2.13-3build1 [19.0 kB]
-Get:79 http://archive.ubuntu.com/ubuntu noble/main amd64 libepoxy0 amd64 1.5.10-1build1 [220 kB]
-Get:80 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgdk-pixbuf2.0-bin amd64 2.42.10+dfsg-3ubuntu3.3 [13.9 kB]
-Get:81 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgif7 amd64 5.2.2-1ubuntu1.2 [35.6 kB]
-Get:82 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgraphite2-3 amd64 1.3.14-2ubuntu0.24.04.1 [73.4 kB]
-Get:83 http://archive.ubuntu.com/ubuntu noble/main amd64 libharfbuzz0b amd64 8.3.0-2build2 [469 kB]
-Get:84 http://archive.ubuntu.com/ubuntu noble/main amd64 libthai-data all 0.1.29-2build1 [158 kB]
-Get:85 http://archive.ubuntu.com/ubuntu noble/main amd64 libthai0 amd64 0.1.29-2build1 [18.9 kB]
-Get:86 http://archive.ubuntu.com/ubuntu noble/main amd64 libpango-1.0-0 amd64 1.52.1+ds-1build1 [231 kB]
-Get:87 http://archive.ubuntu.com/ubuntu noble/main amd64 libpangoft2-1.0-0 amd64 1.52.1+ds-1build1 [42.5 kB]
-Get:88 http://archive.ubuntu.com/ubuntu noble/main amd64 libpangocairo-1.0-0 amd64 1.52.1+ds-1build1 [28.8 kB]
-Get:89 http://archive.ubuntu.com/ubuntu noble/main amd64 libwayland-client0 amd64 1.22.0-2.1build1 [26.4 kB]
-Get:90 http://archive.ubuntu.com/ubuntu noble/main amd64 libwayland-cursor0 amd64 1.22.0-2.1build1 [10.4 kB]
-Get:91 http://archive.ubuntu.com/ubuntu noble/main amd64 libwayland-egl1 amd64 1.22.0-2.1build1 [5,628 B]
-Get:92 http://archive.ubuntu.com/ubuntu noble/main amd64 libxfixes3 amd64 1:6.0.0-2build1 [10.8 kB]
-Get:93 http://archive.ubuntu.com/ubuntu noble/main amd64 libxcursor1 amd64 1:1.2.1-1build1 [20.7 kB]
-Get:94 http://archive.ubuntu.com/ubuntu noble/main amd64 libxdamage1 amd64 1:1.1.6-1build1 [6,150 B]
-Get:95 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgtk-3-common all 3.24.41-4ubuntu1.3 [1,426 kB]
-Get:96 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgtk-3-0t64 amd64 3.24.41-4ubuntu1.3 [2,913 kB]
-Get:97 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgtk-3-bin amd64 3.24.41-4ubuntu1.3 [73.9 kB]
-Get:98 http://archive.ubuntu.com/ubuntu noble/main amd64 libpcsclite1 amd64 2.0.3-1build1 [21.4 kB]
-Get:99 http://archive.ubuntu.com/ubuntu noble/main amd64 librsvg2-2 amd64 2.58.0+dfsg-1build1 [2,135 kB]
-Get:100 http://archive.ubuntu.com/ubuntu noble/main amd64 librsvg2-common amd64 2.58.0+dfsg-1build1 [11.8 kB]
-Get:101 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 mesa-vulkan-drivers amd64 25.2.8-0ubuntu0.24.04.2 [17.5 MB]
-Get:102 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 openjdk-21-jre-headless amd64 21.0.11+10-1~24.04.2 [46.5 MB]
-Get:103 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 openjdk-21-jre amd64 21.0.11+10-1~24.04.2 [232 kB]
-Fetched 122 MB in 19s (6,593 kB/s)
-Extracting templates from packages: 100%
-Selecting previously unselected package libgdk-pixbuf2.0-common.
-(Reading database ... 90743 files and directories currently installed.)
-Preparing to unpack .../000-libgdk-pixbuf2.0-common_2.42.10+dfsg-3ubuntu3.3_all.deb ...
-Unpacking libgdk-pixbuf2.0-common (2.42.10+dfsg-3ubuntu3.3) ...
-Selecting previously unselected package libgdk-pixbuf-2.0-0:amd64.
-Preparing to unpack .../001-libgdk-pixbuf-2.0-0_2.42.10+dfsg-3ubuntu3.3_amd64.deb ...
-Unpacking libgdk-pixbuf-2.0-0:amd64 (2.42.10+dfsg-3ubuntu3.3) ...
-Selecting previously unselected package gtk-update-icon-cache.
-Preparing to unpack .../002-gtk-update-icon-cache_3.24.41-4ubuntu1.3_amd64.deb ...
-Unpacking gtk-update-icon-cache (3.24.41-4ubuntu1.3) ...
-Selecting previously unselected package hicolor-icon-theme.
-Preparing to unpack .../003-hicolor-icon-theme_0.17-2_all.deb ...
-Unpacking hicolor-icon-theme (0.17-2) ...
-Selecting previously unselected package humanity-icon-theme.
-Preparing to unpack .../004-humanity-icon-theme_0.6.16_all.deb ...
-Unpacking humanity-icon-theme (0.6.16) ...
-Selecting previously unselected package ubuntu-mono.
-Preparing to unpack .../005-ubuntu-mono_24.04-0ubuntu1_all.deb ...
-Unpacking ubuntu-mono (24.04-0ubuntu1) ...
-Selecting previously unselected package adwaita-icon-theme.
-Preparing to unpack .../006-adwaita-icon-theme_46.0-1_all.deb ...
-Unpacking adwaita-icon-theme (46.0-1) ...
-Selecting previously unselected package alsa-topology-conf.
-Preparing to unpack .../007-alsa-topology-conf_1.2.5.1-2_all.deb ...
-Unpacking alsa-topology-conf (1.2.5.1-2) ...
-Selecting previously unselected package libasound2-data.
-Preparing to unpack .../008-libasound2-data_1.2.11-1ubuntu0.3_all.deb ...
-Unpacking libasound2-data (1.2.11-1ubuntu0.3) ...
-Selecting previously unselected package libasound2t64:amd64.
-Preparing to unpack .../009-libasound2t64_1.2.11-1ubuntu0.3_amd64.deb ...
-Unpacking libasound2t64:amd64 (1.2.11-1ubuntu0.3) ...
-Selecting previously unselected package alsa-ucm-conf.
-Preparing to unpack .../010-alsa-ucm-conf_1.2.10-1ubuntu5.14_all.deb ...
-Unpacking alsa-ucm-conf (1.2.10-1ubuntu5.14) ...
-Selecting previously unselected package at-spi2-common.
-Preparing to unpack .../011-at-spi2-common_2.52.0-1build1_all.deb ...
-Unpacking at-spi2-common (2.52.0-1build1) ...
-Selecting previously unselected package libxi6:amd64.
-Preparing to unpack .../012-libxi6_2%3a1.8.1-1build1_amd64.deb ...
-Unpacking libxi6:amd64 (2:1.8.1-1build1) ...
-Selecting previously unselected package libatspi2.0-0t64:amd64.
-Preparing to unpack .../013-libatspi2.0-0t64_2.52.0-1build1_amd64.deb ...
-Unpacking libatspi2.0-0t64:amd64 (2.52.0-1build1) ...
-Selecting previously unselected package x11-common.
-Preparing to unpack .../014-x11-common_1%3a7.7+23ubuntu3_all.deb ...
-Unpacking x11-common (1:7.7+23ubuntu3) ...
-Selecting previously unselected package libxtst6:amd64.
-Preparing to unpack .../015-libxtst6_2%3a1.2.3-1.1build1_amd64.deb ...
-Unpacking libxtst6:amd64 (2:1.2.3-1.1build1) ...
-Selecting previously unselected package libdconf1:amd64.
-Preparing to unpack .../016-libdconf1_0.40.0-4ubuntu0.1_amd64.deb ...
-Unpacking libdconf1:amd64 (0.40.0-4ubuntu0.1) ...
-Selecting previously unselected package dconf-service.
-Preparing to unpack .../017-dconf-service_0.40.0-4ubuntu0.1_amd64.deb ...
-Unpacking dconf-service (0.40.0-4ubuntu0.1) ...
-Selecting previously unselected package dconf-gsettings-backend:amd64.
-Preparing to unpack .../018-dconf-gsettings-backend_0.40.0-4ubuntu0.1_amd64.deb ...
-Unpacking dconf-gsettings-backend:amd64 (0.40.0-4ubuntu0.1) ...
-Selecting previously unselected package session-migration.
-Preparing to unpack .../019-session-migration_0.3.9build1_amd64.deb ...
-Unpacking session-migration (0.3.9build1) ...
-Selecting previously unselected package gsettings-desktop-schemas.
-Preparing to unpack .../020-gsettings-desktop-schemas_46.1-0ubuntu1_all.deb ...
-Unpacking gsettings-desktop-schemas (46.1-0ubuntu1) ...
-Selecting previously unselected package at-spi2-core.
-Preparing to unpack .../021-at-spi2-core_2.52.0-1build1_amd64.deb ...
-Unpacking at-spi2-core (2.52.0-1build1) ...
-Selecting previously unselected package ca-certificates-java.
-Preparing to unpack .../022-ca-certificates-java_20240118_all.deb ...
-Unpacking ca-certificates-java (20240118) ...
-Selecting previously unselected package fontconfig.
-Preparing to unpack .../023-fontconfig_2.15.0-1.1ubuntu2_amd64.deb ...
-Unpacking fontconfig (2.15.0-1.1ubuntu2) ...
-Selecting previously unselected package fonts-dejavu-extra.
-Preparing to unpack .../024-fonts-dejavu-extra_2.37-8_all.deb ...
-Unpacking fonts-dejavu-extra (2.37-8) ...
-Selecting previously unselected package java-common.
-Preparing to unpack .../025-java-common_0.75+exp1_all.deb ...
-Unpacking java-common (0.75+exp1) ...
-Selecting previously unselected package libatk1.0-0t64:amd64.
-Preparing to unpack .../026-libatk1.0-0t64_2.52.0-1build1_amd64.deb ...
-Unpacking libatk1.0-0t64:amd64 (2.52.0-1build1) ...
-Selecting previously unselected package libatk-bridge2.0-0t64:amd64.
-Preparing to unpack .../027-libatk-bridge2.0-0t64_2.52.0-1build1_amd64.deb ...
-Unpacking libatk-bridge2.0-0t64:amd64 (2.52.0-1build1) ...
-Selecting previously unselected package libglvnd0:amd64.
-Preparing to unpack .../028-libglvnd0_1.7.0-1build1_amd64.deb ...
-Unpacking libglvnd0:amd64 (1.7.0-1build1) ...
-Selecting previously unselected package libx11-xcb1:amd64.
-Preparing to unpack .../029-libx11-xcb1_2%3a1.8.7-1build1_amd64.deb ...
-Unpacking libx11-xcb1:amd64 (2:1.8.7-1build1) ...
-Selecting previously unselected package libxcb-dri3-0:amd64.
-Preparing to unpack .../030-libxcb-dri3-0_1.15-1ubuntu2_amd64.deb ...
-Unpacking libxcb-dri3-0:amd64 (1.15-1ubuntu2) ...
-Selecting previously unselected package libxcb-glx0:amd64.
-Preparing to unpack .../031-libxcb-glx0_1.15-1ubuntu2_amd64.deb ...
-Unpacking libxcb-glx0:amd64 (1.15-1ubuntu2) ...
-Selecting previously unselected package libxcb-present0:amd64.
-Preparing to unpack .../032-libxcb-present0_1.15-1ubuntu2_amd64.deb ...
-Unpacking libxcb-present0:amd64 (1.15-1ubuntu2) ...
-Selecting previously unselected package libxcb-shm0:amd64.
-Preparing to unpack .../033-libxcb-shm0_1.15-1ubuntu2_amd64.deb ...
-Unpacking libxcb-shm0:amd64 (1.15-1ubuntu2) ...
-Selecting previously unselected package libxcb-xfixes0:amd64.
-Preparing to unpack .../034-libxcb-xfixes0_1.15-1ubuntu2_amd64.deb ...
-Unpacking libxcb-xfixes0:amd64 (1.15-1ubuntu2) ...
-Selecting previously unselected package libxxf86vm1:amd64.
-Preparing to unpack .../035-libxxf86vm1_1%3a1.1.4-1build4_amd64.deb ...
-Unpacking libxxf86vm1:amd64 (1:1.1.4-1build4) ...
-Selecting previously unselected package libdrm-amdgpu1:amd64.
-Preparing to unpack .../036-libdrm-amdgpu1_2.4.125-1ubuntu0.1~24.04.2_amd64.deb ...
-Unpacking libdrm-amdgpu1:amd64 (2.4.125-1ubuntu0.1~24.04.2) ...
-Selecting previously unselected package libpciaccess0:amd64.
-Preparing to unpack .../037-libpciaccess0_0.17-3ubuntu0.24.04.2_amd64.deb ...
-Unpacking libpciaccess0:amd64 (0.17-3ubuntu0.24.04.2) ...
-Selecting previously unselected package libdrm-intel1:amd64.
-Preparing to unpack .../038-libdrm-intel1_2.4.125-1ubuntu0.1~24.04.2_amd64.deb ...
-Unpacking libdrm-intel1:amd64 (2.4.125-1ubuntu0.1~24.04.2) ...
-Selecting previously unselected package libllvm20:amd64.
-Preparing to unpack .../039-libllvm20_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
-Unpacking libllvm20:amd64 (1:20.1.2-0ubuntu1~24.04.3) ...
-Selecting previously unselected package libxcb-randr0:amd64.
-Preparing to unpack .../040-libxcb-randr0_1.15-1ubuntu2_amd64.deb ...
-Unpacking libxcb-randr0:amd64 (1.15-1ubuntu2) ...
-Selecting previously unselected package libxcb-sync1:amd64.
-Preparing to unpack .../041-libxcb-sync1_1.15-1ubuntu2_amd64.deb ...
-Unpacking libxcb-sync1:amd64 (1.15-1ubuntu2) ...
-Selecting previously unselected package libxshmfence1:amd64.
-Preparing to unpack .../042-libxshmfence1_1.3-1build5_amd64.deb ...
-Unpacking libxshmfence1:amd64 (1.3-1build5) ...
-Selecting previously unselected package mesa-libgallium:amd64.
-Preparing to unpack .../043-mesa-libgallium_25.2.8-0ubuntu0.24.04.2_amd64.deb ...
-Unpacking mesa-libgallium:amd64 (25.2.8-0ubuntu0.24.04.2) ...
-Selecting previously unselected package libgbm1:amd64.
-Preparing to unpack .../044-libgbm1_25.2.8-0ubuntu0.24.04.2_amd64.deb ...
-Unpacking libgbm1:amd64 (25.2.8-0ubuntu0.24.04.2) ...
-Selecting previously unselected package libvulkan1:amd64.
-Preparing to unpack .../045-libvulkan1_1.3.275.0-1build1_amd64.deb ...
-Unpacking libvulkan1:amd64 (1.3.275.0-1build1) ...
-Selecting previously unselected package libgl1-mesa-dri:amd64.
-Preparing to unpack .../046-libgl1-mesa-dri_25.2.8-0ubuntu0.24.04.2_amd64.deb ...
-Unpacking libgl1-mesa-dri:amd64 (25.2.8-0ubuntu0.24.04.2) ...
-Selecting previously unselected package libglx-mesa0:amd64.
-Preparing to unpack .../047-libglx-mesa0_25.2.8-0ubuntu0.24.04.2_amd64.deb ...
-Unpacking libglx-mesa0:amd64 (25.2.8-0ubuntu0.24.04.2) ...
-Selecting previously unselected package libglx0:amd64.
-Preparing to unpack .../048-libglx0_1.7.0-1build1_amd64.deb ...
-Unpacking libglx0:amd64 (1.7.0-1build1) ...
-Selecting previously unselected package libgl1:amd64.
-Preparing to unpack .../049-libgl1_1.7.0-1build1_amd64.deb ...
-Unpacking libgl1:amd64 (1.7.0-1build1) ...
-Selecting previously unselected package libice6:amd64.
-Preparing to unpack .../050-libice6_2%3a1.0.10-1build3_amd64.deb ...
-Unpacking libice6:amd64 (2:1.0.10-1build3) ...
-Selecting previously unselected package libsm6:amd64.
-Preparing to unpack .../051-libsm6_2%3a1.2.3-1build3_amd64.deb ...
-Unpacking libsm6:amd64 (2:1.2.3-1build3) ...
-Selecting previously unselected package libxt6t64:amd64.
-Preparing to unpack .../052-libxt6t64_1%3a1.2.1-1.2build1_amd64.deb ...
-Unpacking libxt6t64:amd64 (1:1.2.1-1.2build1) ...
-Selecting previously unselected package libxmu6:amd64.
-Preparing to unpack .../053-libxmu6_2%3a1.1.3-3build2_amd64.deb ...
-Unpacking libxmu6:amd64 (2:1.1.3-3build2) ...
-Selecting previously unselected package libxaw7:amd64.
-Preparing to unpack .../054-libxaw7_2%3a1.0.14-1build2_amd64.deb ...
-Unpacking libxaw7:amd64 (2:1.0.14-1build2) ...
-Selecting previously unselected package libxcb-shape0:amd64.
-Preparing to unpack .../055-libxcb-shape0_1.15-1ubuntu2_amd64.deb ...
-Unpacking libxcb-shape0:amd64 (1.15-1ubuntu2) ...
-Selecting previously unselected package libxcomposite1:amd64.
-Preparing to unpack .../056-libxcomposite1_1%3a0.4.5-1build3_amd64.deb ...
-Unpacking libxcomposite1:amd64 (1:0.4.5-1build3) ...
-Selecting previously unselected package libxrender1:amd64.
-Preparing to unpack .../057-libxrender1_1%3a0.9.10-1.1build1_amd64.deb ...
-Unpacking libxrender1:amd64 (1:0.9.10-1.1build1) ...
-Selecting previously unselected package libxft2:amd64.
-Preparing to unpack .../058-libxft2_2.3.6-1build1_amd64.deb ...
-Unpacking libxft2:amd64 (2.3.6-1build1) ...
-Selecting previously unselected package libxinerama1:amd64.
-Preparing to unpack .../059-libxinerama1_2%3a1.1.4-3build1_amd64.deb ...
-Unpacking libxinerama1:amd64 (2:1.1.4-3build1) ...
-Selecting previously unselected package libxkbfile1:amd64.
-Preparing to unpack .../060-libxkbfile1_1%3a1.1.0-1build4_amd64.deb ...
-Unpacking libxkbfile1:amd64 (1:1.1.0-1build4) ...
-Selecting previously unselected package libxrandr2:amd64.
-Preparing to unpack .../061-libxrandr2_2%3a1.5.2-2build1_amd64.deb ...
-Unpacking libxrandr2:amd64 (2:1.5.2-2build1) ...
-Selecting previously unselected package libxv1:amd64.
-Preparing to unpack .../062-libxv1_2%3a1.0.11-1.1build1_amd64.deb ...
-Unpacking libxv1:amd64 (2:1.0.11-1.1build1) ...
-Selecting previously unselected package libxxf86dga1:amd64.
-Preparing to unpack .../063-libxxf86dga1_2%3a1.1.5-1build1_amd64.deb ...
-Unpacking libxxf86dga1:amd64 (2:1.1.5-1build1) ...
-Selecting previously unselected package x11-utils.
-Preparing to unpack .../064-x11-utils_7.7+6build2_amd64.deb ...
-Unpacking x11-utils (7.7+6build2) ...
-Selecting previously unselected package libatk-wrapper-java.
-Preparing to unpack .../065-libatk-wrapper-java_0.40.0-3build2_all.deb ...
-Unpacking libatk-wrapper-java (0.40.0-3build2) ...
-Selecting previously unselected package libatk-wrapper-java-jni:amd64.
-Preparing to unpack .../066-libatk-wrapper-java-jni_0.40.0-3build2_amd64.deb ...
-Unpacking libatk-wrapper-java-jni:amd64 (0.40.0-3build2) ...
-Selecting previously unselected package libavahi-common-data:amd64.
-Preparing to unpack .../067-libavahi-common-data_0.8-13ubuntu6.2_amd64.deb ...
-Unpacking libavahi-common-data:amd64 (0.8-13ubuntu6.2) ...
-Selecting previously unselected package libavahi-common3:amd64.
-Preparing to unpack .../068-libavahi-common3_0.8-13ubuntu6.2_amd64.deb ...
-Unpacking libavahi-common3:amd64 (0.8-13ubuntu6.2) ...
-Selecting previously unselected package libavahi-client3:amd64.
-Preparing to unpack .../069-libavahi-client3_0.8-13ubuntu6.2_amd64.deb ...
-Unpacking libavahi-client3:amd64 (0.8-13ubuntu6.2) ...
-Selecting previously unselected package libpixman-1-0:amd64.
-Preparing to unpack .../070-libpixman-1-0_0.42.2-1build1_amd64.deb ...
-Unpacking libpixman-1-0:amd64 (0.42.2-1build1) ...
-Selecting previously unselected package libxcb-render0:amd64.
-Preparing to unpack .../071-libxcb-render0_1.15-1ubuntu2_amd64.deb ...
-Unpacking libxcb-render0:amd64 (1.15-1ubuntu2) ...
-Selecting previously unselected package libcairo2:amd64.
-Preparing to unpack .../072-libcairo2_1.18.0-3build1_amd64.deb ...
-Unpacking libcairo2:amd64 (1.18.0-3build1) ...
-Selecting previously unselected package libcairo-gobject2:amd64.
-Preparing to unpack .../073-libcairo-gobject2_1.18.0-3build1_amd64.deb ...
-Unpacking libcairo-gobject2:amd64 (1.18.0-3build1) ...
-Selecting previously unselected package liblcms2-2:amd64.
-Preparing to unpack .../074-liblcms2-2_2.14-2ubuntu0.1_amd64.deb ...
-Unpacking liblcms2-2:amd64 (2.14-2ubuntu0.1) ...
-Selecting previously unselected package libcolord2:amd64.
-Preparing to unpack .../075-libcolord2_1.4.7-1build2_amd64.deb ...
-Unpacking libcolord2:amd64 (1.4.7-1build2) ...
-Selecting previously unselected package libcups2t64:amd64.
-Preparing to unpack .../076-libcups2t64_2.4.7-1.2ubuntu7.14_amd64.deb ...
-Unpacking libcups2t64:amd64 (2.4.7-1.2ubuntu7.14) ...
-Selecting previously unselected package libdatrie1:amd64.
-Preparing to unpack .../077-libdatrie1_0.2.13-3build1_amd64.deb ...
-Unpacking libdatrie1:amd64 (0.2.13-3build1) ...
-Selecting previously unselected package libepoxy0:amd64.
-Preparing to unpack .../078-libepoxy0_1.5.10-1build1_amd64.deb ...
-Unpacking libepoxy0:amd64 (1.5.10-1build1) ...
-Selecting previously unselected package libgdk-pixbuf2.0-bin.
-Preparing to unpack .../079-libgdk-pixbuf2.0-bin_2.42.10+dfsg-3ubuntu3.3_amd64.deb ...
-Unpacking libgdk-pixbuf2.0-bin (2.42.10+dfsg-3ubuntu3.3) ...
-Selecting previously unselected package libgif7:amd64.
-Preparing to unpack .../080-libgif7_5.2.2-1ubuntu1.2_amd64.deb ...
-Unpacking libgif7:amd64 (5.2.2-1ubuntu1.2) ...
-Selecting previously unselected package libgraphite2-3:amd64.
-Preparing to unpack .../081-libgraphite2-3_1.3.14-2ubuntu0.24.04.1_amd64.deb ...
-Unpacking libgraphite2-3:amd64 (1.3.14-2ubuntu0.24.04.1) ...
-Selecting previously unselected package libharfbuzz0b:amd64.
-Preparing to unpack .../082-libharfbuzz0b_8.3.0-2build2_amd64.deb ...
-Unpacking libharfbuzz0b:amd64 (8.3.0-2build2) ...
-Selecting previously unselected package libthai-data.
-Preparing to unpack .../083-libthai-data_0.1.29-2build1_all.deb ...
-Unpacking libthai-data (0.1.29-2build1) ...
-Selecting previously unselected package libthai0:amd64.
-Preparing to unpack .../084-libthai0_0.1.29-2build1_amd64.deb ...
-Unpacking libthai0:amd64 (0.1.29-2build1) ...
-Selecting previously unselected package libpango-1.0-0:amd64.
-Preparing to unpack .../085-libpango-1.0-0_1.52.1+ds-1build1_amd64.deb ...
-Unpacking libpango-1.0-0:amd64 (1.52.1+ds-1build1) ...
-Selecting previously unselected package libpangoft2-1.0-0:amd64.
-Preparing to unpack .../086-libpangoft2-1.0-0_1.52.1+ds-1build1_amd64.deb ...
-Unpacking libpangoft2-1.0-0:amd64 (1.52.1+ds-1build1) ...
-Selecting previously unselected package libpangocairo-1.0-0:amd64.
-Preparing to unpack .../087-libpangocairo-1.0-0_1.52.1+ds-1build1_amd64.deb ...
-Unpacking libpangocairo-1.0-0:amd64 (1.52.1+ds-1build1) ...
-Selecting previously unselected package libwayland-client0:amd64.
-Preparing to unpack .../088-libwayland-client0_1.22.0-2.1build1_amd64.deb ...
-Unpacking libwayland-client0:amd64 (1.22.0-2.1build1) ...
-Selecting previously unselected package libwayland-cursor0:amd64.
-Preparing to unpack .../089-libwayland-cursor0_1.22.0-2.1build1_amd64.deb ...
-Unpacking libwayland-cursor0:amd64 (1.22.0-2.1build1) ...
-Selecting previously unselected package libwayland-egl1:amd64.
-Preparing to unpack .../090-libwayland-egl1_1.22.0-2.1build1_amd64.deb ...
-Unpacking libwayland-egl1:amd64 (1.22.0-2.1build1) ...
-Selecting previously unselected package libxfixes3:amd64.
-Preparing to unpack .../091-libxfixes3_1%3a6.0.0-2build1_amd64.deb ...
-Unpacking libxfixes3:amd64 (1:6.0.0-2build1) ...
-Selecting previously unselected package libxcursor1:amd64.
-Preparing to unpack .../092-libxcursor1_1%3a1.2.1-1build1_amd64.deb ...
-Unpacking libxcursor1:amd64 (1:1.2.1-1build1) ...
-Selecting previously unselected package libxdamage1:amd64.
-Preparing to unpack .../093-libxdamage1_1%3a1.1.6-1build1_amd64.deb ...
-Unpacking libxdamage1:amd64 (1:1.1.6-1build1) ...
-Selecting previously unselected package libgtk-3-common.
-Preparing to unpack .../094-libgtk-3-common_3.24.41-4ubuntu1.3_all.deb ...
-Unpacking libgtk-3-common (3.24.41-4ubuntu1.3) ...
-Selecting previously unselected package libgtk-3-0t64:amd64.
-Preparing to unpack .../095-libgtk-3-0t64_3.24.41-4ubuntu1.3_amd64.deb ...
-Unpacking libgtk-3-0t64:amd64 (3.24.41-4ubuntu1.3) ...
-Selecting previously unselected package libgtk-3-bin.
-Preparing to unpack .../096-libgtk-3-bin_3.24.41-4ubuntu1.3_amd64.deb ...
-Unpacking libgtk-3-bin (3.24.41-4ubuntu1.3) ...
-Selecting previously unselected package libpcsclite1:amd64.
-Preparing to unpack .../097-libpcsclite1_2.0.3-1build1_amd64.deb ...
-Unpacking libpcsclite1:amd64 (2.0.3-1build1) ...
-Selecting previously unselected package librsvg2-2:amd64.
-Preparing to unpack .../098-librsvg2-2_2.58.0+dfsg-1build1_amd64.deb ...
-Unpacking librsvg2-2:amd64 (2.58.0+dfsg-1build1) ...
-Selecting previously unselected package librsvg2-common:amd64.
-Preparing to unpack .../099-librsvg2-common_2.58.0+dfsg-1build1_amd64.deb ...
-Unpacking librsvg2-common:amd64 (2.58.0+dfsg-1build1) ...
-Selecting previously unselected package mesa-vulkan-drivers:amd64.
-Preparing to unpack .../100-mesa-vulkan-drivers_25.2.8-0ubuntu0.24.04.2_amd64.deb ...
-Unpacking mesa-vulkan-drivers:amd64 (25.2.8-0ubuntu0.24.04.2) ...
-Selecting previously unselected package openjdk-21-jre-headless:amd64.
-Preparing to unpack .../101-openjdk-21-jre-headless_21.0.11+10-1~24.04.2_amd64.deb ...
-Unpacking openjdk-21-jre-headless:amd64 (21.0.11+10-1~24.04.2) ...
-Selecting previously unselected package openjdk-21-jre:amd64.
-Preparing to unpack .../102-openjdk-21-jre_21.0.11+10-1~24.04.2_amd64.deb ...
-Unpacking openjdk-21-jre:amd64 (21.0.11+10-1~24.04.2) ...
-Setting up libgraphite2-3:amd64 (1.3.14-2ubuntu0.24.04.1) ...
-Setting up libxcb-dri3-0:amd64 (1.15-1ubuntu2) ...
-Setting up liblcms2-2:amd64 (2.14-2ubuntu0.1) ...
-Setting up libpixman-1-0:amd64 (0.42.2-1build1) ...
-Setting up libx11-xcb1:amd64 (2:1.8.7-1build1) ...
-Setting up libpciaccess0:amd64 (0.17-3ubuntu0.24.04.2) ...
-Setting up session-migration (0.3.9build1) ...
-Created symlink /etc/systemd/user/graphical-session-pre.target.wants/session-migration.service → /usr/lib/systemd/user/session-migration.service.
-Setting up fontconfig (2.15.0-1.1ubuntu2) ...
-Regenerating fonts cache... done.
-Setting up libxdamage1:amd64 (1:1.1.6-1build1) ...
-Setting up libxcb-xfixes0:amd64 (1.15-1ubuntu2) ...
-Setting up hicolor-icon-theme (0.17-2) ...
-Setting up libxi6:amd64 (2:1.8.1-1build1) ...
-Setting up java-common (0.75+exp1) ...
-Setting up libxrender1:amd64 (1:0.9.10-1.1build1) ...
-Setting up libdatrie1:amd64 (0.2.13-3build1) ...
-Setting up libxcb-render0:amd64 (1.15-1ubuntu2) ...
-Setting up libglvnd0:amd64 (1.7.0-1build1) ...
-Setting up libxcb-glx0:amd64 (1.15-1ubuntu2) ...
-Setting up libdrm-intel1:amd64 (2.4.125-1ubuntu0.1~24.04.2) ...
-Setting up libgdk-pixbuf2.0-common (2.42.10+dfsg-3ubuntu3.3) ...
-Setting up libxcb-shape0:amd64 (1.15-1ubuntu2) ...
-Setting up x11-common (1:7.7+23ubuntu3) ...
-Setting up libxxf86dga1:amd64 (2:1.1.5-1build1) ...
-Setting up libxcb-shm0:amd64 (1.15-1ubuntu2) ...
-Setting up libcairo2:amd64 (1.18.0-3build1) ...
-Setting up libcolord2:amd64 (1.4.7-1build2) ...
-Setting up libxxf86vm1:amd64 (1:1.1.4-1build4) ...
-Setting up libxcb-present0:amd64 (1.15-1ubuntu2) ...
-Setting up libdconf1:amd64 (0.40.0-4ubuntu0.1) ...
-Setting up libasound2-data (1.2.11-1ubuntu0.3) ...
-Setting up libasound2t64:amd64 (1.2.11-1ubuntu0.3) ...
-Setting up libepoxy0:amd64 (1.5.10-1build1) ...
-Setting up libxfixes3:amd64 (1:6.0.0-2build1) ...
-Setting up libxcb-sync1:amd64 (1.15-1ubuntu2) ...
-Setting up libavahi-common-data:amd64 (0.8-13ubuntu6.2) ...
-Setting up libatspi2.0-0t64:amd64 (2.52.0-1build1) ...
-Setting up libxinerama1:amd64 (2:1.1.4-3build1) ...
-Setting up libxv1:amd64 (2:1.0.11-1.1build1) ...
-Setting up libxrandr2:amd64 (2:1.5.2-2build1) ...
-Setting up libllvm20:amd64 (1:20.1.2-0ubuntu1~24.04.3) ...
-Setting up libpcsclite1:amd64 (2.0.3-1build1) ...
-Setting up libvulkan1:amd64 (1.3.275.0-1build1) ...
-Setting up libgif7:amd64 (5.2.2-1ubuntu1.2) ...
-Setting up fonts-dejavu-extra (2.37-8) ...
-Setting up alsa-topology-conf (1.2.5.1-2) ...
-Setting up libxshmfence1:amd64 (1.3-1build5) ...
-Setting up at-spi2-common (2.52.0-1build1) ...
-Setting up libxcb-randr0:amd64 (1.15-1ubuntu2) ...
-Setting up libharfbuzz0b:amd64 (8.3.0-2build2) ...
-Setting up libthai-data (0.1.29-2build1) ...
-Setting up libgdk-pixbuf-2.0-0:amd64 (2.42.10+dfsg-3ubuntu3.3) ...
-Setting up libcairo-gobject2:amd64 (1.18.0-3build1) ...
-Setting up libwayland-egl1:amd64 (1.22.0-2.1build1) ...
-Setting up libxkbfile1:amd64 (1:1.1.0-1build4) ...
-Setting up ca-certificates-java (20240118) ...
-No JRE found. Skipping Java certificates setup.
-Setting up libxcomposite1:amd64 (1:0.4.5-1build3) ...
-Setting up libdrm-amdgpu1:amd64 (2.4.125-1ubuntu0.1~24.04.2) ...
-Setting up libwayland-client0:amd64 (1.22.0-2.1build1) ...
-Setting up mesa-vulkan-drivers:amd64 (25.2.8-0ubuntu0.24.04.2) ...
-Setting up gtk-update-icon-cache (3.24.41-4ubuntu1.3) ...
-Setting up libice6:amd64 (2:1.0.10-1build3) ...
-Setting up mesa-libgallium:amd64 (25.2.8-0ubuntu0.24.04.2) ...
-Setting up libxft2:amd64 (2.3.6-1build1) ...
-Setting up libatk1.0-0t64:amd64 (2.52.0-1build1) ...
-Setting up openjdk-21-jre-headless:amd64 (21.0.11+10-1~24.04.2) ...
-update-alternatives: using /usr/lib/jvm/java-21-openjdk-amd64/bin/java to provide /usr/bin/java (java) in auto mode
-update-alternatives: using /usr/lib/jvm/java-21-openjdk-amd64/bin/jpackage to provide /usr/bin/jpackage (jpackage) in auto mode
-update-alternatives: using /usr/lib/jvm/java-21-openjdk-amd64/bin/keytool to provide /usr/bin/keytool (keytool) in auto mode
-update-alternatives: using /usr/lib/jvm/java-21-openjdk-amd64/bin/rmiregistry to provide /usr/bin/rmiregistry (rmiregistry) in auto mode
-update-alternatives: using /usr/lib/jvm/java-21-openjdk-amd64/lib/jexec to provide /usr/bin/jexec (jexec) in auto mode
-Setting up libgbm1:amd64 (25.2.8-0ubuntu0.24.04.2) ...
-Setting up alsa-ucm-conf (1.2.10-1ubuntu5.14) ...
-Setting up libxtst6:amd64 (2:1.2.3-1.1build1) ...
-Setting up libxcursor1:amd64 (1:1.2.1-1build1) ...
-Setting up libgl1-mesa-dri:amd64 (25.2.8-0ubuntu0.24.04.2) ...
-Setting up libavahi-common3:amd64 (0.8-13ubuntu6.2) ...
-Setting up dconf-service (0.40.0-4ubuntu0.1) ...
-Setting up libthai0:amd64 (0.1.29-2build1) ...
-Setting up libgdk-pixbuf2.0-bin (2.42.10+dfsg-3ubuntu3.3) ...
-Setting up libwayland-cursor0:amd64 (1.22.0-2.1build1) ...
-Setting up libsm6:amd64 (2:1.2.3-1build3) ...
-Setting up libavahi-client3:amd64 (0.8-13ubuntu6.2) ...
-Setting up libatk-bridge2.0-0t64:amd64 (2.52.0-1build1) ...
-Setting up libglx-mesa0:amd64 (25.2.8-0ubuntu0.24.04.2) ...
-Setting up libglx0:amd64 (1.7.0-1build1) ...
-Setting up dconf-gsettings-backend:amd64 (0.40.0-4ubuntu0.1) ...
-Setting up libpango-1.0-0:amd64 (1.52.1+ds-1build1) ...
-Setting up libgl1:amd64 (1.7.0-1build1) ...
-Setting up libxt6t64:amd64 (1:1.2.1-1.2build1) ...
-Setting up libpangoft2-1.0-0:amd64 (1.52.1+ds-1build1) ...
-Setting up libcups2t64:amd64 (2.4.7-1.2ubuntu7.14) ...
-Setting up libgtk-3-common (3.24.41-4ubuntu1.3) ...
-Setting up libpangocairo-1.0-0:amd64 (1.52.1+ds-1build1) ...
-Setting up gsettings-desktop-schemas (46.1-0ubuntu1) ...
-Setting up libxmu6:amd64 (2:1.1.3-3build2) ...
-Setting up libxaw7:amd64 (2:1.0.14-1build2) ...
-Setting up librsvg2-2:amd64 (2.58.0+dfsg-1build1) ...
-Setting up librsvg2-common:amd64 (2.58.0+dfsg-1build1) ...
-Setting up x11-utils (7.7+6build2) ...
-Setting up libatk-wrapper-java (0.40.0-3build2) ...
-Setting up libatk-wrapper-java-jni:amd64 (0.40.0-3build2) ...
-Setting up adwaita-icon-theme (46.0-1) ...
-update-alternatives: using /usr/share/icons/Adwaita/cursor.theme to provide /usr/share/icons/default/index.theme (x-cursor-theme) in auto mode
-Setting up humanity-icon-theme (0.6.16) ...
-Setting up ubuntu-mono (24.04-0ubuntu1) ...
-Processing triggers for man-db (2.12.0-4build2) ...
-Processing triggers for libglib2.0-0t64:amd64 (2.80.0-6ubuntu3.8) ...
-Setting up libgtk-3-0t64:amd64 (3.24.41-4ubuntu1.3) ...
-Setting up at-spi2-core (2.52.0-1build1) ...
-Processing triggers for libc-bin (2.39-0ubuntu8.8) ...
-Setting up libgtk-3-bin (3.24.41-4ubuntu1.3) ...
-Processing triggers for ca-certificates-java (20240118) ...
-Adding debian:ACCVRAIZ1.pem
-Adding debian:AC_RAIZ_FNMT-RCM.pem
-Adding debian:AC_RAIZ_FNMT-RCM_SERVIDORES_SEGUROS.pem
-Adding debian:Actalis_Authentication_Root_CA.pem
-Adding debian:Amazon_Root_CA_1.pem
-Adding debian:Amazon_Root_CA_2.pem
-Adding debian:Amazon_Root_CA_3.pem
-Adding debian:Amazon_Root_CA_4.pem
-Adding debian:ANF_Secure_Server_Root_CA.pem
-Adding debian:Atos_TrustedRoot_2011.pem
-Adding debian:Atos_TrustedRoot_Root_CA_ECC_TLS_2021.pem
-Adding debian:Atos_TrustedRoot_Root_CA_RSA_TLS_2021.pem
-Adding debian:Autoridad_de_Certificacion_Firmaprofesional_CIF_A62634068.pem
-Adding debian:BJCA_Global_Root_CA1.pem
-Adding debian:BJCA_Global_Root_CA2.pem
-Adding debian:Buypass_Class_2_Root_CA.pem
-Adding debian:Buypass_Class_3_Root_CA.pem
-Adding debian:CA_Disig_Root_R2.pem
-Adding debian:Certainly_Root_E1.pem
-Adding debian:Certainly_Root_R1.pem
-Adding debian:Certigna_Root_CA.pem
-Adding debian:certSIGN_Root_CA_G2.pem
-Adding debian:Certum_EC-384_CA.pem
-Adding debian:Certum_Trusted_Network_CA_2.pem
-Adding debian:Certum_Trusted_Network_CA.pem
-Adding debian:Certum_Trusted_Root_CA.pem
-Adding debian:CFCA_EV_ROOT.pem
-Adding debian:COMODO_ECC_Certification_Authority.pem
-Adding debian:COMODO_RSA_Certification_Authority.pem
-Adding debian:DigiCert_Assured_ID_Root_G2.pem
-Adding debian:DigiCert_Assured_ID_Root_G3.pem
-Adding debian:DigiCert_Global_Root_G2.pem
-Adding debian:DigiCert_Global_Root_G3.pem
-Adding debian:DigiCert_TLS_ECC_P384_Root_G5.pem
-Adding debian:DigiCert_TLS_RSA4096_Root_G5.pem
-Adding debian:DigiCert_Trusted_Root_G4.pem
-Adding debian:D-TRUST_BR_Root_CA_1_2020.pem
-Adding debian:D-TRUST_BR_Root_CA_2_2023.pem
-Adding debian:D-TRUST_EV_Root_CA_1_2020.pem
-Adding debian:D-TRUST_EV_Root_CA_2_2023.pem
-Adding debian:D-TRUST_Root_Class_3_CA_2_2009.pem
-Adding debian:D-TRUST_Root_Class_3_CA_2_EV_2009.pem
-Adding debian:emSign_ECC_Root_CA_-_C3.pem
-Adding debian:emSign_ECC_Root_CA_-_G3.pem
-Adding debian:emSign_Root_CA_-_C1.pem
-Adding debian:emSign_Root_CA_-_G1.pem
-Adding debian:Entrust_Root_Certification_Authority.pem
-Adding debian:ePKI_Root_Certification_Authority.pem
-Adding debian:e-Szigno_Root_CA_2017.pem
-Adding debian:e-Szigno_TLS_Root_CA_2023.pem
-Adding debian:GDCA_TrustAUTH_R5_ROOT.pem
-Adding debian:GlobalSign_ECC_Root_CA_-_R4.pem
-Adding debian:GlobalSign_ECC_Root_CA_-_R5.pem
-Adding debian:GlobalSign_Root_CA_-_R3.pem
-Adding debian:GlobalSign_Root_CA_-_R6.pem
-Adding debian:GlobalSign_Root_E46.pem
-Adding debian:GlobalSign_Root_R46.pem
-Adding debian:Go_Daddy_Root_Certificate_Authority_-_G2.pem
-Adding debian:GTS_Root_R1.pem
-Adding debian:GTS_Root_R3.pem
-Adding debian:GTS_Root_R4.pem
-Adding debian:HARICA_TLS_ECC_Root_CA_2021.pem
-Adding debian:HARICA_TLS_RSA_Root_CA_2021.pem
-Adding debian:Hellenic_Academic_and_Research_Institutions_ECC_RootCA_2015.pem
-Adding debian:Hellenic_Academic_and_Research_Institutions_RootCA_2015.pem
-Adding debian:HiPKI_Root_CA_-_G1.pem
-Adding debian:Hongkong_Post_Root_CA_3.pem
-Adding debian:IdenTrust_Commercial_Root_CA_1.pem
-Adding debian:IdenTrust_Public_Sector_Root_CA_1.pem
-Adding debian:ISRG_Root_X1.pem
-Adding debian:ISRG_Root_X2.pem
-Adding debian:Izenpe.com.pem
-Adding debian:Microsec_e-Szigno_Root_CA_2009.pem
-Adding debian:Microsoft_ECC_Root_Certificate_Authority_2017.pem
-Adding debian:Microsoft_RSA_Root_Certificate_Authority_2017.pem
-Adding debian:NAVER_Global_Root_Certification_Authority.pem
-Adding debian:NetLock_Arany_=Class_Gold=_Főtanúsítvány.pem
-Adding debian:OISTE_Server_Root_ECC_G1.pem
-Adding debian:OISTE_Server_Root_RSA_G1.pem
-Adding debian:OISTE_WISeKey_Global_Root_GB_CA.pem
-Adding debian:OISTE_WISeKey_Global_Root_GC_CA.pem
-Adding debian:QuoVadis_Root_CA_1_G3.pem
-Adding debian:QuoVadis_Root_CA_2_G3.pem
-Adding debian:QuoVadis_Root_CA_3_G3.pem
-Adding debian:Sectigo_Public_Server_Authentication_Root_E46.pem
-Adding debian:Sectigo_Public_Server_Authentication_Root_R46.pem
-Adding debian:SecureSign_Root_CA12.pem
-Adding debian:SecureSign_Root_CA14.pem
-Adding debian:SecureSign_Root_CA15.pem
-Adding debian:Security_Communication_ECC_RootCA1.pem
-Adding debian:Security_Communication_RootCA2.pem
-Adding debian:SSL.com_EV_Root_Certification_Authority_ECC.pem
-Adding debian:SSL.com_EV_Root_Certification_Authority_RSA_R2.pem
-Adding debian:SSL.com_Root_Certification_Authority_ECC.pem
-Adding debian:SSL.com_Root_Certification_Authority_RSA.pem
-Adding debian:SSL.com_TLS_ECC_Root_CA_2022.pem
-Adding debian:SSL.com_TLS_RSA_Root_CA_2022.pem
-Adding debian:Starfield_Root_Certificate_Authority_-_G2.pem
-Adding debian:Starfield_Services_Root_Certificate_Authority_-_G2.pem
-Adding debian:SwissSign_RSA_TLS_Root_CA_2022_-_1.pem
-Adding debian:SZAFIR_ROOT_CA2.pem
-Adding debian:Telekom_Security_TLS_ECC_Root_2020.pem
-Adding debian:Telekom_Security_TLS_RSA_Root_2023.pem
-Adding debian:Telia_Root_CA_v2.pem
-Adding debian:TrustAsia_Global_Root_CA_G3.pem
-Adding debian:TrustAsia_Global_Root_CA_G4.pem
-Adding debian:TrustAsia_TLS_ECC_Root_CA.pem
-Adding debian:TrustAsia_TLS_RSA_Root_CA.pem
-Adding debian:T-TeleSec_GlobalRoot_Class_2.pem
-Adding debian:T-TeleSec_GlobalRoot_Class_3.pem
-Adding debian:TUBITAK_Kamu_SM_SSL_Kok_Sertifikasi_-_Surum_1.pem
-Adding debian:TunTrust_Root_CA.pem
-Adding debian:TWCA_CYBER_Root_CA.pem
-Adding debian:TWCA_Global_Root_CA.pem
-Adding debian:TWCA_Root_Certification_Authority.pem
-Adding debian:UCA_Extended_Validation_Root.pem
-Adding debian:UCA_Global_G2_Root.pem
-Adding debian:USERTrust_ECC_Certification_Authority.pem
-Adding debian:USERTrust_RSA_Certification_Authority.pem
-Adding debian:vTrus_ECC_Root_CA.pem
-Adding debian:vTrus_Root_CA.pem
-done.
-Setting up openjdk-21-jre:amd64 (21.0.11+10-1~24.04.2) ...
-Processing triggers for libgdk-pixbuf-2.0-0:amd64 (2.42.10+dfsg-3ubuntu3.3) ...
-Scanning processes...
-Scanning linux images...
-
-Running kernel seems to be up-to-date.
-
-No services need to be restarted.
-
-No containers need to be restarted.
-
-No user sessions are running outdated binaries.
-
-No VM guests are running outdated hypervisor (qemu) binaries on this host.
-openjdk version "21.0.11" 2026-04-21
-OpenJDK Runtime Environment (build 21.0.11+10-1-24.04.2-Ubuntu)
-OpenJDK 64-Bit Server VM (build 21.0.11+10-1-24.04.2-Ubuntu, mixed mode, sharing)
-ubuntu@tsb-dev-playground2:~$ sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
-  https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
-echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc]" \
-  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
-  /etc/apt/sources.list.d/jenkins.list > /dev/null
-sudo apt update
-sudo apt install jenkins
---2026-08-14 10:16:07--  https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
-Resolving pkg.jenkins.io (pkg.jenkins.io)... 151.101.194.133, 151.101.2.133, 151.101.130.133, ...
-Connecting to pkg.jenkins.io (pkg.jenkins.io)|151.101.194.133|:443... connected.
-HTTP request sent, awaiting response... 200 OK
-Length: 1680 (1.6K) [application/octet-stream]
-Saving to: ‘/etc/apt/keyrings/jenkins-keyring.asc’
-
-/etc/apt/keyrings/jenkins-keyring.asc   100%[============================================================================>]   1.64K  --.-KB/s    in 0s
-
-2026-08-14 10:16:08 (11.0 MB/s) - ‘/etc/apt/keyrings/jenkins-keyring.asc’ saved [1680/1680]
-
-Hit:1 https://download.docker.com/linux/ubuntu noble InRelease
-Hit:2 http://archive.ubuntu.com/ubuntu noble InRelease
-Hit:3 http://security.ubuntu.com/ubuntu noble-security InRelease
-Hit:4 http://archive.ubuntu.com/ubuntu noble-updates InRelease
-Ign:5 https://pkg.jenkins.io/debian-stable binary/ InRelease
-Get:6 https://pkg.jenkins.io/debian-stable binary/ Release [2,044 B]
-Get:7 https://pkg.jenkins.io/debian-stable binary/ Release.gpg [833 B]
-Hit:8 http://archive.ubuntu.com/ubuntu noble-backports InRelease
-Get:9 https://pkg.jenkins.io/debian-stable binary/ Packages [31.4 kB]
-Fetched 34.3 kB in 3s (13.0 kB/s)
-Reading package lists... Done
-Building dependency tree... Done
-Reading state information... Done
-58 packages can be upgraded. Run 'apt list --upgradable' to see them.
-Reading package lists... Done
-Building dependency tree... Done
-Reading state information... Done
-The following packages were automatically installed and are no longer required:
-  bridge-utils dns-root-data dnsmasq-base ubuntu-fan
-Use 'sudo apt autoremove' to remove them.
-The following additional packages will be installed:
-  net-tools
-The following NEW packages will be installed:
-  jenkins net-tools
-0 upgraded, 2 newly installed, 0 to remove and 58 not upgraded.
-Need to get 101 MB of archives.
-After this operation, 102 MB of additional disk space will be used.
-Do you want to continue? [Y/n] y
-Get:1 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 net-tools amd64 2.10-0.1ubuntu4.4 [204 kB]
-Get:2 https://pkg.jenkins.io/debian-stable binary/ jenkins 2.568.2 [101 MB]
-Fetched 101 MB in 10s (10.1 MB/s)
-Selecting previously unselected package net-tools.
-(Reading database ... 105393 files and directories currently installed.)
-Preparing to unpack .../net-tools_2.10-0.1ubuntu4.4_amd64.deb ...
-Unpacking net-tools (2.10-0.1ubuntu4.4) ...
-Selecting previously unselected package jenkins.
-Preparing to unpack .../jenkins_2.568.2_all.deb ...
-Unpacking jenkins (2.568.2) ...
-Setting up net-tools (2.10-0.1ubuntu4.4) ...
-Setting up jenkins (2.568.2) ...
-Created symlink /etc/systemd/system/multi-user.target.wants/jenkins.service → /usr/lib/systemd/system/jenkins.service.
-Processing triggers for man-db (2.12.0-4build2) ...
-Scanning processes...
-Scanning linux images...
-
-Running kernel seems to be up-to-date.
-
-No services need to be restarted.
-
-No containers need to be restarted.
-
-No user sessions are running outdated binaries.
-
-No VM guests are running outdated hypervisor (qemu) binaries on this host.
-ubuntu@tsb-dev-playground2:~$ sudo systemctl enable jenkins
-Synchronizing state of jenkins.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
-Executing: /usr/lib/systemd/systemd-sysv-install enable jenkins
-ubuntu@tsb-dev-playground2:~$ sudo systemctl start jenkins
-ubuntu@tsb-dev-playground2:~$ sudo systemctl status jenkins
-● jenkins.service - Jenkins Continuous Integration Server
-     Loaded: loaded (/usr/lib/systemd/system/jenkins.service; enabled; preset: enabled)
-     Active: active (running) since Fri 2026-08-14 10:16:57 UTC; 37s ago
-   Main PID: 92329 (java)
-      Tasks: 48 (limit: 4600)
-     Memory: 589.4M (peak: 602.5M)
-        CPU: 23.006s
-     CGroup: /system.slice/jenkins.service
-             └─92329 /usr/bin/java -Djava.awt.headless=true -jar /usr/share/java/jenkins.war --webroot=/var/cache/jenkins/war --httpPort=8080
-
-Aug 14 10:16:48 tsb-dev-playground2 jenkins[92329]: [LF]> This may also be found at: /var/lib/jenkins/secrets/initialAdminPassword
-Aug 14 10:16:48 tsb-dev-playground2 jenkins[92329]: [LF]>
-Aug 14 10:16:48 tsb-dev-playground2 jenkins[92329]: [LF]> *************************************************************
-Aug 14 10:16:48 tsb-dev-playground2 jenkins[92329]: [LF]> *************************************************************
-Aug 14 10:16:48 tsb-dev-playground2 jenkins[92329]: [LF]> *************************************************************
-Aug 14 10:16:57 tsb-dev-playground2 jenkins[92329]: 2026-08-14 10:16:57.302+0000 [id=38]        INFO        jenkins.InitReactorRunner$1#onAttained: Complete>
-Aug 14 10:16:57 tsb-dev-playground2 jenkins[92329]: 2026-08-14 10:16:57.336+0000 [id=30]        INFO        hudson.lifecycle.Lifecycle#onReady: Jenkins is f>
-Aug 14 10:16:57 tsb-dev-playground2 systemd[1]: Started jenkins.service - Jenkins Continuous Integration Server.
-Aug 14 10:16:59 tsb-dev-playground2 jenkins[92329]: 2026-08-14 10:16:59.055+0000 [id=56]        INFO        h.m.DownloadService$Downloadable#load: Obtained >
-Aug 14 10:16:59 tsb-dev-playground2 jenkins[92329]: 2026-08-14 10:16:59.057+0000 [id=56]        INFO        hudson.util.Retrier#start: Performed the action >
-
-ubuntu@tsb-dev-playground2:~$ sudo cat /var/lib/jenkins/secrets/initialAdminPassword
-e066ff8a0c174e55b30a4d1b3ff1e91b
-ubuntu@tsb-dev-playground2:~$ cat /etc/nginx/sites-available/app3
-server {
-    listen 80;
-    server_name devops-intern-app2.luluex.com;
-
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name devops-intern-app2.luluex.com;
-
-    ssl_certificate     /etc/ssl/luluex/fullchain.pem;
-    ssl_certificate_key /etc/ssl/luluex/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:9091;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-ubuntu@tsb-dev-playground2:~$ nano  /etc/nginx/sites-available/app3
-ubuntu@tsb-dev-playground2:~$ sudo nano  /etc/nginx/sites-available/app3
-ubuntu@tsb-dev-playground2:~$ sudo nginx -t
-nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
-nginx: configuration file /etc/nginx/nginx.conf test is successful
-ubuntu@tsb-dev-playground2:~$ sudo systemctl restart nginx
-ubuntu@tsb-dev-playground2:~$ sudo systemctl edit jenkins
-ubuntu@tsb-dev-playground2:~$ sudo systemctl daemon-reload
-sudo systemctl restart jenkins
-ubuntu@tsb-dev-playground2:~$ curl http://localhost:8080/jenkins/login
-<html><head><meta http-equiv='refresh' content='1;url=/login?from=%2Fjenkins%2Flogin'/><script id='redirect' data-redirect-url='/login?from=%2Fjenkins%2Flogin' src='/static/552bdbed/scripts/redirect.js'></script></head><body style='background-color:white; color:white;'>
-Authentication required
-<!--
-You are authenticated as: anonymous
-Groups that you are in:
-  anonymous
-Permission you need to have (but didn't): hudson.model.Hudson.Read
- ... which is implied by: hudson.security.Permission.GenericRead
- ... which is implied by: hudson.model.Hudson.Administer
--->
-
-</body></html>                                                                                                                                                                                                                                                                                                            ubuntu@tsb-dev-playground2:~$ ^C
-ubuntu@tsb-dev-playground2:~$ sudo systemctl cat jenkins | grep JENKINS_PREFIX
-#Environment="JENKINS_PREFIX=/jenkins"
-ubuntu@tsb-dev-playground2:~$ sudo systemctl status jenkins
-● jenkins.service - Jenkins Continuous Integration Server
-     Loaded: loaded (/usr/lib/systemd/system/jenkins.service; enabled; preset: enabled)
-     Active: active (running) since Fri 2026-08-14 10:53:28 UTC; 5min ago
-   Main PID: 95873 (java)
-      Tasks: 43 (limit: 4600)
-     Memory: 309.9M (peak: 311.8M)
-        CPU: 22.423s
-     CGroup: /system.slice/jenkins.service
-             └─95873 /usr/bin/java -Djava.awt.headless=true -jar /usr/share/java/jenkins.war --webroot=/var/cache/jenkins/war --httpPort=8080
-
-Aug 14 10:53:25 tsb-dev-playground2 jenkins[95873]: 2026-08-14 10:53:25.910+0000 [id=38]        INFO        jenkins.InitReactorRunner$1#onAttained: Started >
-Aug 14 10:53:25 tsb-dev-playground2 jenkins[95873]: 2026-08-14 10:53:25.915+0000 [id=37]        INFO        jenkins.InitReactorRunner$1#onAttained: Augmente>
-Aug 14 10:53:26 tsb-dev-playground2 jenkins[95873]: 2026-08-14 10:53:26.573+0000 [id=37]        INFO        h.p.b.g.GlobalTimeOutConfiguration#load: global >
-Aug 14 10:53:28 tsb-dev-playground2 jenkins[95873]: 2026-08-14 10:53:28.011+0000 [id=39]        INFO        jenkins.InitReactorRunner$1#onAttained: System c>
-Aug 14 10:53:28 tsb-dev-playground2 jenkins[95873]: 2026-08-14 10:53:28.013+0000 [id=39]        INFO        jenkins.InitReactorRunner$1#onAttained: System c>
-Aug 14 10:53:28 tsb-dev-playground2 jenkins[95873]: 2026-08-14 10:53:28.014+0000 [id=38]        INFO        jenkins.InitReactorRunner$1#onAttained: Loaded a>
-Aug 14 10:53:28 tsb-dev-playground2 jenkins[95873]: 2026-08-14 10:53:28.032+0000 [id=37]        INFO        jenkins.InitReactorRunner$1#onAttained: Configur>
-Aug 14 10:53:28 tsb-dev-playground2 jenkins[95873]: 2026-08-14 10:53:28.152+0000 [id=38]        INFO        jenkins.InitReactorRunner$1#onAttained: Complete>
-Aug 14 10:53:28 tsb-dev-playground2 jenkins[95873]: 2026-08-14 10:53:28.204+0000 [id=30]        INFO        hudson.lifecycle.Lifecycle#onReady: Jenkins is f>
-Aug 14 10:53:28 tsb-dev-playground2 systemd[1]: Started jenkins.service - Jenkins Continuous Integration Server.
-
-ubuntu@tsb-dev-playground2:~$ curl -I http://localhost:8080/jenkins/
-HTTP/1.1 403 Forbidden
-Server: Jetty(12.1.8)
-Date: Fri, 14 Aug 2026 11:01:36 GMT
-X-Content-Type-Options: nosniff
-Reporting-Endpoints: content-security-policy: http://devops-intern-app2.luluex.com:8080/content-security-policy-reporting-endpoint/GLr44ElfF33EonFGxx0gXh8Eed52hiPBbdyTzO33_v8=:YW5vbnltb3Vz::L2plbmtpbnMv
-Content-Security-Policy-Report-Only: base-uri 'none'; default-src 'self'; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; script-src 'report-sample' 'self' usage.jenkins.io; style-src 'report-sample' 'self' 'unsafe-inline'; report-to content-security-policy; report-uri http://devops-intern-app2.luluex.com:8080/content-security-policy-reporting-endpoint/GLr44ElfF33EonFGxx0gXh8Eed52hiPBbdyTzO33_v8=:YW5vbnltb3Vz::L2plbmtpbnMv
-Set-Cookie: JSESSIONID.705b4013=node013xknlj4wjgl514p2eedu3jmxw2.node0; Path=/; HttpOnly; SameSite=Lax
-Expires: Thu, 01 Jan 1970 00:00:00 GMT
-Content-Type: text/html;charset=utf-8
-X-Hudson: 1.395
-X-Jenkins: 2.568.2
-X-Jenkins-Session: 552bdbed
-X-You-Are-Authenticated-As: anonymous
-X-You-Are-In-Group-Disabled: JENKINS-39402: use -Dhudson.security.AccessDeniedException2.REPORT_GROUP_HEADERS=true or use /whoAmI to diagnose
-X-Required-Permission: hudson.model.Hudson.Read
-X-Permission-Implied-By: hudson.security.Permission.GenericRead
-X-Permission-Implied-By: hudson.model.Hudson.Administer
-Transfer-Encoding: chunked
-
 ubuntu@tsb-dev-playground2:~$ ^C
 ubuntu@tsb-dev-playground2:~$ nano  /etc/nginx/sites-available/app3
 ubuntu@tsb-dev-playground2:~$ cat  /etc/nginx/sites-available/app3
@@ -3018,4 +2156,88 @@ X-Required-Permission: hudson.model.Hudson.Read
 X-Permission-Implied-By: hudson.security.Permission.GenericRead
 X-Permission-Implied-By: hudson.model.Hudson.Administer
 Transfer-Encoding: chunked
+ubuntu@tsb-dev-playground2:~$ cp ~/docker-compose.yml ~/linux-system-administration-tasks/
+ubuntu@tsb-dev-playground2:~$ pwd
+whoami
+ls -ld /home/ubuntu
+/home/ubuntu
+ubuntu
+drwxr-x--- 11 ubuntu ubuntu 4096 Aug 17 05:59 /home/ubuntu
+ubuntu@tsb-dev-playground2:~$ sudo -u jenkins ls /home/ubuntu
+find / -name docker-compose.yml 2>/dev/null
+[sudo] password for ubuntu:
+Sorry, try again.
+[sudo] password for ubuntu:
+Sorry, try again.
+[sudo] password for ubuntu:
+ls: cannot open directory '/home/ubuntu': Permission denied
+/home/ubuntu/docker-lab-images/image4-requirement4/docker-compose.yml
+/home/ubuntu/docker-compose.yml
+/home/ubuntu/linux-system-administration-tasks/05-08-2026/docker-compose.yml
+/home/ubuntu/linux-system-administration-tasks/docker-compose.yml
+ubuntu@tsb-dev-playground2:~$ ^C
+ubuntu@tsb-dev-playground2:~$ sudo usermod -aG ubuntu jenkins
+sudo systemctl restart jenkins
+ubuntu@tsb-dev-playground2:~$ id jenkins
+uid=110(jenkins) gid=111(jenkins) groups=111(jenkins),1000(ubuntu),110(docker)
+ubuntu@tsb-dev-playground2:~$ docker ps
+CONTAINER ID   IMAGE                        COMMAND                  CREATED         STATUS         PORTS                                     NAMES
+746f69c05ec0   akshay852/akshayimage:app3   "/start.sh"              8 minutes ago   Up 8 minutes   0.0.0.0:9091->80/tcp, [::]:9091->80/tcp   app3-container
+e02442755da1   postgres:16                  "docker-entrypoint.s…"   8 minutes ago   Up 8 minutes   5432/tcp                                  postgres-db
+ubuntu@tsb-dev-playground2:~$
+
+
+console output 
+-------------
+-------------
+Started by user akshay
+
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins
+ in /var/lib/jenkins/workspace/app3-deploy
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Deploy App3)
+[Pipeline] sh
++ cd /home/ubuntu
++ docker compose down
+ Container app3-container Stopping 
+ Container app3-container Stopped 
+ Container app3-container Removing 
+ Container app3-container Removed 
+ Container postgres-db Stopping 
+ Container postgres-db Stopped 
+ Container postgres-db Removing 
+ Container postgres-db Removed 
+ Network ubuntu_default Removing 
+ Network ubuntu_default Removed 
++ docker compose pull
+ Image akshay852/akshayimage:app3 Pulling 
+ Image postgres:16 Pulling 
+ Image akshay852/akshayimage:app3 Pulled 
+ Image postgres:16 Pulled 
++ docker compose up -d
+ Network ubuntu_default Creating 
+ Network ubuntu_default Creating 
+ Network ubuntu_default Created 
+ Network ubuntu_default Created 
+ Container postgres-db Creating 
+ Container postgres-db Created 
+ Container app3-container Creating 
+ Container app3-container Created 
+ Container postgres-db Starting 
+ Container postgres-db Started 
+ Container app3-container Starting 
+ Container app3-container Started 
++ docker ps
+CONTAINER ID   IMAGE                        COMMAND                  CREATED        STATUS                  PORTS                                     NAMES
+746f69c05ec0   akshay852/akshayimage:app3   "/start.sh"              1 second ago   Up Less than a second   0.0.0.0:9091->80/tcp, [::]:9091->80/tcp   app3-container
+e02442755da1   postgres:16                  "docker-entrypoint.s…"   1 second ago   Up 1 second             5432/tcp                                  postgres-db
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
 
