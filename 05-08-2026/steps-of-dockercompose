@@ -1,0 +1,27 @@
+step1 
+mkdir -p ~/docker-lab-images/akshay-image-base
+cd ~/docker-lab-images/akshay-image-base
+
+step2 
+nano Dockerfile
+
+step3
+sudo docker build -t akshaybase:app1 .
+
+step4 
+sudo docker run --rm akshaybase:app1 whoami
+
+step5 
+sudo docker images
+
+step6
+mkdir -p ~/docker-lab-images/image2-requirement2
+cd ~/docker-lab-images/image2-requirement2
+
+step7
+cp -r ~/custom-nginx-php/app ~/docker-lab-images/image2-requirement2/
+cp ~/custom-nginx-php/default.conf ~/docker-lab-images/image2-requirement2/
+cp ~/custom-nginx-php/start.sh ~/docker-lab-images/image2-requirement2/
+
+step8
+

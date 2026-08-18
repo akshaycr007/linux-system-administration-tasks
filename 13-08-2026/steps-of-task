@@ -287,15 +287,136 @@ https://devops-intern-app2.luluex.com/create.php
 console output 
 
 
+changing the requirements based on server 1
+
+step1 
+sudo nano /etc/nginx/sites-available/app3
+
+proxy_pass http://172.30.7.144:9091;
 
 
+step2 
+nginx -t 
+
+step3 
+before nginx restart
+revome container and image 
+
+docker ps -a
+docker images
+
+step4
+sudo docker stop app3-container postgres-db
+sudo docker rm app3-container postgres-db
+
+step5
+sudo docker rmi akshay852/akshayimage:app3
+sudo docker rmi postgres:16
+
+step6
+sudo systemctl restart nginx 
+
+step7
+verify 
+
+https://devops-intern-app2.luluex.com/
+https://devops-intern-app2.luluex.com/create.php
+https://devops-intern-app2.luluex.com/list.php
+
+step8
+configure jenkins to deploy app3 
+
+on server2 
+sudo su - jenkins
+ssh-keygen -t ed25519
+
+cat ~/.ssh/id_ed25519.pub
+cpy the key 
+
+step9
+on server2 
+
+mkdir -p ~/.ssh
+nano ~/.ssh/authorized_keys
+paste the key 
+
+step10 
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+
+step11
+cat ~/ssh/authorized_keys
+
+step12 
+ssh ubuntu@172.30.7.144 
+
+step13 
+change the pipeline script
+pipeline {
+    agent any
+
+    stages {
+        stage('Deploy App3') {
+            steps {
+                sh '''
+                ssh ubuntu@172.30.7.144 "
+                cd /home/ubuntu &&
+                docker compose pull &&
+                docker compose up -d
+                "
+                '''
+            }
+        }
+    }
+}
 
 
+build 
 
 
+Add up Requirement
+delete and remove the container and after recreating everything through jenkins by jenkinfile 
+
+step1 
+ 
+sudo docker ps -a
+
+step2
+sudo docker stop app3-container
+sudo docker rm app3-container 
+
+sudo docker stop postgres-db
+sudo docker rm postgres-db
 
 
+step3
+create a jenkinsfile in github 
+cd ~/linux-system-administration-tasks
+nano Jenkinsfile
 
+step4 
+cd ~/linux-system-administration-tasks
+git add Jenkinsfile
+git commit -m "Add Jenkins deployment pipeline"
+git push origin main
+
+step5
+configure jenkins 
+app3-deploy → Configure
+
+Definition: Pipeline script from SCM
+SCM: Git
+Repository URL:
+https://github.com/akshaycr007/linux-system-administration-tasks.git
+
+Branch:
+*/main
+
+Script Path:
+Jenkinsfile
+
+step6
+build now 
 
 
 
@@ -2241,4 +2362,805 @@ e02442755da1   postgres:16                  "docker-entrypoint.s…"   1 second 
 [Pipeline] // node
 [Pipeline] End of Pipeline
 Finished: SUCCESS
+
+
+
+ubuntu@tsb-dev-playground2:~$ sudo nano /etc/nginx/sites-available/app3
+[sudo] password for ubuntu:
+ubuntu@tsb-dev-playground2:~$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+ubuntu@tsb-dev-playground2:~$ sudo systemctl restart nginx
+ubuntu@tsb-dev-playground2:~$ sudo docker ps
+CONTAINER ID   IMAGE                        COMMAND                  CREATED        STATUS        PORTS                                     NAMES
+4f97d18eabe7   akshay852/akshayimage:app3   "/start.sh"              18 hours ago   Up 18 hours   0.0.0.0:9091->80/tcp, [::]:9091->80/tcp   app3-container
+a2124344b112   postgres:16                  "docker-entrypoint.s…"   18 hours ago   Up 18 hours   5432/tcp                                  postgres-db
+ubuntu@tsb-dev-playground2:~$ sudo rm -rf ^C
+ubuntu@tsb-dev-playground2:~$ docker ps -a
+docker images
+CONTAINER ID   IMAGE                        COMMAND                  CREATED        STATUS        PORTS                                     NAMES
+4f97d18eabe7   akshay852/akshayimage:app3   "/start.sh"              18 hours ago   Up 18 hours   0.0.0.0:9091->80/tcp, [::]:9091->80/tcp   app3-container
+a2124344b112   postgres:16                  "docker-entrypoint.s…"   18 hours ago   Up 18 hours   5432/tcp                                  postgres-db
+                                                                                                          i Info →   U  In Use
+IMAGE                        ID             DISK USAGE   CONTENT SIZE   EXTRA
+akshay852/akshayimage:app3   4341215369f5        626MB          163MB    U
+postgres:16                  e17e86066e5e        642MB          166MB    U
+ubuntu@tsb-dev-playground2:~$ sudo docker stop app3-container postgres-db
+sudo docker rm app3-container postgres-db
+app3-container
+postgres-db
+app3-container
+postgres-db
+ubuntu@tsb-dev-playground2:~$ sudo docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+ubuntu@tsb-dev-playground2:~$ sudo docker rmi akshay852/akshayimage:app3
+sudo docker rmi postgres:16
+Untagged: akshay852/akshayimage:app3
+Deleted: sha256:4341215369f574ffec0aa11022d255789bf3267a6bf703c85ca49733cc8bf9d0
+Untagged: postgres:16
+Deleted: sha256:e17e86066e5ef83e0952a9347f5c792b7ece00972e2aa787a6986f471b3dd3d5
+ubuntu@tsb-dev-playground2:~$ sudo systemctl restart nginx
+ubuntu@tsb-dev-playground2:~$ sudo su - jenkins
+ssh-keygen -t ed25519
+[sudo] password for ubuntu:
+jenkins@tsb-dev-playground2:~$ cat ~/.ssh/id_ed25519.pub
+cat: /var/lib/jenkins/.ssh/id_ed25519.pub: No such file or directory
+jenkins@tsb-dev-playground2:~$ ^C
+jenkins@tsb-dev-playground2:~$ ssh-keygen -t ed25519
+Generating public/private ed25519 key pair.
+Enter file in which to save the key (/var/lib/jenkins/.ssh/id_ed25519):
+Created directory '/var/lib/jenkins/.ssh'.
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in /var/lib/jenkins/.ssh/id_ed25519
+Your public key has been saved in /var/lib/jenkins/.ssh/id_ed25519.pub
+The key fingerprint is:
+SHA256:EAczGlrnLZlG8JmNs7NC9UUrq5oU7ek2sZ5fFrnMYUM jenkins@tsb-dev-playground2
+The key's randomart image is:
++--[ED25519 256]--+
+|    +.B.. .      |
+|   o B & . .     |
+|  . . # + E      |
+|     + * = .     |
+|    o + S *      |
+|   . o.= + =     |
+|    o =o  *      |
+|   . =+. o       |
+|    oo+o.        |
++----[SHA256]-----+
+jenkins@tsb-dev-playground2:~$ ls -la ~/.ssh
+total 16
+drwx------  2 jenkins jenkins 4096 Aug 18 05:11 .
+drwxr-xr-x 15 jenkins jenkins 4096 Aug 18 05:11 ..
+-rw-------  1 jenkins jenkins  419 Aug 18 05:11 id_ed25519
+-rw-r--r--  1 jenkins jenkins  109 Aug 18 05:11 id_ed25519.pub
+jenkins@tsb-dev-playground2:~$ cat ~/.ssh/id_ed25519.pub
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOVmAmq2Vjq9ZsEQBlt9KniNs5lhM1Spds3EkF/61nD/ jenkins@tsb-dev-playground2
+jenkins@tsb-dev-playground2:~$ ^C
+jenkins@tsb-dev-playground2:~$ sudo su - jenkins
+[sudo] password for jenkins:
+Sorry, try again.
+[sudo] password for jenkins:
+Sorry, try again.
+[sudo] password for jenkins:
+sudo: 3 incorrect password attempts
+jenkins@tsb-dev-playground2:~$ sudo su - jenkins
+[sudo] password for jenkins:
+sudo: a password is required
+jenkins@tsb-dev-playground2:~$ ssh ubuntu@172.30.7.144
+The authenticity of host '172.30.7.144 (172.30.7.144)' can't be established.
+ED25519 key fingerprint is SHA256:qYkOqVqwBS1sris5/fUcP1ncOdYaO2mj4u7h9v07VTU.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '172.30.7.144' (ED25519) to the list of known hosts.
+ubuntu@172.30.7.144's password:
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.8.0-137-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Tue Aug 18 05:23:40 AM UTC 2026
+
+  System load:  0.02              Processes:               258
+  Usage of /:   9.3% of 97.87GB   Users logged in:         1
+  Memory usage: 30%               IPv4 address for ens160: 172.30.7.144
+  Swap usage:   0%
+
+ * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
+   just raised the bar for easy, resilient and secure K8s cluster deployment.
+
+   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+
+Expanded Security Maintenance for Applications is not enabled.
+
+73 updates can be applied immediately.
+1 of these updates is a standard security update.
+To see these additional updates run: apt list --upgradable
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+
+Last login: Tue Aug 18 04:32:03 2026 from 10.45.6.69
+ubuntu@tsb-dev-playground1:~$ ^C
+ubuntu@tsb-dev-playground1:~$ ls -ld ~/.ssh
+ls -l ~/.ssh/authorized_keys
+drwx------ 2 ubuntu ubuntu 4096 Aug  5 07:04 /home/ubuntu/.ssh
+-rw------- 1 ubuntu ubuntu 0 Aug  4 12:36 /home/ubuntu/.ssh/authorized_keys
+ubuntu@tsb-dev-playground1:~$ ls -l ~/.ssh/authorized_keys
+-rw------- 1 ubuntu ubuntu 0 Aug  4 12:36 /home/ubuntu/.ssh/authorized_keys
+ubuntu@tsb-dev-playground1:~$ cat ~/.ssh/authorized_keys
+ubuntu@tsb-dev-playground1:~$ nano ~/.ssh/authorized_keys
+ubuntu@tsb-dev-playground1:~$ cat ~/.ssh/authorized_keys
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOVmAmq2Vjq9ZsEQBlt9KniNs5lhM1Spds3EkF/61nD/ jenkins@tsb-dev-playground2
+ubuntu@tsb-dev-playground1:~$ chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+ubuntu@tsb-dev-playground1:~$ exit
+logout
+Connection to 172.30.7.144 closed.
+jenkins@tsb-dev-playground2:~$ ssh ubuntu@172.30.7.144
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.8.0-137-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Tue Aug 18 05:27:51 AM UTC 2026
+
+  System load:  0.02              Processes:               255
+  Usage of /:   9.3% of 97.87GB   Users logged in:         1
+  Memory usage: 28%               IPv4 address for ens160: 172.30.7.144
+  Swap usage:   0%
+
+ * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
+   just raised the bar for easy, resilient and secure K8s cluster deployment.
+
+   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+
+Expanded Security Maintenance for Applications is not enabled.
+
+73 updates can be applied immediately.
+1 of these updates is a standard security update.
+To see these additional updates run: apt list --upgradable
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+
+Last login: Tue Aug 18 05:23:41 2026 from 172.30.7.143
+ubuntu@tsb-dev-playground1:~$ exit
+logout
+Connection to 172.30.7.144 closed.
+
+
+
+Jenkins build output
+
+
+Started by user akshay
+
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins
+ in /var/lib/jenkins/workspace/app3-deploy
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Deploy App3)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                cd /home/ubuntu &&
+                docker compose pull &&
+                docker compose up -d
+                
+ Image akshay852/akshayimage:app3 Pulling 
+ Image postgres:16 Pulling 
+ Image akshay852/akshayimage:app3 Pulled 
+ Image postgres:16 Pulled 
+ Container app3-container Running 
+ Container postgres-db Recreate 
+ Container postgres-db Recreated 
+ Container postgres-db Starting 
+ Container postgres-db Started 
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
+
+
+
+
+
+
+
+
+
+
+
+server1
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ nano steps-of-task
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ mkdir -p ~/ssh
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ nano   ~/ssh/authorized_keys
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ nano steps-of-task
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ chmod 700 ~/ssh
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ chmod 700 ~/ssh/authorized_keys
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ cat ~/ssh/authorized_keys
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOVmAmq2Vjq9ZsEQBlt9KniNs5lhM1Spds3EkF/61nD/ jenkins@tsb-dev-playground2
+
+
+
+Add on requirement OUTPUT 
+
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ sudo docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ nano steps-of-task
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ nano Jenkinsfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ~/linux-system-administration-tasks
+git add Jenkinsfile
+git commit -m "Add Jenkins deployment pipeline"
+git push origin main
+[main b9cf536] Add Jenkins deployment pipeline
+ 1 file changed, 46 insertions(+)
+ create mode 100644 Jenkinsfile
+Username for 'https://github.com': akshaycr007
+Password for 'https://akshaycr007@github.com':
+Enumerating objects: 4, done.
+Counting objects: 100% (4/4), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 577 bytes | 577.00 KiB/s, done.
+Total 3 (delta 1), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+To https://github.com/akshaycr007/linux-system-administration-tasks.git
+   1c6181d..b9cf536  main -> main
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd
+
+
+
+
+Jenkins output console 
+
+Started by user akshay
+
+Obtained Jenkinsfile from git https://github.com/akshaycr007/linux-system-administration-tasks.git
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins
+ in /var/lib/jenkins/workspace/app3-deploy
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Declarative: Checkout SCM)
+[Pipeline] checkout
+Selected Git installation does not exist. Using Default
+The recommended git tool is: NONE
+No credentials specified
+Cloning the remote Git repository
+Cloning repository https://github.com/akshaycr007/linux-system-administration-tasks.git
+ > git init /var/lib/jenkins/workspace/app3-deploy # timeout=10
+Fetching upstream changes from https://github.com/akshaycr007/linux-system-administration-tasks.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.43.0'
+ > git fetch --tags --force --progress -- https://github.com/akshaycr007/linux-system-administration-tasks.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git config remote.origin.url https://github.com/akshaycr007/linux-system-administration-tasks.git # timeout=10
+ > git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+Avoid second fetch
+ > git rev-parse refs/remotes/origin/main^{commit} # timeout=10
+Checking out Revision b9cf5365bd39b088ce3c0b2ddd13c22c46fe8506 (refs/remotes/origin/main)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f b9cf5365bd39b088ce3c0b2ddd13c22c46fe8506 # timeout=10
+Commit message: "Add Jenkins deployment pipeline"
+First time build. Skipping changelog.
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Checkout)
+[Pipeline] checkout
+Selected Git installation does not exist. Using Default
+The recommended git tool is: NONE
+No credentials specified
+ > git rev-parse --resolve-git-dir /var/lib/jenkins/workspace/app3-deploy/.git # timeout=10
+Fetching changes from the remote Git repository
+ > git config remote.origin.url https://github.com/akshaycr007/linux-system-administration-tasks.git # timeout=10
+Fetching upstream changes from https://github.com/akshaycr007/linux-system-administration-tasks.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.43.0'
+ > git fetch --tags --force --progress -- https://github.com/akshaycr007/linux-system-administration-tasks.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git rev-parse refs/remotes/origin/main^{commit} # timeout=10
+Checking out Revision b9cf5365bd39b088ce3c0b2ddd13c22c46fe8506 (refs/remotes/origin/main)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f b9cf5365bd39b088ce3c0b2ddd13c22c46fe8506 # timeout=10
+Commit message: "Add Jenkins deployment pipeline"
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Copy Repository to Server 1)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 mkdir -p /home/ubuntu/jenkins-app3
++ rsync -av --delete ./ ubuntu@172.30.7.144:/home/ubuntu/jenkins-app3/
+sending incremental file list
+./
+01-Linux_systemAdministration1-2026-07-10.pdf
+Dockerfile
+Jenkinsfile
+docker-compose.yml
+task03-questions
+tasks01-basics
+tasks02-docker-compose
+.git/
+.git/FETCH_HEAD
+.git/HEAD
+.git/config
+.git/description
+.git/index
+.git/branches/
+.git/hooks/
+.git/hooks/applypatch-msg.sample
+.git/hooks/commit-msg.sample
+.git/hooks/fsmonitor-watchman.sample
+.git/hooks/post-update.sample
+.git/hooks/pre-applypatch.sample
+.git/hooks/pre-commit.sample
+.git/hooks/pre-merge-commit.sample
+.git/hooks/pre-push.sample
+.git/hooks/pre-rebase.sample
+.git/hooks/pre-receive.sample
+.git/hooks/prepare-commit-msg.sample
+.git/hooks/push-to-checkout.sample
+.git/hooks/sendemail-validate.sample
+.git/hooks/update.sample
+.git/info/
+.git/info/exclude
+.git/logs/
+.git/logs/HEAD
+.git/logs/refs/
+.git/logs/refs/remotes/
+.git/logs/refs/remotes/origin/
+.git/logs/refs/remotes/origin/main
+.git/objects/
+.git/objects/info/
+.git/objects/pack/
+.git/objects/pack/pack-16a992b20a8af34aebef0ad5d0a9f6fbafff2322.idx
+.git/objects/pack/pack-16a992b20a8af34aebef0ad5d0a9f6fbafff2322.pack
+.git/objects/pack/pack-16a992b20a8af34aebef0ad5d0a9f6fbafff2322.rev
+.git/refs/
+.git/refs/heads/
+.git/refs/remotes/
+.git/refs/remotes/origin/
+.git/refs/remotes/origin/main
+.git/refs/tags/
+05-08-2026/
+05-08-2026/DOCKER_IMAGE_VERIFICATION.md
+05-08-2026/Docker-Lab-Images
+05-08-2026/Dockerfile-Base
+05-08-2026/Dockerfile-app1
+05-08-2026/Dockerfile-app2
+05-08-2026/Dockerfile-app3
+05-08-2026/create.php
+05-08-2026/db.php
+05-08-2026/default.conf
+05-08-2026/docker-compose.yml
+05-08-2026/index.php
+05-08-2026/list.php
+05-08-2026/phpinfo.php
+05-08-2026/start.sh
+05-08-2026/steps for docker-compose
+05-08-2026/task1
+05-08-2026/testdb.php
+13-08-2026/
+13-08-2026/steps-of-task
+
+sent 2,364,919 bytes  received 1,087 bytes  4,732,012.00 bytes/sec
+total size is 2,360,109  speedup is 1.00
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Deploy App3 and PostgreSQL)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        cd /home/ubuntu/jenkins-app3 &&
+                        docker compose pull &&
+                        docker compose up -d
+                    
+ Image akshay852/akshayimage:app3 Pulling 
+ Image postgres:16 Pulling 
+ Image postgres:16 Pulled 
+ f9be5eeea96d Pulling fs layer 0B
+ 371f02826123 Pulling fs layer 0B
+ d79107f06d05 Pulling fs layer 0B
+ 4dace70ca65b Pulling fs layer 0B
+ 6b9ffc521f21 Pulling fs layer 0B
+ ff014e0e06f3 Pulling fs layer 0B
+ f554324ba5a6 Pulling fs layer 0B
+ 966c395d29cb Pulling fs layer 0B
+ 4413eeff66d7 Pulling fs layer 0B
+ 40ef88aed23c Pulling fs layer 0B
+ 6e9c6d17ce71 Pulling fs layer 0B
+ 05c766d1a769 Pulling fs layer 0B
+ a7722e64bfc4 Pulling fs layer 0B
+ 91a23cd3d7db Pulling fs layer 0B
+ f554324ba5a6 Download complete 0B
+ 371f02826123 Download complete 0B
+ f9be5eeea96d Downloading 2.097MB
+ d79107f06d05 Download complete 0B
+ f9be5eeea96d Downloading 5.243MB
+ f9be5eeea96d Downloading 8.389MB
+ 6b9ffc521f21 Download complete 0B
+ 4dace70ca65b Download complete 0B
+ f9be5eeea96d Downloading 12.58MB
+ ff014e0e06f3 Downloading 1.049MB
+ f9be5eeea96d Downloading 15.73MB
+ f9be5eeea96d Downloading 18.87MB
+ ff014e0e06f3 Downloading 3.146MB
+ f9be5eeea96d Downloading 20.97MB
+ 91a23cd3d7db Download complete 0B
+ ff014e0e06f3 Downloading 6.291MB
+ ff014e0e06f3 Downloading 8.389MB
+ f9be5eeea96d Downloading 24.15MB
+ ff014e0e06f3 Downloading 11.53MB
+ f9be5eeea96d Downloading 28.31MB
+ ff014e0e06f3 Downloading 13.63MB
+ 966c395d29cb Downloading 2.097MB
+ f9be5eeea96d Downloading 30.41MB
+ ff014e0e06f3 Downloading 14.48MB
+ 966c395d29cb Downloading 3.146MB
+ f9be5eeea96d Downloading 32.51MB
+ ff014e0e06f3 Download complete 0B
+ 966c395d29cb Downloading 4.194MB
+ f9be5eeea96d Downloading 33.55MB
+ f9be5eeea96d Downloading 35.65MB
+ 4413eeff66d7 Downloading 3.146MB
+ 966c395d29cb Downloading 6.291MB
+ 966c395d29cb Downloading 7.34MB
+ f9be5eeea96d Downloading 36.7MB
+ 4413eeff66d7 Downloading 3.146MB
+ 4413eeff66d7 Downloading 5.243MB
+ 966c395d29cb Downloading 9.437MB
+ f9be5eeea96d Downloading 38.8MB
+ 966c395d29cb Downloading 11.53MB
+ f9be5eeea96d Downloading 40.89MB
+ 4413eeff66d7 Downloading 7.34MB
+ 966c395d29cb Downloading 13.63MB
+ f9be5eeea96d Downloading 42.99MB
+ 4413eeff66d7 Downloading 8.389MB
+ 4413eeff66d7 Downloading 10.49MB
+ 966c395d29cb Downloading 15.73MB
+ f9be5eeea96d Downloading 44.28MB
+ 966c395d29cb Downloading 16.78MB
+ f9be5eeea96d Download complete 0B
+ 4413eeff66d7 Downloading 11.53MB
+ 40ef88aed23c Downloading 1.049MB
+ 966c395d29cb Downloading 18.87MB
+ 4413eeff66d7 Downloading 12.58MB
+ 40ef88aed23c Downloading 2.097MB
+ 966c395d29cb Downloading 20.97MB
+ 4413eeff66d7 Downloading 14.68MB
+ 40ef88aed23c Downloading 4.567MB
+ 966c395d29cb Downloading 23.07MB
+ 4413eeff66d7 Downloading 17.83MB
+ 40ef88aed23c Downloading 6.291MB
+ 40ef88aed23c Downloading 9.437MB
+ 966c395d29cb Downloading 25.17MB
+ 4413eeff66d7 Downloading 18.87MB
+ 966c395d29cb Downloading 27.26MB
+ 4413eeff66d7 Downloading 20.97MB
+ 40ef88aed23c Downloading 11.53MB
+ 4413eeff66d7 Downloading 22.02MB
+ 40ef88aed23c Downloading 12.58MB
+ 966c395d29cb Downloading 28.31MB
+ 4413eeff66d7 Downloading 25.17MB
+ 40ef88aed23c Downloading 13.63MB
+ a7722e64bfc4 Downloading 222B
+ 966c395d29cb Downloading 29.75MB
+ 4413eeff66d7 Downloading 26.23MB
+ 40ef88aed23c Downloading 15.73MB
+ 6e9c6d17ce71 Downloading 4.619kB
+ 05c766d1a769 Download complete 0B
+ a7722e64bfc4 Download complete 0B
+ 4413eeff66d7 Downloading 27.82MB
+ 40ef88aed23c Downloading 17.83MB
+ 6e9c6d17ce71 Download complete 0B
+ 966c395d29cb Download complete 0B
+ 966c395d29cb Extracting 1B
+ 4413eeff66d7 Downloading 30.41MB
+ 40ef88aed23c Downloading 17.87MB
+ 966c395d29cb Extracting 1B
+ 4413eeff66d7 Downloading 31.46MB
+ 40ef88aed23c Download complete 0B
+ 966c395d29cb Extracting 1B
+ 4413eeff66d7 Downloading 32.51MB
+ 966c395d29cb Extracting 1B
+ 4413eeff66d7 Downloading 34.6MB
+ 966c395d29cb Extracting 1B
+ 4413eeff66d7 Downloading 36.7MB
+ 966c395d29cb Extracting 1B
+ 4413eeff66d7 Downloading 38.8MB
+ 966c395d29cb Extracting 2B
+ 4413eeff66d7 Downloading 40.89MB
+ 966c395d29cb Extracting 2B
+ 4413eeff66d7 Downloading 44.04MB
+ 966c395d29cb Extracting 2B
+ 4413eeff66d7 Downloading 47.19MB
+ 966c395d29cb Extracting 2B
+ 4413eeff66d7 Downloading 49.28MB
+ 966c395d29cb Extracting 2B
+ 4413eeff66d7 Downloading 51.38MB
+ 966c395d29cb Extracting 2B
+ 4413eeff66d7 Downloading 52.45MB
+ 966c395d29cb Extracting 2B
+ 4413eeff66d7 Downloading 55.57MB
+ 966c395d29cb Extracting 2B
+ 4413eeff66d7 Downloading 56.68MB
+ 966c395d29cb Extracting 3B
+ 4413eeff66d7 Downloading 56.68MB
+ 966c395d29cb Extracting 4B
+ 4413eeff66d7 Downloading 56.68MB
+ 966c395d29cb Extracting 4B
+ 4413eeff66d7 Downloading 56.68MB
+ 966c395d29cb Extracting 4B
+ 4413eeff66d7 Downloading 56.68MB
+ 966c395d29cb Extracting 4B
+ 4413eeff66d7 Downloading 56.68MB
+ 966c395d29cb Extracting 4B
+ 4413eeff66d7 Downloading 56.68MB
+ 966c395d29cb Extracting 5B
+ 4413eeff66d7 Downloading 56.68MB
+ 966c395d29cb Extracting 5B
+ 4413eeff66d7 Downloading 56.68MB
+ 966c395d29cb Extracting 5B
+ 4413eeff66d7 Download complete 0B
+ 966c395d29cb Extracting 5B
+ 966c395d29cb Extracting 5B
+ 966c395d29cb Extracting 5B
+ 966c395d29cb Extracting 5B
+ 966c395d29cb Extracting 5B
+ 966c395d29cb Extracting 5B
+ 966c395d29cb Extracting 5B
+ 966c395d29cb Extracting 5B
+ 966c395d29cb Extracting 6B
+ 966c395d29cb Extracting 6B
+ 966c395d29cb Extracting 6B
+ 966c395d29cb Extracting 6B
+ 966c395d29cb Extracting 6B
+ 966c395d29cb Extracting 6B
+ 966c395d29cb Extracting 6B
+ 966c395d29cb Extracting 6B
+ 966c395d29cb Extracting 6B
+ 966c395d29cb Extracting 6B
+ 966c395d29cb Extracting 7B
+ 966c395d29cb Extracting 7B
+ 966c395d29cb Extracting 7B
+ 966c395d29cb Extracting 7B
+ 966c395d29cb Extracting 7B
+ 966c395d29cb Extracting 7B
+ 966c395d29cb Extracting 7B
+ 966c395d29cb Extracting 7B
+ 966c395d29cb Extracting 7B
+ 966c395d29cb Extracting 7B
+ 966c395d29cb Extracting 8B
+ 966c395d29cb Extracting 8B
+ 966c395d29cb Extracting 8B
+ 966c395d29cb Extracting 8B
+ 966c395d29cb Extracting 8B
+ f9be5eeea96d Extracting 1B
+ 966c395d29cb Pull complete 0B
+ f9be5eeea96d Extracting 1B
+ f9be5eeea96d Extracting 1B
+ f9be5eeea96d Extracting 1B
+ f9be5eeea96d Extracting 1B
+ f9be5eeea96d Extracting 1B
+ f9be5eeea96d Extracting 1B
+ f9be5eeea96d Extracting 1B
+ f9be5eeea96d Extracting 1B
+ f9be5eeea96d Extracting 1B
+ f9be5eeea96d Extracting 2B
+ f9be5eeea96d Extracting 2B
+ f9be5eeea96d Extracting 2B
+ f9be5eeea96d Extracting 2B
+ f9be5eeea96d Extracting 2B
+ f9be5eeea96d Extracting 2B
+ f9be5eeea96d Extracting 2B
+ f9be5eeea96d Extracting 2B
+ f9be5eeea96d Extracting 2B
+ f554324ba5a6 Pull complete 0B
+ 6b9ffc521f21 Pull complete 0B
+ f9be5eeea96d Pull complete 0B
+ 4413eeff66d7 Extracting 1B
+ 4413eeff66d7 Extracting 1B
+ 4413eeff66d7 Extracting 1B
+ 4413eeff66d7 Extracting 1B
+ 4413eeff66d7 Extracting 1B
+ 4413eeff66d7 Extracting 1B
+ 4413eeff66d7 Extracting 1B
+ 4413eeff66d7 Extracting 1B
+ 4413eeff66d7 Extracting 1B
+ 4413eeff66d7 Extracting 1B
+ 4413eeff66d7 Extracting 1B
+ 4413eeff66d7 Extracting 2B
+ 4413eeff66d7 Extracting 2B
+ 4413eeff66d7 Extracting 2B
+ 4413eeff66d7 Extracting 2B
+ 4413eeff66d7 Extracting 2B
+ 4413eeff66d7 Extracting 2B
+ 4413eeff66d7 Extracting 2B
+ 4413eeff66d7 Extracting 2B
+ 4413eeff66d7 Extracting 2B
+ 4413eeff66d7 Extracting 2B
+ 4413eeff66d7 Extracting 3B
+ 4413eeff66d7 Extracting 3B
+ 4413eeff66d7 Extracting 3B
+ 4413eeff66d7 Extracting 3B
+ 4413eeff66d7 Extracting 3B
+ 4413eeff66d7 Extracting 3B
+ 4413eeff66d7 Extracting 3B
+ 4413eeff66d7 Extracting 3B
+ 4413eeff66d7 Extracting 3B
+ 4413eeff66d7 Extracting 3B
+ 4413eeff66d7 Extracting 4B
+ 4413eeff66d7 Extracting 4B
+ 4413eeff66d7 Extracting 4B
+ 4413eeff66d7 Extracting 4B
+ 4413eeff66d7 Extracting 4B
+ 4413eeff66d7 Extracting 4B
+ 4413eeff66d7 Extracting 4B
+ 4413eeff66d7 Extracting 4B
+ 4413eeff66d7 Extracting 4B
+ 4413eeff66d7 Extracting 4B
+ 4413eeff66d7 Extracting 5B
+ 4413eeff66d7 Extracting 5B
+ 4413eeff66d7 Extracting 5B
+ 4413eeff66d7 Extracting 5B
+ 4413eeff66d7 Extracting 5B
+ 4413eeff66d7 Extracting 5B
+ 4413eeff66d7 Extracting 5B
+ 4413eeff66d7 Extracting 6B
+ 4413eeff66d7 Extracting 6B
+ 4413eeff66d7 Extracting 6B
+ 4413eeff66d7 Extracting 6B
+ 4413eeff66d7 Extracting 6B
+ 4413eeff66d7 Extracting 6B
+ 4413eeff66d7 Extracting 6B
+ 4413eeff66d7 Extracting 6B
+ 4413eeff66d7 Extracting 6B
+ 4413eeff66d7 Extracting 6B
+ 4413eeff66d7 Extracting 7B
+ 4413eeff66d7 Extracting 7B
+ 4413eeff66d7 Extracting 7B
+ 4413eeff66d7 Extracting 7B
+ 4413eeff66d7 Extracting 7B
+ 4413eeff66d7 Extracting 7B
+ 4413eeff66d7 Extracting 7B
+ 4413eeff66d7 Extracting 7B
+ 4413eeff66d7 Extracting 7B
+ 4413eeff66d7 Extracting 7B
+ 4413eeff66d7 Extracting 8B
+ 4413eeff66d7 Extracting 8B
+ 4413eeff66d7 Extracting 8B
+ 4413eeff66d7 Extracting 8B
+ 4413eeff66d7 Extracting 8B
+ 4413eeff66d7 Extracting 8B
+ 4413eeff66d7 Extracting 8B
+ 4413eeff66d7 Pull complete 0B
+ 40ef88aed23c Extracting 1B
+ 40ef88aed23c Extracting 1B
+ 40ef88aed23c Extracting 1B
+ 40ef88aed23c Extracting 1B
+ 40ef88aed23c Extracting 1B
+ 40ef88aed23c Extracting 1B
+ 40ef88aed23c Extracting 1B
+ 40ef88aed23c Extracting 1B
+ 40ef88aed23c Extracting 1B
+ 40ef88aed23c Extracting 2B
+ 40ef88aed23c Extracting 2B
+ 40ef88aed23c Extracting 2B
+ 40ef88aed23c Extracting 2B
+ 40ef88aed23c Extracting 2B
+ 40ef88aed23c Extracting 2B
+ 40ef88aed23c Extracting 2B
+ 40ef88aed23c Extracting 2B
+ 40ef88aed23c Extracting 2B
+ 40ef88aed23c Extracting 3B
+ 40ef88aed23c Extracting 3B
+ 40ef88aed23c Extracting 3B
+ 40ef88aed23c Extracting 3B
+ 40ef88aed23c Extracting 3B
+ 40ef88aed23c Extracting 3B
+ 40ef88aed23c Extracting 3B
+ 40ef88aed23c Extracting 3B
+ 40ef88aed23c Extracting 3B
+ 40ef88aed23c Extracting 3B
+ 40ef88aed23c Extracting 3B
+ 40ef88aed23c Extracting 4B
+ 05c766d1a769 Extracting 1B
+ 6e9c6d17ce71 Pull complete 0B
+ 40ef88aed23c Pull complete 0B
+ 371f02826123 Pull complete 0B
+ 4dace70ca65b Pull complete 0B
+ 91a23cd3d7db Pull complete 0B
+ ff014e0e06f3 Extracting 1B
+ 05c766d1a769 Pull complete 0B
+ a7722e64bfc4 Pull complete 0B
+ ff014e0e06f3 Extracting 1B
+ ff014e0e06f3 Extracting 1B
+ ff014e0e06f3 Extracting 1B
+ ff014e0e06f3 Extracting 1B
+ ff014e0e06f3 Extracting 1B
+ ff014e0e06f3 Extracting 1B
+ ff014e0e06f3 Extracting 1B
+ ff014e0e06f3 Extracting 2B
+ ff014e0e06f3 Extracting 2B
+ ff014e0e06f3 Extracting 2B
+ ff014e0e06f3 Extracting 2B
+ ff014e0e06f3 Extracting 2B
+ ff014e0e06f3 Extracting 2B
+ ff014e0e06f3 Extracting 2B
+ ff014e0e06f3 Extracting 2B
+ ff014e0e06f3 Extracting 2B
+ ff014e0e06f3 Extracting 2B
+ ff014e0e06f3 Extracting 3B
+ ff014e0e06f3 Extracting 3B
+ ff014e0e06f3 Extracting 3B
+ ff014e0e06f3 Extracting 3B
+ ff014e0e06f3 Extracting 3B
+ ff014e0e06f3 Extracting 3B
+ ff014e0e06f3 Extracting 3B
+ ff014e0e06f3 Extracting 3B
+ ff014e0e06f3 Extracting 3B
+ ff014e0e06f3 Extracting 3B
+ ff014e0e06f3 Extracting 4B
+ ff014e0e06f3 Extracting 4B
+ ff014e0e06f3 Pull complete 0B
+ d79107f06d05 Pull complete 0B
+ Image akshay852/akshayimage:app3 Pulled 
+ Network jenkins-app3_default Creating 
+ Network jenkins-app3_default Creating 
+ Volume jenkins-app3_postgres-data Creating 
+ Volume jenkins-app3_postgres-data Creating 
+ Volume jenkins-app3_postgres-data Created 
+ Volume jenkins-app3_postgres-data Created 
+ Network jenkins-app3_default Created 
+ Network jenkins-app3_default Created 
+ Container postgres-db Creating 
+ Container postgres-db Created 
+ Container app3-container Creating 
+ Container app3-container Created 
+ Container postgres-db Starting 
+ Container postgres-db Started 
+ Container app3-container Starting 
+ Container app3-container Started 
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Verify Deployment)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        docker ps
+                    
+CONTAINER ID   IMAGE                        COMMAND                  CREATED         STATUS         PORTS                                     NAMES
+14ee87d8c9ed   akshay852/akshayimage:app3   "/start.sh"              3 seconds ago   Up 2 seconds   0.0.0.0:9091->80/tcp, [::]:9091->80/tcp   app3-container
+43862f93842b   postgres:16                  "docker-entrypoint.s…"   7 seconds ago   Up 2 seconds   5432/tcp                                  postgres-db
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
+
+
+
+
+
+
+
+
+
 
