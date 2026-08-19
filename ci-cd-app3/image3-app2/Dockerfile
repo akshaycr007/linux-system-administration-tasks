@@ -1,4 +1,4 @@
-FROM ci-app2:app1
+FROM akshayimage:app1-ci
 
 USER root
 
