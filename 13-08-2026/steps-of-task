@@ -3207,6 +3207,1174 @@ CONTAINER ID   IMAGE                        COMMAND                  CREATED    
 [Pipeline] End of Pipeline
 Finished: SUCCESS
 
+-----------------------------------------------------------------------------
+Output of Requirement
+Start with a clean Server 1 by removing the previous application setup, then create a complete CI/CD workflow using the existing GitHub source code, Jenkins on Server 2, Docker Hub, and Server 1.
+
+OUTPUT 
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ~/linux-system-administration-tasks
+
+mkdir -p ci-cd-app3/image1-base
+mkdir -p ci-cd-app3/image2-app1/app
+mkdir -p ci-cd-app3/image3-app2
+mkdir -p ci-cd-app3/image4-app3/app
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cp 05-08-2026/Dockerfile-Base \
+   ci-cd-app3/image1-base/Dockerfile
+
+cp 05-08-2026/Dockerfile-app1 \
+   ci-cd-app3/image2-app1/Dockerfile
+
+cp 05-08-2026/Dockerfile-app2 \
+   ci-cd-app3/image3-app2/Dockerfile
+
+cp 05-08-2026/Dockerfile-app3 \
+   ci-cd-app3/image4-app3/Dockerfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cp 05-08-2026/index.php ci-cd-app3/image2-app1/app/
+cp 05-08-2026/phpinfo.php ci-cd-app3/image2-app1/app/
+cp 05-08-2026/default.conf ci-cd-app3/image2-app1/
+cp 05-08-2026/start.sh ci-cd-app3/image2-app1/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cp 05-08-2026/index.php ci-cd-app3/image4-app3/app/
+cp 05-08-2026/create.php ci-cd-app3/image4-app3/app/
+cp 05-08-2026/db.php ci-cd-app3/image4-app3/app/
+cp 05-08-2026/list.php ci-cd-app3/image4-app3/app/
+cp 05-08-2026/phpinfo.php ci-cd-app3/image4-app3/app/
+cp 05-08-2026/testdb.php ci-cd-app3/image4-app3/app/
+
+cp 05-08-2026/default.conf ci-cd-app3/image4-app3/
+cp 05-08-2026/start.sh ci-cd-app3/image4-app3/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ tree ci-cd-app3
+ci-cd-app3
+├── image1-base
+│   └── Dockerfile
+├── image2-app1
+│   ├── app
+│   │   ├── index.php
+│   │   └── phpinfo.php
+│   ├── default.conf
+│   ├── Dockerfile
+│   └── start.sh
+├── image3-app2
+│   └── Dockerfile
+└── image4-app3
+    ├── app
+    │   ├── create.php
+    │   ├── db.php
+    │   ├── index.php
+    │   ├── list.php
+    │   ├── phpinfo.php
+    │   └── testdb.php
+    ├── default.conf
+    ├── Dockerfile
+    └── start.sh
+
+7 directories, 16 files
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ tree ci-cd-app3
+ci-cd-app3
+├── image1-base
+│   └── Dockerfile
+├── image2-app1
+│   ├── app
+│   │   ├── index.php
+│   │   └── phpinfo.php
+│   ├── default.conf
+│   ├── Dockerfile
+│   └── start.sh
+├── image3-app2
+│   └── Dockerfile
+└── image4-app3
+    ├── app
+    │   ├── create.php
+    │   ├── db.php
+    │   ├── index.php
+    │   ├── list.php
+    │   ├── phpinfo.php
+    │   └── testdb.php
+    ├── default.conf
+    ├── Dockerfile
+    └── start.sh
+
+7 directories, 16 files
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ diff 05-08-2026/Dockerfile-Base ci-cd-app3/image1-base/Dockerfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ diff 05-08-2026/Dockerfile-app1 ci-cd-app3/image2-app1/Dockerfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ diff 05-08-2026/Dockerfile-app2 ci-cd-app3/image3-app2/Dockerfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ diff 05-08-2026/Dockerfile-app3 ci-cd-app3/image4-app3/Dockerfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ nano ci-cd-app3/docker-compose.yml
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cat ci-cd-app3/docker-compose.yml
+services:
+
+  postgres-db:
+    image: postgres:16
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: appdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  app:
+    image: akshay852/akshayimage:app3
+    container_name: app3-container
+    ports:
+      - "9091:80"
+    depends_on:
+      - postgres-db
+
+volumes:
+  postgres-data:
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        13-08-2026/steps-of-task.save
+        13-08-2026/steps-of-task.save.1
+        ci-cd-app3/
+
+nothing added to commit but untracked files present (use "git add" to track)
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ~/linux-system-administration-tasks
+
+git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        13-08-2026/steps-of-task.save
+        13-08-2026/steps-of-task.save.1
+        ci-cd-app3/
+
+nothing added to commit but untracked files present (use "git add" to track)
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ git add ci-cd-app3
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   ci-cd-app3/docker-compose.yml
+        new file:   ci-cd-app3/image1-base/Dockerfile
+        new file:   ci-cd-app3/image2-app1/Dockerfile
+        new file:   ci-cd-app3/image2-app1/app/index.php
+        new file:   ci-cd-app3/image2-app1/app/phpinfo.php
+        new file:   ci-cd-app3/image2-app1/default.conf
+        new file:   ci-cd-app3/image2-app1/start.sh
+        new file:   ci-cd-app3/image3-app2/Dockerfile
+        new file:   ci-cd-app3/image4-app3/Dockerfile
+        new file:   ci-cd-app3/image4-app3/app/create.php
+        new file:   ci-cd-app3/image4-app3/app/db.php
+        new file:   ci-cd-app3/image4-app3/app/index.php
+        new file:   ci-cd-app3/image4-app3/app/list.php
+        new file:   ci-cd-app3/image4-app3/app/phpinfo.php
+        new file:   ci-cd-app3/image4-app3/app/testdb.php
+        new file:   ci-cd-app3/image4-app3/default.conf
+        new file:   ci-cd-app3/image4-app3/start.sh
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        13-08-2026/steps-of-task.save
+        13-08-2026/steps-of-task.save.1
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ git commit -m "Add CI/CD App3 deployment setup"
+[main 378605c] Add CI/CD App3 deployment setup
+ 17 files changed, 375 insertions(+)
+ create mode 100644 ci-cd-app3/docker-compose.yml
+ create mode 100644 ci-cd-app3/image1-base/Dockerfile
+ create mode 100644 ci-cd-app3/image2-app1/Dockerfile
+ create mode 100644 ci-cd-app3/image2-app1/app/index.php
+ create mode 100644 ci-cd-app3/image2-app1/app/phpinfo.php
+ create mode 100644 ci-cd-app3/image2-app1/default.conf
+ create mode 100644 ci-cd-app3/image2-app1/start.sh
+ create mode 100644 ci-cd-app3/image3-app2/Dockerfile
+ create mode 100644 ci-cd-app3/image4-app3/Dockerfile
+ create mode 100644 ci-cd-app3/image4-app3/app/create.php
+ create mode 100644 ci-cd-app3/image4-app3/app/db.php
+ create mode 100644 ci-cd-app3/image4-app3/app/index.php
+ create mode 100644 ci-cd-app3/image4-app3/app/list.php
+ create mode 100644 ci-cd-app3/image4-app3/app/phpinfo.php
+ create mode 100644 ci-cd-app3/image4-app3/app/testdb.php
+ create mode 100644 ci-cd-app3/image4-app3/default.conf
+ create mode 100644 ci-cd-app3/image4-app3/start.sh
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ git push origin main
+Username for 'https://github.com': akshaycr007
+Password for 'https://akshaycr007@github.com':
+Enumerating objects: 22, done.
+Counting objects: 100% (22/22), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (18/18), done.
+Writing objects: 100% (21/21), 4.00 KiB | 682.00 KiB/s, done.
+Total 21 (delta 1), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+To https://github.com/akshaycr007/linux-system-administration-tasks.git
+   2c34e7c..378605c  main -> main
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        13-08-2026/steps-of-task.save
+        13-08-2026/steps-of-task.save.1
+
+nothing added to commit but untracked files present (use "git add" to track)
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ..
+ubuntu@tsb-dev-playground1:~$ sudo docker ps -a
+[sudo] password for ubuntu:
+CONTAINER ID   IMAGE                        COMMAND                  CREATED        STATUS        PORTS                                     NAMES
+14ee87d8c9ed   akshay852/akshayimage:app3   "/start.sh"              19 hours ago   Up 19 hours   0.0.0.0:9091->80/tcp, [::]:9091->80/tcp   app3-container
+43862f93842b   postgres:16                  "docker-entrypoint.s…"   19 hours ago   Up 19 hours   5432/tcp                                  postgres-db
+ubuntu@tsb-dev-playground1:~$ sudo docker stop app3-container postgres-db
+app3-container
+postgres-db
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ ls
+01-Linux_systemAdministration1-2026-07-10.pdf  ci-cd-app3          Jenkinsfile             task-05-08-2026
+05-08-2026                                     docker-compose.yml  steps-of-dockercompose  tasks01-basics
+13-08-2026                                     Dockerfile          task03-questions        tasks02-docker-compose
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ci-cd-app3/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/ci-cd-app3$ ls
+docker-compose.yml  image1-base  image2-app1  image3-app2  image4-app3
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/ci-cd-app3$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ..
+ubuntu@tsb-dev-playground1:~$ sudo docker ps -a
+CONTAINER ID   IMAGE                        COMMAND                  CREATED        STATUS                       PORTS     NAMES
+14ee87d8c9ed   akshay852/akshayimage:app3   "/start.sh"              19 hours ago   Exited (137) 6 minutes ago             app3-container
+43862f93842b   postgres:16                  "docker-entrypoint.s…"   19 hours ago   Exited (0) 7 minutes ago               postgres-db
+ubuntu@tsb-dev-playground1:~$ sudo docker rm app3-container postgres-db
+app3-container
+postgres-db
+ubuntu@tsb-dev-playground1:~$ sudo docker rm app3-container postgres-db
+Error response from daemon: No such container: app3-container
+Error response from daemon: No such container: postgres-db
+ubuntu@tsb-dev-playground1:~$ sudo docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+ubuntu@tsb-dev-playground1:~$ sudo docker images
+                                                                                                          i Info →   U  In Use
+IMAGE                        ID             DISK USAGE   CONTENT SIZE   EXTRA
+akshay852/akshayimage:app3   4341215369f5        626MB          163MB
+postgres:16                  e17e86066e5e        642MB          166MB
+ubuntu@tsb-dev-playground1:~$ sudo docker rmi akshay852/akshayimage:app3
+Untagged: akshay852/akshayimage:app3
+Deleted: sha256:4341215369f574ffec0aa11022d255789bf3267a6bf703c85ca49733cc8bf9d0
+ubuntu@tsb-dev-playground1:~$ sudo docker rmi postgres:16
+Untagged: postgres:16
+Deleted: sha256:e17e86066e5ef83e0952a9347f5c792b7ece00972e2aa787a6986f471b3dd3d5
+ubuntu@tsb-dev-playground1:~$ sudo docker images
+                                                                                                          i Info →   U  In Use
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+ubuntu@tsb-dev-playground1:~$ sudo docker volume ls
+DRIVER    VOLUME NAME
+local     jenkins-app3_postgres-data
+local     ubuntu_postgres-data
+ubuntu@tsb-dev-playground1:~$ sudo docker volume rm postgres-data
+Error response from daemon: get postgres-data: no such volume
+ubuntu@tsb-dev-playground1:~$ sudo docker volume rm ^C
+ubuntu@tsb-dev-playground1:~$ sudo docker volume inspect jenkins-app3_postgres-data
+[
+    {
+        "CreatedAt": "2026-08-18T10:30:56Z",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.config-hash": "91606687aad7d98254b0e7b129839cd1c5ab31900d003bc00534ee88a2f519e8",
+            "com.docker.compose.project": "jenkins-app3",
+            "com.docker.compose.version": "5.4.0",
+            "com.docker.compose.volume": "postgres-data"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/jenkins-app3_postgres-data/_data",
+        "Name": "jenkins-app3_postgres-data",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+ubuntu@tsb-dev-playground1:~$ sudo docker volume rm jenkins-app3_postgres-data
+sudo docker volume rm ubuntu_postgres-data
+jenkins-app3_postgres-data
+ubuntu_postgres-data
+ubuntu@tsb-dev-playground1:~$ sudo docker volume ls
+DRIVER    VOLUME NAME
+ubuntu@tsb-dev-playground1:~$ ls -ld ~/linux-system-administration-tasks
+drwxrwxr-x 8 ubuntu ubuntu 4096 Aug 19 04:39 /home/ubuntu/linux-system-administration-tasks
+ubuntu@tsb-dev-playground1:~$ cd ~
+ubuntu@tsb-dev-playground1:~$ pwd
+/home/ubuntu
+ubuntu@tsb-dev-playground1:~$ rm -rf ~/linux-system-administration-tasks
+ubuntu@tsb-dev-playground1:~$ ls -ld ~/linux-system-administration-tasks
+ls: cannot access '/home/ubuntu/linux-system-administration-tasks': No such file or directory
+ubuntu@tsb-dev-playground1:~$ ls
+custom-nginx-php         docker-compose.yml  jenkins-app3    ssh            tasks
+custom-nginx-php-backup  docker-lab-images   pagespeed-test  steps-of-task
+ubuntu@tsb-dev-playground1:~$ sudo ls -l /etc/nginx/sites-available/app3
+ls: cannot access '/etc/nginx/sites-available/app3': No such file or directory
+ubuntu@tsb-dev-playground1:~$ sudo cat /etc/nginx/sites-available/app3
+cat: /etc/nginx/sites-available/app3: No such file or directory
+ubuntu@tsb-dev-playground1:~$ ^C
+ubuntu@tsb-dev-playground1:~$ sudo ls -la /etc/nginx/sites-available/
+ls: cannot access '/etc/nginx/sites-available/': No such file or directory
+ubuntu@tsb-dev-playground1:~$ sudo ls -la /etc/nginx/sites-enabled/
+ls: cannot access '/etc/nginx/sites-enabled/': No such file or directory
+ubuntu@tsb-dev-playground1:~$ sudo grep -Rni "9091\|app3-container\|devops-intern-app2" /etc/nginx 2>/dev/null
+ubuntu@tsb-dev-playground1:~$ cd ~
+tree -L 3
+.
+├── custom-nginx-php
+│   ├── app
+│   │   ├── create.php
+│   │   ├── db.php
+│   │   ├── index.php
+│   │   ├── list.php
+│   │   ├── phpinfo.php
+│   │   └── testdb.php
+│   ├── default.conf
+│   ├── Dockerfile
+│   └── start.sh
+├── custom-nginx-php-backup
+│   ├── app
+│   │   ├── index.php
+│   │   └── phpinfo.php
+│   ├── default.conf
+│   ├── Dockerfile
+│   └── start.sh
+├── docker-compose.yml
+├── docker-lab-images
+│   ├── akshay-image-app1
+│   ├── akshay-image-base
+│   │   └── Dockerfile
+│   ├── D
+│   ├── image1-base
+│   ├── image2-requirement2
+│   │   ├── app
+│   │   ├── default.conf
+│   │   ├── Dockerfile
+│   │   └── start.sh
+│   ├── image3-requirement3
+│   │   └── Dockerfile
+│   └── image4-requirement4
+│       ├── app
+│       ├── default.conf
+│       ├── docker-compose.yml
+│       ├── Dockerfile
+│       ├── init.sql
+│       └── start.sh
+├── jenkins-app3
+│   ├── 01-Linux_systemAdministration1-2026-07-10.pdf
+│   ├── 05-08-2026
+│   │   ├── create.php
+│   │   ├── db.php
+│   │   ├── default.conf
+│   │   ├── docker-compose.yml
+│   │   ├── Dockerfile-app1
+│   │   ├── Dockerfile-app2
+│   │   ├── Dockerfile-app3
+│   │   ├── Dockerfile-Base
+│   │   ├── DOCKER_IMAGE_VERIFICATION.md
+│   │   ├── Docker-Lab-Images
+│   │   ├── index.php
+│   │   ├── list.php
+│   │   ├── phpinfo.php
+│   │   ├── start.sh
+│   │   ├── steps for docker-compose
+│   │   ├── task1
+│   │   └── testdb.php
+│   ├── 13-08-2026
+│   │   └── steps-of-task
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── Jenkinsfile
+│   ├── task03-questions
+│   ├── tasks01-basics
+│   └── tasks02-docker-compose
+├── pagespeed-test
+├── ssh
+│   └── authorized_keys
+├── steps-of-task
+└── tasks
+
+19 directories, 54 files
+ubuntu@tsb-dev-playground1:~$ ^C
+ubuntu@tsb-dev-playground1:~$ cd pagespeed-test/
+ubuntu@tsb-dev-playground1:~/pagespeed-test$ ls
+ubuntu@tsb-dev-playground1:~/pagespeed-test$ cd ..
+ubuntu@tsb-dev-playground1:~$ nano steps-of-task
+ubuntu@tsb-dev-playground1:~$ ls'
+> ^C
+ubuntu@tsb-dev-playground1:~$ ls
+custom-nginx-php         docker-compose.yml  jenkins-app3    ssh            tasks
+custom-nginx-php-backup  docker-lab-images   pagespeed-test  steps-of-task
+ubuntu@tsb-dev-playground1:~$ sudo systemct active docker
+[sudo] password for ubuntu:
+sudo: systemct: command not found
+ubuntu@tsb-dev-playground1:~$ sudo systemctl active docker
+Unknown command verb 'active', did you mean 'is-active'?
+ubuntu@tsb-dev-playground1:~$ sudo systemctl is active docker
+Unknown command verb 'is', did you mean 'isolate'?
+ubuntu@tsb-dev-playground1:~$ nano docker-compose.yml
+ubuntu@tsb-dev-playground1:~$
+
+
+
+console output of continuous integration -app3-ci
+-----------
+
+Started by user akshay
+
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins
+ in /var/lib/jenkins/workspace/app3-ci
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (SSH to Server 1)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 hostname
+tsb-dev-playground1
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Clone GitHub on Server 1)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        rm -rf ~/linux-system-administration-tasks &&
+                        git clone https://github.com/akshaycr007/linux-system-administration-tasks.git ~/linux-system-administration-tasks
+                    
+Cloning into '/home/ubuntu/linux-system-administration-tasks'...
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build Base Image)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        cd ~/linux-system-administration-tasks/ci-cd-app3/image1-base &&
+                        docker build -t akshaybase:app1-ci .
+                    
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile:
+#1 transferring dockerfile: 360B done
+#1 DONE 0.2s
+
+#2 [internal] load metadata for docker.io/library/ubuntu:24.04
+#2 ...
+
+#3 [auth] library/ubuntu:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/ubuntu:24.04
+#2 DONE 1.8s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [1/5] FROM docker.io/library/ubuntu:24.04@sha256:d78ab76437b1afc5f01e223d6bf0172763f404bb166441328845adbef44518cb
+#5 resolve docker.io/library/ubuntu:24.04@sha256:d78ab76437b1afc5f01e223d6bf0172763f404bb166441328845adbef44518cb 0.0s done
+#5 DONE 0.0s
+
+#6 [2/5] RUN apt-get update &&     apt-get install -y sudo curl wget
+#6 CACHED
+
+#7 [3/5] RUN useradd -m -s /bin/bash appuser
+#7 CACHED
+
+#8 [4/5] RUN echo "appuser ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/appuser &&     chmod 0440 /etc/sudoers.d/appuser
+#8 CACHED
+
+#9 [5/5] WORKDIR /home/appuser
+#9 CACHED
+
+#10 exporting to image
+#10 exporting layers done
+#10 exporting manifest sha256:7405e42336760592d17fcf1185dd5d17ab27be9ad9945d9ddf7d3bfc6713c54b done
+#10 exporting config sha256:ec045801fc50c366d8fb6c043391f758a8372e44215e28371147b7f91f9f5f79 done
+#10 exporting attestation manifest sha256:8a0e0c29edb79eabf7a4aac65a10ab77a3f84d4e7242aa32096cd5c42fd32a20 0.0s done
+#10 exporting manifest list sha256:dfdcc317384e648f3212494c27db9f8330a0b591d8ea5fdeee601f6859c9b8c8 done
+#10 naming to docker.io/library/akshaybase:app1-ci done
+#10 unpacking to docker.io/library/akshaybase:app1-ci done
+#10 DONE 0.1s
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build App1 Image)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        cd ~/linux-system-administration-tasks/ci-cd-app3/image2-app1 &&
+                        docker build -t akshayimage:app1-ci .
+                    
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.14kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/akshaybase:app1-ci
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 DONE 0.0s
+
+#5 [ 1/10] FROM docker.io/library/akshaybase:app1-ci@sha256:dfdcc317384e648f3212494c27db9f8330a0b591d8ea5fdeee601f6859c9b8c8
+#5 resolve docker.io/library/akshaybase:app1-ci@sha256:dfdcc317384e648f3212494c27db9f8330a0b591d8ea5fdeee601f6859c9b8c8 0.0s done
+#5 DONE 0.0s
+
+#5 [ 1/10] FROM docker.io/library/akshaybase:app1-ci@sha256:dfdcc317384e648f3212494c27db9f8330a0b591d8ea5fdeee601f6859c9b8c8
+#5 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 899B 0.0s done
+#4 DONE 0.0s
+
+#6 [ 4/10] RUN sudo sed -i 's/SecRuleEngine DetectionOnly/SecRuleEngine On/' /etc/nginx/modsecurity.conf &&     echo "Include /etc/modsecurity/crs/crs-setup.conf" | sudo tee -a /etc/nginx/modsecurity.conf &&     echo "Include /usr/share/modsecurity-crs/rules/*.conf" | sudo tee -a /etc/nginx/modsecurity.conf
+#6 CACHED
+
+#7 [ 2/10] RUN sudo apt-get update &&     sudo apt-get install -y     nginx     php-fpm     curl     wget     unzip     libnginx-mod-http-modsecurity     modsecurity-crs
+#7 CACHED
+
+#8 [ 3/10] RUN curl -fsSL https://packages.modpagespeed.com/install.sh | sh &&     apt-get update &&     apt-get install -y nginx-module-pagespeed
+#8 CACHED
+
+#9 [ 5/10] RUN mkdir -p /var/cache/ngx_pagespeed
+#9 CACHED
+
+#10 [ 9/10] COPY start.sh /start.sh
+#10 CACHED
+
+#11 [ 6/10] RUN printf "pagespeed on;\npagespeed FileCachePath /var/cache/ngx_pagespeed;\n"     > /etc/nginx/conf.d/pagespeed.conf
+#11 CACHED
+
+#12 [ 7/10] COPY app/ /var/www/html/
+#12 CACHED
+
+#13 [ 8/10] COPY default.conf /etc/nginx/sites-available/default
+#13 CACHED
+
+#14 [10/10] RUN chmod +x /start.sh
+#14 CACHED
+
+#15 exporting to image
+#15 exporting layers 0.0s done
+#15 exporting manifest sha256:28b12df88310832e2ed8ce305d546d8fdff02f2dcc753a8b295f11bb266eb7dc done
+#15 exporting config sha256:04baa333958902cc2c55f7c6e8cddd759891e1794dcf1a98f5a310a4eb049d61 done
+#15 exporting attestation manifest sha256:60288e99f28bdbcb4fa9ddcf5496ae59f23f62c4b0770134f038fc8e3fad320e 0.1s done
+#15 exporting manifest list sha256:c41c062a3c818343481bec8296a19e46cc7110cc87f7d5d7c587f9e22a6fb0b0
+#15 exporting manifest list sha256:c41c062a3c818343481bec8296a19e46cc7110cc87f7d5d7c587f9e22a6fb0b0 0.0s done
+#15 naming to docker.io/library/akshayimage:app1-ci done
+#15 unpacking to docker.io/library/akshayimage:app1-ci 0.0s done
+#15 DONE 0.3s
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build App2 Image)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        cd ~/linux-system-administration-tasks/ci-cd-app3/image3-app2 &&
+                        docker build -t akshayimage:app2-ci .
+                    
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 193B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/akshayimage:app1-ci
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/1] FROM docker.io/library/akshayimage:app1-ci@sha256:c41c062a3c818343481bec8296a19e46cc7110cc87f7d5d7c587f9e22a6fb0b0
+#4 resolve docker.io/library/akshayimage:app1-ci@sha256:c41c062a3c818343481bec8296a19e46cc7110cc87f7d5d7c587f9e22a6fb0b0 0.0s done
+#4 DONE 0.0s
+
+#4 [1/1] FROM docker.io/library/akshayimage:app1-ci@sha256:c41c062a3c818343481bec8296a19e46cc7110cc87f7d5d7c587f9e22a6fb0b0
+#4 CACHED
+
+#5 exporting to image
+#5 exporting layers 0.0s done
+#5 exporting manifest sha256:9b3c76a295265e4375712ce10db58f210f5a4257e1273393dd050b7ef42dd8a8 done
+#5 exporting config sha256:251b7d5717a31a29cc411ce5443973d128083485507a818032631d94981330cf done
+#5 exporting attestation manifest sha256:f0c1130f1ded59ec919f819f2526a52a89e909d790e27db7f50334d9d5c7469d 0.0s done
+#5 exporting manifest list sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347fa2fb
+#5 exporting manifest list sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347fa2fb 0.0s done
+#5 naming to docker.io/library/akshayimage:app2-ci done
+#5 unpacking to docker.io/library/akshayimage:app2-ci 0.0s done
+#5 DONE 0.2s
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build App3 Image)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        cd ~/linux-system-administration-tasks/ci-cd-app3/image4-app3 &&
+                        docker build -t akshayimage:app3-ci .
+                    
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 265B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/akshayimage:app2-ci
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 2.97kB 0.0s done
+#4 DONE 0.0s
+
+#5 [1/3] FROM docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347fa2fb
+#5 resolve docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347fa2fb 0.1s done
+#5 DONE 0.1s
+
+#6 [2/3] RUN sudo apt-get update &&     sudo apt-get install -y     php-pgsql     postgresql-client
+#6 CACHED
+
+#7 [3/3] COPY app/ /var/www/html/
+#7 CACHED
+
+#8 exporting to image
+#8 exporting layers 0.0s done
+#8 exporting manifest sha256:c567b7c82e6ffaaf66eb7ddaf8bea650046bcc6c31153dcbec7fa96c5193f913 done
+#8 exporting config sha256:26652958ddf337692facf4dbde0a9fb7c5e9004d0a8c5a7391640edc20934178 done
+#8 exporting attestation manifest sha256:db39e9d05009f31ef57081bb1acdae5a7ef2fb37e98d393eadc8f070913258a2 0.0s done
+#8 exporting manifest list sha256:747030d56db7c8e33b7797827a85d89dcb3cfff900e0435fdfaa781de5c84f78
+#8 exporting manifest list sha256:747030d56db7c8e33b7797827a85d89dcb3cfff900e0435fdfaa781de5c84f78 done
+#8 naming to docker.io/library/akshayimage:app3-ci done
+#8 unpacking to docker.io/library/akshayimage:app3-ci 0.0s done
+#8 DONE 0.2s
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Verify Images)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        docker images | grep -E 'akshaybase|akshayimage'
+                    
+akshay852/akshaybase:app1-ci    eb14888fe13b        226MB         71.8MB        
+akshay852/akshayimage:app1-ci   3aae29880650        537MB          146MB        
+akshay852/akshayimage:app2-ci   8bcb17f3f826        537MB          146MB        
+akshay852/akshayimage:app3      4341215369f5        626MB          163MB        
+akshay852/akshayimage:app3-ci   60b6f67693f8        615MB          160MB        
+akshaybase:app1-ci              dfdcc317384e        226MB         71.8MB        
+akshayimage:app1-ci             c41c062a3c81        537MB          146MB        
+akshayimage:app2-ci             f3f45aff59fa        537MB          146MB        
+akshayimage:app3-ci             747030d56db7        615MB          160MB        
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Push Images to Docker Hub)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        docker tag akshaybase:app1-ci akshay852/akshaybase:app1-ci &&
+                        docker tag akshayimage:app1-ci akshay852/akshayimage:app1-ci &&
+                        docker tag akshayimage:app2-ci akshay852/akshayimage:app2-ci &&
+                        docker tag akshayimage:app3-ci akshay852/akshayimage:app3-ci &&
+
+                        docker push akshay852/akshaybase:app1-ci &&
+                        docker push akshay852/akshayimage:app1-ci &&
+                        docker push akshay852/akshayimage:app2-ci &&
+                        docker push akshay852/akshayimage:app3-ci
+                    
+The push refers to repository [docker.io/akshay852/akshaybase]
+d25aa95af51d: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+d25aa95af51d: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+d25aa95af51d: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+d25aa95af51d: Waiting
+44136fa355b3: Waiting
+d25aa95af51d: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+d25aa95af51d: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+d25aa95af51d: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+d25aa95af51d: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+d1da34da7750: Waiting
+5f13cb1a534e: Waiting
+d25aa95af51d: Waiting
+44136fa355b3: Waiting
+ad394be90208: Layer already exists
+0926a8eb0e60: Waiting
+d1da34da7750: Waiting
+5f13cb1a534e: Waiting
+d25aa95af51d: Waiting
+44136fa355b3: Waiting
+0926a8eb0e60: Waiting
+4f4fb700ef54: Waiting
+0926a8eb0e60: Layer already exists
+d1da34da7750: Waiting
+5f13cb1a534e: Waiting
+d25aa95af51d: Waiting
+44136fa355b3: Already exists
+d25aa95af51d: Waiting
+4f4fb700ef54: Waiting
+d1da34da7750: Waiting
+5f13cb1a534e: Waiting
+4f4fb700ef54: Layer already exists
+d1da34da7750: Layer already exists
+5f13cb1a534e: Layer already exists
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Waiting
+d25aa95af51d: Pushed
+app1-ci: digest: sha256:dfdcc317384e648f3212494c27db9f8330a0b591d8ea5fdeee601f6859c9b8c8 size: 856
+The push refers to repository [docker.io/akshay852/akshayimage]
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+716508ce38ba: Waiting
+44136fa355b3: Waiting
+716508ce38ba: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+716508ce38ba: Waiting
+44136fa355b3: Waiting
+716508ce38ba: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+716508ce38ba: Waiting
+44136fa355b3: Waiting
+716508ce38ba: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+716508ce38ba: Waiting
+44136fa355b3: Waiting
+0926a8eb0e60: Waiting
+716508ce38ba: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+716508ce38ba: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+716508ce38ba: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+716508ce38ba: Waiting
+44136fa355b3: Already exists
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+d1da34da7750: Waiting
+5f13cb1a534e: Waiting
+716508ce38ba: Waiting
+4f4fb700ef54: Waiting
+ad394be90208: Layer already exists
+0926a8eb0e60: Waiting
+d1da34da7750: Waiting
+5f13cb1a534e: Waiting
+716508ce38ba: Waiting
+4f4fb700ef54: Waiting
+cf41f5e60994: Waiting
+0926a8eb0e60: Layer already exists
+d1da34da7750: Waiting
+5f13cb1a534e: Waiting
+cf41f5e60994: Layer already exists
+d762f3276b54: Waiting
+69bceed5e768: Waiting
+4f4fb700ef54: Layer already exists
+d1da34da7750: Layer already exists
+5f13cb1a534e: Layer already exists
+1697aabf0cb4: Waiting
+a05285b380b1: Waiting
+716508ce38ba: Waiting
+1697aabf0cb4: Waiting
+a05285b380b1: Waiting
+716508ce38ba: Waiting
+d762f3276b54: Waiting
+69bceed5e768: Waiting
+beb6c440f106: Waiting
+42a492c9b0f0: Waiting
+1697aabf0cb4: Layer already exists
+a05285b380b1: Layer already exists
+716508ce38ba: Waiting
+18b6c0fba8ca: Waiting
+d762f3276b54: Layer already exists
+69bceed5e768: Layer already exists
+ed5e5f1b8968: Waiting
+716508ce38ba: Waiting
+18b6c0fba8ca: Waiting
+ed5e5f1b8968: Waiting
+beb6c440f106: Waiting
+42a492c9b0f0: Waiting
+beb6c440f106: Layer already exists
+42a492c9b0f0: Layer already exists
+716508ce38ba: Waiting
+18b6c0fba8ca: Layer already exists
+ed5e5f1b8968: Layer already exists
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Waiting
+716508ce38ba: Pushed
+app1-ci: digest: sha256:c41c062a3c818343481bec8296a19e46cc7110cc87f7d5d7c587f9e22a6fb0b0 size: 856
+The push refers to repository [docker.io/akshay852/akshayimage]
+e2cebffa43e8: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2cebffa43e8: Waiting
+44136fa355b3: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2cebffa43e8: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2cebffa43e8: Waiting
+44136fa355b3: Waiting
+e2cebffa43e8: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2cebffa43e8: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2cebffa43e8: Waiting
+44136fa355b3: Waiting
+e2cebffa43e8: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+ad394be90208: Layer already exists
+0926a8eb0e60: Waiting
+d1da34da7750: Waiting
+5f13cb1a534e: Waiting
+e2cebffa43e8: Waiting
+44136fa355b3: Already exists
+0926a8eb0e60: Waiting
+d1da34da7750: Waiting
+5f13cb1a534e: Waiting
+e2cebffa43e8: Waiting
+d1da34da7750: Waiting
+5f13cb1a534e: Waiting
+e2cebffa43e8: Waiting
+4f4fb700ef54: Layer already exists
+cf41f5e60994: Waiting
+0926a8eb0e60: Waiting
+1697aabf0cb4: Waiting
+69bceed5e768: Waiting
+e2cebffa43e8: Waiting
+d762f3276b54: Waiting
+cf41f5e60994: Waiting
+0926a8eb0e60: Layer already exists
+d1da34da7750: Layer already exists
+5f13cb1a534e: Layer already exists
+1697aabf0cb4: Waiting
+69bceed5e768: Waiting
+e2cebffa43e8: Waiting
+d762f3276b54: Waiting
+cf41f5e60994: Waiting
+beb6c440f106: Waiting
+1697aabf0cb4: Layer already exists
+69bceed5e768: Layer already exists
+ed5e5f1b8968: Waiting
+a05285b380b1: Waiting
+18b6c0fba8ca: Waiting
+e2cebffa43e8: Waiting
+d762f3276b54: Layer already exists
+cf41f5e60994: Layer already exists
+e2cebffa43e8: Waiting
+beb6c440f106: Waiting
+ed5e5f1b8968: Waiting
+a05285b380b1: Waiting
+18b6c0fba8ca: Waiting
+e2cebffa43e8: Waiting
+beb6c440f106: Layer already exists
+ed5e5f1b8968: Layer already exists
+a05285b380b1: Layer already exists
+18b6c0fba8ca: Layer already exists
+42a492c9b0f0: Waiting
+42a492c9b0f0: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+42a492c9b0f0: Layer already exists
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Waiting
+e2cebffa43e8: Pushed
+app2-ci: digest: sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347fa2fb size: 856
+The push refers to repository [docker.io/akshay852/akshayimage]
+e2c80f5a4776: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2c80f5a4776: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2c80f5a4776: Waiting
+44136fa355b3: Waiting
+e2c80f5a4776: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2c80f5a4776: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2c80f5a4776: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2c80f5a4776: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2c80f5a4776: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+e2c80f5a4776: Waiting
+44136fa355b3: Waiting
+ad394be90208: Waiting
+0926a8eb0e60: Waiting
+0926a8eb0e60: Waiting
+d1da34da7750: Waiting
+e2c80f5a4776: Waiting
+44136fa355b3: Waiting
+ad394be90208: Layer already exists
+d1da34da7750: Waiting
+e2c80f5a4776: Waiting
+44136fa355b3: Waiting
+0926a8eb0e60: Waiting
+5f13cb1a534e: Waiting
+0926a8eb0e60: Waiting
+d1da34da7750: Waiting
+e2c80f5a4776: Waiting
+44136fa355b3: Already exists
+e2c80f5a4776: Waiting
+4f4fb700ef54: Waiting
+5f13cb1a534e: Waiting
+0926a8eb0e60: Layer already exists
+d1da34da7750: Waiting
+cf41f5e60994: Waiting
+d1da34da7750: Layer already exists
+d762f3276b54: Waiting
+1697aabf0cb4: Waiting
+e2c80f5a4776: Waiting
+4f4fb700ef54: Waiting
+5f13cb1a534e: Layer already exists
+1697aabf0cb4: Waiting
+4f4fb700ef54: Layer already exists
+69bceed5e768: Waiting
+cf41f5e60994: Waiting
+d762f3276b54: Waiting
+a05285b380b1: Waiting
+69bceed5e768: Layer already exists
+1697aabf0cb4: Layer already exists
+beb6c440f106: Waiting
+ed5e5f1b8968: Waiting
+cf41f5e60994: Layer already exists
+18b6c0fba8ca: Waiting
+d762f3276b54: Layer already exists
+18b6c0fba8ca: Waiting
+a05285b380b1: Waiting
+beb6c440f106: Waiting
+ed5e5f1b8968: Waiting
+18b6c0fba8ca: Layer already exists
+07b6c7377407: Waiting
+a05285b380b1: Layer already exists
+42a492c9b0f0: Waiting
+beb6c440f106: Layer already exists
+ed5e5f1b8968: Layer already exists
+9229b90cc280: Waiting
+9229b90cc280: Waiting
+07b6c7377407: Waiting
+42a492c9b0f0: Waiting
+42a492c9b0f0: Layer already exists
+9229b90cc280: Layer already exists
+07b6c7377407: Layer already exists
+e2c80f5a4776: Pushed
+app3-ci: digest: sha256:747030d56db7c8e33b7797827a85d89dcb3cfff900e0435fdfaa781de5c84f78 size: 856
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
+
+
+
+console output of continuous Deployment -app3-cd
+--------
+----------
+
+Started by user akshay
+
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins
+ in /var/lib/jenkins/workspace/app3-cd
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Pull Latest Images)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        cd ~/linux-system-administration-tasks/ci-cd-app3 &&
+                        docker compose pull
+                    
+ Image akshay852/akshayimage:app3 Pulling 
+ Image postgres:16 Pulling 
+ Image akshay852/akshayimage:app3 Pulled 
+ Image postgres:16 Pulled 
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Restart Containers)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        cd ~/linux-system-administration-tasks/ci-cd-app3 &&
+                        docker compose down &&
+                        docker compose up -d
+                    
+ Network ci-cd-app3_default Removing 
+ Network ci-cd-app3_default Removed 
+ Network ci-cd-app3_default Creating 
+ Network ci-cd-app3_default Creating 
+ Network ci-cd-app3_default Created 
+ Network ci-cd-app3_default Created 
+ Container postgres-db Creating 
+ Container postgres-db Created 
+ Container app3-container Creating 
+ Container app3-container Created 
+ Container postgres-db Starting 
+ Container postgres-db Started 
+ Container app3-container Starting 
+ Container app3-container Started 
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Verify Deployment)
+[Pipeline] sh
++ ssh ubuntu@172.30.7.144 
+                        docker ps
+                    
+CONTAINER ID   IMAGE                        COMMAND                  CREATED         STATUS         PORTS                                     NAMES
+0ab25b4ceee6   akshay852/akshayimage:app3   "/start.sh"              2 seconds ago   Up 1 second    0.0.0.0:9091->80/tcp, [::]:9091->80/tcp   app3-container
+b6f7b25ad028   postgres:16                  "docker-entrypoint.s…"   3 seconds ago   Up 2 seconds   5432/tcp                                  postgres-db
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
+
+
+
+
+
 
 
 
