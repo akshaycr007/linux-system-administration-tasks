@@ -372,7 +372,8 @@ pipeline {
 
 
 build 
-
+--------------------------
+----------------------
 
 Add up Requirement
 delete and remove the container and after recreating everything through jenkins by jenkinfile 
@@ -467,6 +468,202 @@ Jenkinsfile
 
 step6
 build now 
+---------------
+---------------
+ADD up Requirement
+
+Start with a clean Server 1 by removing the previous application setup, then create a complete CI/CD workflow using the existing GitHub source code, Jenkins on Server 2, Docker Hub, and Server 1.
+
+step1 
+remove all files and GitHub repository on server1 
+
+docker ps -a 
+
+deleted all containers
+
+step2
+sudo docker stop app3-container postgres-db
+
+step3 
+sudo docker rm  app3-container postgres-db
+ 
+step4 
+sudo docker images 
+
+step5 
+sudo docker rmi akshay852/akshayimage:app3
+sudo docker rmi postgres:16
+
+step6
+sudo docker volume ls 
+
+step7
+sudo docker volume rm jenkins-app3_postgres-data
+sudo docker volume rm ubuntu_postgres-data
+
+step8
+Remove the local GitHub clone from Server 1
+
+rm -rf ~/linux-system-administration-tasks
+
+step9
+ls -ld ~/linux-system-administration-tasks
+
+step10
+create new pipeline in Jenkins 
+New Item > app3-ci
+pipeline 
+
+pipeline {
+    agent any
+
+    stages {
+
+        stage('SSH to Server 1') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "hostname"
+                '''
+            }
+        }
+
+        stage('Clone GitHub on Server 1') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        rm -rf ~/linux-system-administration-tasks &&
+                        git clone https://github.com/akshaycr007/linux-system-administration-tasks.git ~/linux-system-administration-tasks
+                    "
+                '''
+            }
+        }
+
+        stage('Build Base Image') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/linux-system-administration-tasks/ci-cd-app3/image1-base &&
+                        docker build -t akshaybase:app1-ci .
+                    "
+                '''
+            }
+        }
+
+        stage('Build App1 Image') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/linux-system-administration-tasks/ci-cd-app3/image2-app1 &&
+                        docker build -t akshayimage:app1-ci .
+                    "
+                '''
+            }
+        }
+
+        stage('Build App2 Image') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/linux-system-administration-tasks/ci-cd-app3/image3-app2 &&
+                        docker build -t akshayimage:app2-ci .
+                    "
+                '''
+            }
+        }
+
+        stage('Build App3 Image') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/linux-system-administration-tasks/ci-cd-app3/image4-app3 &&
+                        docker build -t akshayimage:app3-ci .
+                    "
+                '''
+            }
+        }
+
+        stage('Verify Images') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        docker images | grep -E 'akshaybase|akshayimage'
+                    "
+                '''
+            }
+        }
+
+        stage('Push Images to Docker Hub') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        docker tag akshaybase:app1-ci akshay852/akshaybase:app1-ci &&
+                        docker tag akshayimage:app1-ci akshay852/akshayimage:app1-ci &&
+                        docker tag akshayimage:app2-ci akshay852/akshayimage:app2-ci &&
+                        docker tag akshayimage:app3-ci akshay852/akshayimage:app3-ci &&
+
+                        docker push akshay852/akshaybase:app1-ci &&
+                        docker push akshay852/akshayimage:app1-ci &&
+                        docker push akshay852/akshayimage:app2-ci &&
+                        docker push akshay852/akshayimage:app3-ci
+                    "
+                '''
+            }
+        }
+    }
+}
+
+
+new item >app3-cd 
+pipeline 
+
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Pull Latest Images') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/linux-system-administration-tasks/ci-cd-app3 &&
+                        docker compose pull
+                    "
+                '''
+            }
+        }
+
+        stage('Restart Containers') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/linux-system-administration-tasks/ci-cd-app3 &&
+                        docker compose down &&
+                        docker compose up -d
+                    "
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        docker ps
+                    "
+                '''
+            }
+        }
+    }
+}
+
+step11 
+verified in browser
+
+
+
+
+
+
 
 
 
