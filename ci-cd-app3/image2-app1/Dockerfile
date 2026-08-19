@@ -1,4 +1,4 @@
-FROM akshaybase:app1
+FROM ci-base:app1
 
 USER root
 
