@@ -2583,10 +2583,11 @@ ubuntu@tsb-dev-playground1:~$ exit
 logout
 Connection to 172.30.7.144 closed.
 
-
+-------------------------------------------------------------------------------
 
 Jenkins build output
 
+delete and remove the container and after recreating everything through jenkins by jenkinfile 
 
 Started by user akshay
 
@@ -2673,6 +2674,7 @@ ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd
 
 
 
+Requirement
 
 Jenkins output console 
 
