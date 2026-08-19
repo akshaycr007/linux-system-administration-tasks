@@ -1,4 +1,4 @@
-FROM ci-app1:app1
+FROM ci-app2:app1
 
 USER root
 
