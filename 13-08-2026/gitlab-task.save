@@ -1,0 +1,699 @@
+	Requirement
+Configure a complete CI/CD pipeline using GitLab, Jenkins (Server 2), Docker Hub, and Server 1 to build, publish, and deploy the App3 application with PostgreSQL using Docker Compose.
+
+step1 
+gitlab  repository created 
+
+step2 
+cd ~
+rm -rf gitlab-app3
+
+step3
+cp -r ~/linux-system-administration-tasks/ci-cd-app3 ~/gitlab-app3/
+
+step4
+cd ~/gitlab-app3
+git init
+git branch -M main
+
+
+step5
+git remote add origin git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git
+
+git remote -v 
+
+step6 
+git add .
+git commit -m "add gitlab-app3 int gitlab"
+git push origin main 
+
+
+
+verify in gitlab
+
+
+step7 
+verify ssh 
+ssh -T git@gitlab.com
+
+step8 
+test gitlab clone
+
+cd ~
+rm -rf gitlab-test
+git clone git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git gitlab-test
+tree 
+rm -rf ~/gitlab-test
+
+step9
+remove old running container 
+sudo docker stop app3-container postgres:16
+
+
+step10 
+jenkins create new pipeline 
+app3-gitlab-ci
+
+pipeline {
+    agent any
+
+    stages {
+
+        stage('SSH to Server 1') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "hostname"
+                '''
+            }
+        }
+
+        stage('Clone GitLab Repository') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        rm -rf ~/linux-system-administration-tasks-gitlab &&
+                        git clone \
+                        git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git \
+                        ~/linux-system-administration-tasks-gitlab
+                    "
+                '''
+            }
+        }
+
+        stage('Build Base Image') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/linux-system-administration-tasks-gitlab/ci-cd-app3/image1-base &&
+                        docker build -t akshaybase:gitlab-ci .
+                    "
+                '''
+            }
+        }
+
+        stage('Build App1 Image') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/linux-system-administration-tasks-gitlab/ci-cd-app3/image2-app1 &&
+                        docker build -t akshayimage:gitlab-app1 .
+                    "
+                '''
+            }
+        }
+
+        stage('Build App2 Image') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/linux-system-administration-tasks-gitlab/ci-cd-app3/image3-app2 &&
+                        docker build -t akshayimage:gitlab-app2 .
+                    "
+                '''
+            }
+        }
+
+        stage('Build App3 Image') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/linux-system-administration-tasks-gitlab/ci-cd-app3/image4-app3 &&
+                        docker build -t akshayimage:gitlab-app3 .
+                    "
+                '''
+            }
+        }
+
+        stage('Verify Images') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        docker images | grep -E 'akshaybase|akshayimage'
+                    "
+                '''
+            }
+        }
+
+        stage('Tag Images for Docker Hub') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        docker tag akshaybase:gitlab-ci \
+                            akshay852/akshaybase:gitlab-ci &&
+
+                        docker tag akshayimage:gitlab-app1 \
+                            akshay852/akshayimage:gitlab-app1 &&
+
+                        docker tag akshayimage:gitlab-app2 \
+                            akshay852/akshayimage:gitlab-app2 &&
+
+                        docker tag akshayimage:gitlab-app3 \
+                            akshay852/akshayimage:gitlab-app3
+                    "
+                '''
+            }
+        }
+
+        stage('Push Images to Docker Hub') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        docker push akshay852/akshaybase:gitlab-ci &&
+                        docker push akshay852/akshayimage:gitlab-app1 &&
+                        docker push akshay852/akshayimage:gitlab-app2 &&
+                        docker push akshay852/akshayimage:gitlab-app3
+                    "
+                '''
+            }
+        }
+    }
+}
+
+
+step11 
+
+create another pipeline as cd 
+
+app3-gitlab-cd 
+
+
+pipeline {
+    agent any
+
+    stages {
+
+        stage('SSH to Server 1') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "hostname"
+                '''
+            }
+        }
+
+        stage('Clone GitLab Repository') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        rm -rf ~/app3-gitlab-deployment &&
+                        git clone \
+                        git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git \
+                        ~/app3-gitlab-deployment
+                    "
+                '''
+            }
+        }
+
+        stage('Pull App3 Image') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        docker pull akshay852/akshayimage:gitlab-app3
+                    "
+                '''
+            }
+        }
+
+        stage('Pull PostgreSQL Image') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        docker pull postgres:16
+                    "
+                '''
+            }
+        }
+
+        stage('Stop Existing Deployment') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/app3-gitlab-deployment/ci-cd-app3 &&
+                        docker compose down
+                    "
+                '''
+            }
+        }
+
+        stage('Deploy App3 and PostgreSQL') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/app3-gitlab-deployment/ci-cd-app3 &&
+                        docker compose up -d
+                    "
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        cd ~/app3-gitlab-deployment/ci-cd-app3 &&
+                        docker compose ps
+                    "
+                '''
+            }
+        }
+
+        stage('Verify Containers') {
+            steps {
+                sh '''
+                    ssh ubuntu@172.30.7.144 "
+                        docker ps
+                    "
+                '''
+            }
+        }
+    }
+}
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OUTPUT 
+ubuntu@tsb-dev-playground1:~$ ls
+custom-nginx-php         docker-compose.yml  jenkins-app3                       pagespeed-test  steps-of-task
+custom-nginx-php-backup  docker-lab-images   linux-system-administration-tasks  ssh             tasks
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ ls
+01-Linux_systemAdministration1-2026-07-10.pdf  13-08-2026  docker-compose.yml  Jenkinsfile       tasks01-basics
+05-08-2026                                     ci-cd-app3  Dockerfile          task03-questions  tasks02-docker-compose
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ci-cd-app3/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/ci-cd-app3$ tree
+.
+├── docker-compose.yml
+├── image1-base
+│   └── Dockerfile
+├── image2-app1
+│   ├── app
+│   │   ├── index.php
+│   │   └── phpinfo.php
+│   ├── default.conf
+│   ├── Dockerfile
+│   └── start.sh
+├── image3-app2
+│   └── Dockerfile
+└── image4-app3
+    ├── app
+    │   ├── create.php
+    │   ├── db.php
+    │   ├── index.php
+    │   ├── list.php
+    │   ├── phpinfo.php
+    │   └── testdb.php
+    ├── default.conf
+    ├── Dockerfile
+    └── start.sh
+
+7 directories, 17 files
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/ci-cd-app3$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/ci-cd-app3$ cd ~
+ubuntu@tsb-dev-playground1:~$ rm -rf gitlab-app3
+ubuntu@tsb-dev-playground1:~$ cp -r ~/linux-system-administration-tasks/ci-cd-app3 ~/gitlab-app3/
+ubuntu@tsb-dev-playground1:~$ ls
+custom-nginx-php         docker-compose.yml  gitlab-app3   linux-system-administration-tasks  ssh            tasks
+custom-nginx-php-backup  docker-lab-images   jenkins-app3  pagespeed-test                     steps-of-task
+ubuntu@tsb-dev-playground1:~$ cd gitlab-app3/
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ tree
+.
+├── docker-compose.yml
+├── image1-base
+│   └── Dockerfile
+├── image2-app1
+│   ├── app
+│   │   ├── index.php
+│   │   └── phpinfo.php
+│   ├── default.conf
+│   ├── Dockerfile
+│   └── start.sh
+├── image3-app2
+│   └── Dockerfile
+└── image4-app3
+    ├── app
+    │   ├── create.php
+    │   ├── db.php
+    │   ├── index.php
+    │   ├── list.php
+    │   ├── phpinfo.php
+    │   └── testdb.php
+    ├── default.conf
+    ├── Dockerfile
+    └── start.sh
+
+7 directories, 17 files
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ cd ..
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd 13-08-2026/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ nano gitlab-task
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ ls
+01-Linux_systemAdministration1-2026-07-10.pdf  13-08-2026  docker-compose.yml  Jenkinsfile       tasks01-basics
+05-08-2026                                     ci-cd-app3  Dockerfile          task03-questions  tasks02-docker-compose
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ..
+ubuntu@tsb-dev-playground1:~$ ls
+custom-nginx-php         docker-compose.yml  gitlab-app3   linux-system-administration-tasks  ssh            tasks
+custom-nginx-php-backup  docker-lab-images   jenkins-app3  pagespeed-test                     steps-of-task
+ubuntu@tsb-dev-playground1:~$ cd gitlab-app3/
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git init
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: is subject to change. To configure the initial branch name to use in all
+hint: of your new repositories, which will suppress this warning, call:
+hint:
+hint:   git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint:   git branch -m <name>
+Initialized empty Git repository in /home/ubuntu/gitlab-app3/.git/
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git branch -M main
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git status
+On branch main
+
+No commits yet
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        docker-compose.yml
+        image1-base/
+        image2-app1/
+        image3-app2/
+        image4-app3/
+
+nothing added to commit but untracked files present (use "git add" to track)
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ^C
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git remote add origin git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git remote -v
+origin  git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git (fetch)
+origin  git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git (push)
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ cd ..
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks/13-08-2026/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ nano gitlab-task
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ nano gitlab-task
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ..
+ubuntu@tsb-dev-playground1:~$ cd gitlab-app3/
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git add .
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git status
+On branch main
+
+No commits yet
+
+Changes to be committed:
+  (use "git rm --cached <file>..." to unstage)
+        new file:   docker-compose.yml
+        new file:   image1-base/Dockerfile
+        new file:   image2-app1/Dockerfile
+        new file:   image2-app1/app/index.php
+        new file:   image2-app1/app/phpinfo.php
+        new file:   image2-app1/default.conf
+        new file:   image2-app1/start.sh
+        new file:   image3-app2/Dockerfile
+        new file:   image4-app3/Dockerfile
+        new file:   image4-app3/app/create.php
+        new file:   image4-app3/app/db.php
+        new file:   image4-app3/app/index.php
+        new file:   image4-app3/app/list.php
+        new file:   image4-app3/app/phpinfo.php
+        new file:   image4-app3/app/testdb.php
+        new file:   image4-app3/default.conf
+        new file:   image4-app3/start.sh
+
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git commit -m "add App3 CI/CD source for Gitlab "
+[main (root-commit) 022c1c8] add App3 CI/CD source for Gitlab
+ 17 files changed, 375 insertions(+)
+ create mode 100644 docker-compose.yml
+ create mode 100644 image1-base/Dockerfile
+ create mode 100644 image2-app1/Dockerfile
+ create mode 100644 image2-app1/app/index.php
+ create mode 100644 image2-app1/app/phpinfo.php
+ create mode 100644 image2-app1/default.conf
+ create mode 100644 image2-app1/start.sh
+ create mode 100644 image3-app2/Dockerfile
+ create mode 100644 image4-app3/Dockerfile
+ create mode 100644 image4-app3/app/create.php
+ create mode 100644 image4-app3/app/db.php
+ create mode 100644 image4-app3/app/index.php
+ create mode 100644 image4-app3/app/list.php
+ create mode 100644 image4-app3/app/phpinfo.php
+ create mode 100644 image4-app3/app/testdb.php
+ create mode 100644 image4-app3/default.conf
+ create mode 100644 image4-app3/start.sh
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git push origin main
+The authenticity of host 'gitlab.com (172.65.251.78)' can't be established.
+ED25519 key fingerprint is SHA256:eUXGGm1YGsMAS7vkcx6JOJdOGHPem5gQp4taiCfCLB8.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added 'gitlab.com' (ED25519) to the list of known hosts.
+git@gitlab.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git status
+On branch main
+nothing to commit, working tree clean
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git push -u origin main
+git@gitlab.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ sudo git push -u origin main
+[sudo] password for ubuntu:
+The authenticity of host 'gitlab.com (172.65.251.78)' can't be established.
+ED25519 key fingerprint is SHA256:eUXGGm1YGsMAS7vkcx6JOJdOGHPem5gQp4taiCfCLB8.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added 'gitlab.com' (ED25519) to the list of known hosts.
+git@gitlab.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ^C
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ls -la ~/.ssh
+total 28
+drwx------  2 ubuntu ubuntu 4096 Aug 18 05:26 .
+drwxr-x--- 14 ubuntu ubuntu 4096 Aug 21 04:51 ..
+-rw-------  1 ubuntu ubuntu  109 Aug 18 05:26 authorized_keys
+-rw-------  1 ubuntu ubuntu  419 Aug  5 06:49 id_ed25519
+-rw-r--r--  1 ubuntu ubuntu  106 Aug  5 06:49 id_ed25519.pub
+-rw-------  1 ubuntu ubuntu 1262 Aug 21 05:17 known_hosts
+-rw-r--r--  1 ubuntu ubuntu  142 Aug  5 06:29 known_hosts.old
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ls -l ~/.ssh/*.pub 2>/dev/null
+-rw-r--r-- 1 ubuntu ubuntu 106 Aug  5 06:49 /home/ubuntu/.ssh/id_ed25519.pub
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ^C
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ cat ~/.ssh/id_ed25519.pub
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIRVUWb6gTwQPQPxmCgh9Lybq49PVmv+3onxylSUbPLo akshayakszz007@gmail.com
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ^C
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git push -u origin main
+To gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git push -u origin main
+To gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ^C
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git fetch origin
+remote: Enumerating objects: 3, done.
+remote: Counting objects: 100% (3/3), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (3/3), 2.73 KiB | 1.37 MiB/s, done.
+From gitlab.com:akshay852/linux-system-administration-tasks-gitlab
+ * [new branch]      main       -> origin/main
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git log --oneline --all --decorate
+022c1c8 (HEAD -> main) add App3 CI/CD source for Gitlab
+119d826 (origin/main) Initial commit
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ^C
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git pull origin main --allow-unrelated-histories
+From gitlab.com:akshay852/linux-system-administration-tasks-gitlab
+ * branch            main       -> FETCH_HEAD
+hint: You have divergent branches and need to specify how to reconcile them.
+hint: You can do so by running one of the following commands sometime before
+hint: your next pull:
+hint:
+hint:   git config pull.rebase false  # merge
+hint:   git config pull.rebase true   # rebase
+hint:   git config pull.ff only       # fast-forward only
+hint:
+hint: You can replace "git config" with "git config --global" to set a default
+hint: preference for all repositories. You can also pass --rebase, --no-rebase,
+hint: or --ff-only on the command line to override the configured default per
+hint: invocation.
+fatal: Need to specify how to reconcile divergent branches.
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git status
+On branch main
+nothing to commit, working tree clean
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git push -u origin main
+To gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to 'gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. If you want to integrate the remote changes,
+hint: use 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ^C
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git pull origin main --allow-unrelated-histories --no-rebase
+From gitlab.com:akshay852/linux-system-administration-tasks-gitlab
+ * branch            main       -> FETCH_HEAD
+Merge made by the 'ort' strategy.
+ README.md | 93 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 93 insertions(+)
+ create mode 100644 README.md
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ git push -u origin main
+Enumerating objects: 24, done.
+Counting objects: 100% (24/24), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (20/20), done.
+Writing objects: 100% (23/23), 4.40 KiB | 563.00 KiB/s, done.
+Total 23 (delta 1), reused 0 (delta 0), pack-reused 0
+To gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git
+   119d826..fed65c7  main -> main
+branch 'main' set up to track 'origin/main'.
+ubuntu@tsb-dev-playground1:~/gitlab-app3$
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ..
+ubuntu@tsb-dev-playground1:~$ cd gitlab-app3/
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ls
+docker-compose.yml  image1-base  image2-app1  image3-app2  image4-app3  README.md
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ssh -T git@gitlab.com
+Welcome to GitLab, @akshay852!
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ cd ~
+ubuntu@tsb-dev-playground1:~$ rm -rf gitlab-test
+ubuntu@tsb-dev-playground1:~$ git clone git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git gitlab-test
+Cloning into 'gitlab-test'...
+remote: Enumerating objects: 26, done.
+remote: Counting objects: 100% (26/26), done.
+remote: Compressing objects: 100% (22/22), done.
+remote: Total 26 (delta 1), reused 0 (delta 0), pack-reused 0 (from 0)
+Receiving objects: 100% (26/26), 7.13 KiB | 7.13 MiB/s, done.
+Resolving deltas: 100% (1/1), done.
+ubuntu@tsb-dev-playground1:~$ cd gitlab-test & ls
+[1] 1172067
+custom-nginx-php         docker-compose.yml  gitlab-app3  jenkins-app3                       pagespeed-test  steps-of-task
+custom-nginx-php-backup  docker-lab-images   gitlab-test  linux-system-administration-tasks  ssh             tasks
+[1]+  Done                    cd gitlab-test
+ubuntu@tsb-dev-playground1:~$ cd gitlab-test && ls
+docker-compose.yml  image1-base  image2-app1  image3-app2  image4-app3  README.md
+ubuntu@tsb-dev-playground1:~/gitlab-test$ cd .. && ls
+custom-nginx-php         docker-compose.yml  gitlab-app3  jenkins-app3                       pagespeed-test  steps-of-task
+custom-nginx-php-backup  docker-lab-images   gitlab-test  linux-system-administration-tasks  ssh             tasks
+ubuntu@tsb-dev-playground1:~$ rm -rf ~/gitlab-test
+ubuntu@tsb-dev-playground1:~$ cd .. && ls
+is  ubuntu
+ubuntu@tsb-dev-playground1:/home$ ls
+is  ubuntu
+ubuntu@tsb-dev-playground1:/home$ cd ubuntu/
+ubuntu@tsb-dev-playground1:~$ ls
+custom-nginx-php         docker-compose.yml  gitlab-app3   linux-system-administration-tasks  ssh            tasks
+custom-nginx-php-backup  docker-lab-images   jenkins-app3  pagespeed-test                     steps-of-task
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks/13-08-2026/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ ls
+gitlab-task  Gitlab-task.save  steps-of-task
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ gi
+ginstall-info       gio-querymodules    git-receive-pack    git-upload-archive
+gio                 git                 git-shell           git-upload-pack
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ gi
+ginstall-info       gio-querymodules    git-receive-pack    git-upload-archive
+gio                 git                 git-shell           git-upload-pack
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ nano gitlab-task
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ nano gitlab-task
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ..
+ubuntu@tsb-dev-playground1:~$ sudo docker ps
+[sudo] password for ubuntu:
+CONTAINER ID   IMAGE                        COMMAND                  CREATED        STATUS        PORTS                                     NAMES
+0ab25b4ceee6   akshay852/akshayimage:app3   "/start.sh"              45 hours ago   Up 45 hours   0.0.0.0:9091->80/tcp, [::]:9091->80/tcp   app3-container
+b6f7b25ad028   postgres:16                  "docker-entrypoint.s…"   45 hours ago   Up 45 hours   5432/tcp                                  postgres-db
+ubuntu@tsb-dev-playground1:~$ sudo docker rm app3-container postgres-db
+Error response from daemon: cannot remove container "app3-container": container is running: stop the container before removing or force remove
+Error response from daemon: cannot remove container "postgres-db": container is running: stop the container before removing or force remove
+ubuntu@tsb-dev-playground1:~$ sudo docker stop app3-container postgres-db
+app3-container
+postgres-db
+ubuntu@tsb-dev-playground1:~$ sudo docker rm app3-container postgres-db
+app3-container
+postgres-db
+ubuntu@tsb-dev-playground1:~$ sudo docker images
+                                                                                                          i Info →   U  In Use
+IMAGE                           ID             DISK USAGE   CONTENT SIZE   EXTRA
+akshay852/akshaybase:app1-ci    dfdcc317384e        226MB         71.8MB
+akshay852/akshayimage:app1-ci   c41c062a3c81        537MB          146MB
+akshay852/akshayimage:app2-ci   f3f45aff59fa        537MB          146MB
+akshay852/akshayimage:app3      4341215369f5        626MB          163MB
+akshay852/akshayimage:app3-ci   747030d56db7        615MB          160MB
+akshaybase:app1-ci              dfdcc317384e        226MB         71.8MB
+akshayimage:app1-ci             c41c062a3c81        537MB          146MB
+akshayimage:app2-ci             f3f45aff59fa        537MB          146MB
+akshayimage:app3-ci             747030d56db7        615MB          160MB
+postgres:16                     e17e86066e5e        642MB          166MB
+ubuntu@tsb-dev-playground1:~$ sudo docker rmi
+akshay852/akshaybase:app1-ci   akshay852/akshayimage:app3     akshayimage:app1-ci            postgres:16
+akshay852/akshayimage:app1-ci  akshay852/akshayimage:app3-ci  akshayimage:app2-ci
+akshay852/akshayimage:app2-ci  akshaybase:app1-ci             akshayimage:app3-ci
+ubuntu@tsb-dev-playground1:~$ sudo docker rmi
+akshay852/akshaybase:app1-ci   akshay852/akshayimage:app3     akshayimage:app1-ci            postgres:16
+akshay852/akshayimage:app1-ci  akshay852/akshayimage:app3-ci  akshayimage:app2-ci
+akshay852/akshayimage:app2-ci  akshaybase:app1-ci             akshayimage:app3-ci
+ubuntu@tsb-dev-playground1:~$ sudo docker rmi
+akshay852/akshaybase:app1-ci   akshay852/akshayimage:app3     akshayimage:app1-ci            postgres:16
+akshay852/akshayimage:app1-ci  akshay852/akshayimage:app3-ci  akshayimage:app2-ci
+akshay852/akshayimage:app2-ci  akshaybase:app1-ci             akshayimage:app3-ci
+ubuntu@tsb-dev-playground1:~$ sudo docker rmi
+docker: 'docker rmi' requires at least 1 argument
+
+Usage:  docker rmi [OPTIONS] IMAGE [IMAGE...]
+
+See 'docker rmi --help' for more information
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks/
+05-08-2026/ 13-08-2026/ ci-cd-app3/ .git/
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks/
+05-08-2026/ 13-08-2026/ ci-cd-app3/ .git/
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks/
+05-08-2026/ 13-08-2026/ ci-cd-app3/ .git/
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd linux-system-administration-tasks/13-08-2026/
+-bash: cd: linux-system-administration-tasks/13-08-2026/: No such file or directory
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd linux-system-administration-tasks/13-08-2026/
+-bash: cd: linux-system-administration-tasks/13-08-2026/: No such file or directory
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ ls
+01-Linux_systemAdministration1-2026-07-10.pdf  13-08-2026  docker-compose.yml  Jenkinsfile       tasks01-basics
+05-08-2026                                     ci-cd-app3  Dockerfile          task03-questions  tasks02-docker-compose
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd 13-08-2026/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ nano gitlab-task
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ..
+ubuntu@tsb-dev-playground1:~$ cd gitlab-app3/
+ubuntu@tsb-dev-playground1:~/gitlab-app3$ ls
+docker-compose.yml  image1-base  image2-app1  image3-app2  image4-app3  README.md
+
+	
