@@ -1,4 +1,4 @@
-	Requirement
+Requirement
 Configure a complete CI/CD pipeline using GitLab, Jenkins (Server 2), Docker Hub, and Server 1 to build, publish, and deploy the App3 application with PostgreSQL using Docker Compose.
 
 step1 
@@ -271,6 +271,344 @@ pipeline {
 
 step12 
 Build 
+
+
+Requirement2 
+Configure GitLab Runner (`gitlabrunner`) on Server 2 to build, push, and deploy App3 with PostgreSQL using Docker Hub and Server 1.
+
+
+step1 
+install gitlab runner on srever2 
+
+step2
+curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" -o script.deb.sh
+
+step3
+less script.deb.sh
+
+step4
+sudo bash script.deb.sh
+
+step5
+sudo apt install gitlab-runner
+
+step6
+sudo gitlab-runner verify
+
+step7
+sudo -u gitlab-runner -H bash
+whoami
+
+step8
+check ssh key
+sudo -u gitlab-runner -H ls -la ~/.ssh
+
+step9
+create ssh key for gitlab 
+ssh-keygen -t ed25519
+
+step10
+create an new pipepline in gitlab for testing  
+gitlab-ci.yml
+
+
+stages:
+  - test
+
+test-server1:
+  stage: test
+  tags:
+    - gitlabrunner
+
+  script:
+    - echo "Testing GitLab Runner to Server 1"
+    - ssh -o StrictHostKeyChecking=no ubuntu@172.30.7.144 "hostname"
+    - ssh -o StrictHostKeyChecking=no ubuntu@172.30.7.144 "docker --version"
+
+step11 
+Build 
+
+step12
+real pipeline script of app3-ci 
+
+.gitlab-ci.yml
+
+stages:
+  - ci
+
+variables:
+  SERVER1: "ubuntu@172.30.7.144"
+  REPO: "git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git"
+  REPO_DIR: "/home/ubuntu/linux-system-administration-tasks-gitlab"
+
+build-images:
+  stage: ci
+
+  tags:
+    - gitlabrunner
+
+  script:
+
+    - echo "===== SSH TEST ====="
+    - ssh "$SERVER1" "hostname"
+    - ssh "$SERVER1" "whoami"
+
+    - echo "===== CLONE GITLAB REPOSITORY ON SERVER 1 ====="
+    - |
+      ssh "$SERVER1" "
+        rm -rf $REPO_DIR &&
+        git clone $REPO $REPO_DIR
+      "
+
+    - echo "===== BUILD BASE IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR/image1-base &&
+        docker build -t akshaybase:gitlab-ci .
+      "
+
+    - echo "===== BUILD APP1 IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR/image2-app1 &&
+        docker build -t akshayimage:gitlab-app1 .
+      "
+
+    - echo "===== BUILD APP2 IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR/image3-app2 &&
+        docker build -t akshayimage:gitlab-app2 .
+      "
+
+    - echo "===== BUILD APP3 IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR/image4-app3 &&
+        docker build -t akshayimage:gitlab-app3 .
+      "
+
+    - echo "===== VERIFY IMAGES ====="
+    - |
+      ssh "$SERVER1" "
+        docker images | grep -E 'akshaybase|akshayimage'
+      "
+
+    - echo "===== TAG IMAGES FOR DOCKER HUB ====="
+    - |
+      ssh "$SERVER1" "
+        docker tag akshaybase:gitlab-ci akshay852/akshaybase:gitlab-ci &&
+        docker tag akshayimage:gitlab-app1 akshay852/akshayimage:gitlab-app1 &&
+        docker tag akshayimage:gitlab-app2 akshay852/akshayimage:gitlab-app2 &&
+        docker tag akshayimage:gitlab-app3 akshay852/akshayimage:gitlab-app3
+      "
+
+    - echo "===== PUSH IMAGES TO DOCKER HUB ====="
+    - |
+      ssh "$SERVER1" "
+        docker push akshay852/akshaybase:gitlab-ci &&
+        docker push akshay852/akshayimage:gitlab-app1 &&
+        docker push akshay852/akshayimage:gitlab-app2 &&
+        docker push akshay852/akshayimage:gitlab-app3
+      "
+
+    - echo "===== CI COMPLETED ====="
+
+
+step13
+
+.gitlab-cd.yml
+
+
+stages:
+  - cd
+
+variables:
+  SERVER1: "ubuntu@172.30.7.144"
+  REPO: "git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git"
+  REPO_DIR: "/home/ubuntu/linux-system-administration-tasks-gitlab"
+
+deploy-app3:
+  stage: cd
+
+  tags:
+    - gitlabrunner
+
+  script:
+
+    - echo "===== SSH TEST ====="
+    - ssh "$SERVER1" "hostname"
+    - ssh "$SERVER1" "whoami"
+
+    - echo "===== CLONE GITLAB REPOSITORY ON SERVER 1 ====="
+    - |
+      ssh "$SERVER1" "
+        rm -rf $REPO_DIR &&
+        git clone $REPO $REPO_DIR
+      "
+
+    - echo "===== CHECK DOCKER COMPOSE FILE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        ls -l docker-compose.yml
+      "
+
+stages:
+  - cd
+
+variables:
+  SERVER1: "ubuntu@172.30.7.144"
+  REPO: "git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git"
+  REPO_DIR: "/home/ubuntu/linux-system-administration-tasks-gitlab"
+
+deploy-app3:
+  stage: cd
+
+  tags:
+    - gitlabrunner
+
+  script:
+
+    - echo "===== SSH TEST ====="
+    - ssh "$SERVER1" "hostname"
+    - ssh "$SERVER1" "whoami"
+
+    - echo "===== CLONE GITLAB REPOSITORY ON SERVER 1 ====="
+    - |
+      ssh "$SERVER1" "
+        rm -rf $REPO_DIR &&
+        git clone $REPO $REPO_DIR
+      "
+
+    - echo "===== CHECK DOCKER COMPOSE FILE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        ls -l docker-compose.yml
+      "
+
+    - echo "===== PULL APP3 IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        docker pull akshay852/akshayimage:gitlab-app3
+      "
+
+    - echo "===== PULL POSTGRESQL IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        docker pull postgres:16
+      "
+
+    - echo "===== STOP EXISTING CONTAINERS ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        docker compose down
+      "
+
+    - echo "===== START APPLICATION ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        docker compose up -d
+      "
+
+    - echo "===== WAIT FOR CONTAINERS ====="
+    - sleep 5
+
+    - echo "===== VERIFY COMPOSE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        docker compose ps
+      "
+
+    - echo "===== VERIFY RUNNING CONTAINERS ====="
+    - |
+      ssh "$SERVER1" "
+        docker ps
+      "
+
+    - echo "===== CD COMPLETED ====="stages:
+  - cd
+
+variables:
+  SERVER1: "ubuntu@172.30.7.144"
+  REPO: "git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git"
+  REPO_DIR: "/home/ubuntu/linux-system-administration-tasks-gitlab"
+
+deploy-app3:
+  stage: cd
+
+  tags:
+    - gitlabrunner
+
+  script:
+
+    - echo "===== SSH TEST ====="
+    - ssh "$SERVER1" "hostname"
+    - ssh "$SERVER1" "whoami"
+
+    - echo "===== CLONE GITLAB REPOSITORY ON SERVER 1 ====="
+    - |
+      ssh "$SERVER1" "
+        rm -rf $REPO_DIR &&
+        git clone $REPO $REPO_DIR
+      "
+
+    - echo "===== CHECK DOCKER COMPOSE FILE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        ls -l docker-compose.yml
+      "
+
+    - echo "===== PULL APP3 IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        docker pull akshay852/akshayimage:gitlab-app3
+      "
+
+    - echo "===== PULL POSTGRESQL IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        docker pull postgres:16
+      "
+
+    - echo "===== STOP EXISTING CONTAINERS ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        docker compose down
+      "
+
+    - echo "===== START APPLICATION ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        docker compose up -d
+      "
+
+    - echo "===== WAIT FOR CONTAINERS ====="
+    - sleep 5
+
+    - echo "===== VERIFY COMPOSE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        docker compose ps
+      "
+
+    - echo "===== VERIFY RUNNING CONTAINERS ====="
+    - |
+      ssh "$SERVER1" "
+        docker ps
+      "
+
+    - echo "===== CD COMPLETED ====="
+
+
 
 
 
@@ -1427,5 +1765,1123 @@ CONTAINER ID   IMAGE                        COMMAND                  CREATED    
 [Pipeline] // node
 [Pipeline] End of Pipeline
 Finished: SUCCESS
+
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+
+
+OUTPUT OF REQUIREMENT 2 
+
+
+
+ubuntu@tsb-dev-playground2:~$ curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" -o script.deb.sh
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  5315  100  5315    0     0   4368      0  0:00:01  0:00:01 --:--:--  4370
+ubuntu@tsb-dev-playground2:~$ less script.deb.sh
+ubuntu@tsb-dev-playground2:~$ less script.deb.sh
+ubuntu@tsb-dev-playground2:~$ sudo bash script.deb.sh
+[sudo] password for ubuntu:
+Get:1 https://download.docker.com/linux/ubuntu noble InRelease [48.5 kB]
+Hit:2 http://archive.ubuntu.com/ubuntu noble InRelease
+Ign:3 https://pkg.jenkins.io/debian-stable binary/ InRelease
+Hit:4 https://pkg.jenkins.io/debian-stable binary/ Release
+Get:5 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Get:6 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:8 https://packages.gitlab.com/runner/gitlab-runner/ubuntu noble InRelease [18.4 kB]
+Get:9 http://archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:10 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [967 kB]
+Get:11 http://security.ubuntu.com/ubuntu noble-security/main Translation-en [205 kB]
+Get:12 http://security.ubuntu.com/ubuntu noble-security/main amd64 Components [46.4 kB]
+Get:13 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1,385 kB]
+Get:14 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1,227 kB]
+Get:15 http://security.ubuntu.com/ubuntu noble-security/restricted Translation-en [320 kB]
+Get:16 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1,201 kB]
+Get:17 http://security.ubuntu.com/ubuntu noble-security/universe Translation-en [240 kB]
+Get:18 http://archive.ubuntu.com/ubuntu noble-updates/main Translation-en [286 kB]
+Get:19 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.2 kB]
+Get:20 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [181 kB]
+Get:21 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1,483 kB]
+Get:22 http://archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [339 kB]
+Get:23 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1,687 kB]
+Get:24 http://archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [337 kB]
+Get:25 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:26 http://archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [12.8 kB]
+Get:27 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:28 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5,776 B]
+Get:29 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+Get:30 https://packages.gitlab.com/runner/gitlab-runner/ubuntu noble/main amd64 Packages [9,092 B]
+Get:31 https://packages.gitlab.com/runner/gitlab-runner/ubuntu noble/main all Packages [5,959 B]
+Fetched 10.9 MB in 4s (2,429 kB/s)
+Reading package lists... Done
+Repository configured successfully.
+Ready to install packages.
+ubuntu@tsb-dev-playground2:~$ sudo apt install gitlab-runner
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  bridge-utils dns-root-data dnsmasq-base ubuntu-fan
+Use 'sudo apt autoremove' to remove them.
+The following additional packages will be installed:
+  gitlab-runner-helper-images
+Suggested packages:
+  docker-engine
+The following NEW packages will be installed:
+  gitlab-runner gitlab-runner-helper-images
+0 upgraded, 2 newly installed, 0 to remove and 69 not upgraded.
+Need to get 570 MB of archives.
+After this operation, 661 MB of additional disk space will be used.
+Do you want to continue? [Y/n] y
+Get:1 https://packages.gitlab.com/runner/gitlab-runner/ubuntu noble/main all gitlab-runner-helper-images all 19.3.0-1 [538 MB]
+Get:2 https://packages.gitlab.com/runner/gitlab-runner/ubuntu noble/main amd64 gitlab-runner amd64 19.3.0-1 [31.1 MB]
+Fetched 570 MB in 39s (14.6 MB/s)
+Selecting previously unselected package gitlab-runner-helper-images.
+(Reading database ... 143496 files and directories currently installed.)
+Preparing to unpack .../gitlab-runner-helper-images_19.3.0-1_all.deb ...
+Unpacking gitlab-runner-helper-images (19.3.0-1) ...
+Selecting previously unselected package gitlab-runner.
+Preparing to unpack .../gitlab-runner_19.3.0-1_amd64.deb ...
+Unpacking gitlab-runner (19.3.0-1) ...
+Setting up gitlab-runner-helper-images (19.3.0-1) ...
+Setting up gitlab-runner (19.3.0-1) ...
+GitLab Runner: creating gitlab-runner...
+Home directory skeleton not used
+Runtime platform                                    arch=amd64 os=linux pid=605012 revision=9cbf0074 version=19.3.0
+gitlab-runner: the service is not installed
+Runtime platform                                    arch=amd64 os=linux pid=605021 revision=9cbf0074 version=19.3.0
+gitlab-ci-multi-runner: the service is not installed
+Runtime platform                                    arch=amd64 os=linux pid=605050 revision=9cbf0074 version=19.3.0
+Runtime platform                                    arch=amd64 os=linux pid=605171 revision=9cbf0074 version=19.3.0
+
+Check and remove all unused containers (both dangling and unreferenced)
+-----------------------------------------------------------------------
+Total reclaimed space: 0B
+Total reclaimed space: 0B
+Deleted Networks:
+ubuntu_default
+
+Scanning processes...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-137-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-138-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-playground2:~$ gitlab-runner --version
+Version:      19.3.0
+Git revision: 9cbf0074
+Git branch:   19-3-stable
+GO version:   go1.26.5
+Built:        2026-08-19T08:58:54Z
+OS/Arch:      linux/amd64
+ubuntu@tsb-dev-playground2:~$ sudo gitlab-runner list
+[sudo] password for ubuntu:
+Runtime platform                                    arch=amd64 os=linux pid=620556 revision=9cbf0074 version=19.3.0
+Listing configured runners                          ConfigFile=/etc/gitlab-runner/config.toml
+tsb-dev-playground2                                 Executor=shell Token=glrt-tHL0vloNvz8zp_c6HXC5vmM6MQpvOjEKcDoxZXhtcHQKdDoz                               CnU6b3BuODUc.01.1o12rsg7z URL=https://gitlab.com
+ubuntu@tsb-dev-playground2:~$ cd ~/gitlab-app3
+nano .gitlab-ci.yml
+-bash: cd: /home/ubuntu/gitlab-app3: No such file or directory
+ubuntu@tsb-dev-playground2:~$ nano .gitlab-ci.yml
+ubuntu@tsb-dev-playground2:~$ ls
+custom-nginx-php         docker-compose.yml  linux-system-administration-tasks  script.deb.sh
+custom-nginx-php-backup  docker-lab-images   pagespeed-test                     tasks
+ubuntu@tsb-dev-playground2:~$ ls
+custom-nginx-php         docker-compose.yml  linux-system-administration-tasks  script.deb.sh
+custom-nginx-php-backup  docker-lab-images   pagespeed-test                     tasks
+ubuntu@tsb-dev-playground2:~$ sudo -u gitlab-runner -H bash
+[sudo] password for ubuntu:
+gitlab-runner@tsb-dev-playground2:/home/ubuntu$ whoami
+gitlab-runner
+gitlab-runner@tsb-dev-playground2:/home/ubuntu$ sudo -u gitlab-runner -H ls -la ~/.ssh
+gitlab-runner is not in the sudoers file.
+gitlab-runner@tsb-dev-playground2:/home/ubuntu$ exit
+exit
+ubuntu@tsb-dev-playground2:~$ sudo -u gitlab-runner -H ls -la ~/.ssh
+ls: cannot access '/home/ubuntu/.ssh': Permission denied
+ubuntu@tsb-dev-playground2:~$ ^C
+ubuntu@tsb-dev-playground2:~$ getent passwd gitlab-runner
+gitlab-runner:x:996:988:GitLab Runner:/home/gitlab-runner:/bin/bash
+ubuntu@tsb-dev-playground2:~$ sudo ls -la /home/gitlab-runner/.ssh
+ls: cannot access '/home/gitlab-runner/.ssh': No such file or directory
+ubuntu@tsb-dev-playground2:~$ ssh-keygen -t ed25519
+Generating public/private ed25519 key pair.
+Enter file in which to save the key (/home/ubuntu/.ssh/id_ed25519):
+/home/ubuntu/.ssh/id_ed25519 already exists.
+Overwrite (y/n)?
+ubuntu@tsb-dev-playground2:~$ cat ~/.ssh/id_ed25519.pub
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIRVUWb6gTwQPQPxmCgh9Lybq49PVmv+3onxylSUbPLo akshayakszz007@gmail.com
+ubuntu@tsb-dev-playground2:~$ ssh ubuntu@172.30.7.144
+ubuntu@172.30.7.144's password:
+
+ubuntu@tsb-dev-playground2:~$ ssh-copy-id -i ~/.ssh/id_ed25519.pub ubuntu@172.30.7.144
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/ubuntu/.ssh/id_ed25519.pub"
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+ubuntu@172.30.7.144's password:
+ubuntu@tsb-dev-playground2:~$ ssh ubuntu@172.30.7.144
+ubuntu@172.30.7.144's password:
+
+ubuntu@tsb-dev-playground2:~$ sudo -u gitlab-runner -H bash
+gitlab-runner@tsb-dev-playground2:/home/ubuntu$ nano ~/.ssh/authorized_keys
+gitlab-runner@tsb-dev-playground2:/home/ubuntu$ nano ~/.ssh/authorized_keys
+gitlab-runner@tsb-dev-playground2:/home/ubuntu$ sudo nano ~/.ssh/authorized_keys
+[sudo] password for gitlab-runner:
+Sorry, try again.
+[sudo] password for gitlab-runner:
+Sorry, try again.
+[sudo] password for gitlab-runner:
+sudo: 3 incorrect password attempts
+gitlab-runner@tsb-dev-playground2:/home/ubuntu$ sudo nano ~/.ssh/authorized_keys
+[sudo] password for gitlab-runner:
+Sorry, try again.
+[sudo] password for gitlab-runner:
+sudo: 1 incorrect password attempt
+gitlab-runner@tsb-dev-playground2:/home/ubuntu$ ^C
+gitlab-runner@tsb-dev-playground2:/home/ubuntu$ sudo -u gitlab-runner -H bash
+gitlab-runner is not in the sudoers file.
+gitlab-runner@tsb-dev-playground2:/home/ubuntu$ exit
+exit
+ubuntu@tsb-dev-playground2:~$ getent passwd gitlab-runner
+gitlab-runner:x:996:988:GitLab Runner:/home/gitlab-runner:/bin/bash
+ubuntu@tsb-dev-playground2:~$ sudo -u gitlab-runner -H env HOME=/home/gitlab-runner ssh-keygen -t ed25519
+Generating public/private ed25519 key pair.
+Enter file in which to save the key (/home/gitlab-runner/.ssh/id_ed25519):
+Created directory '/home/gitlab-runner/.ssh'.
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in /home/gitlab-runner/.ssh/id_ed25519
+Your public key has been saved in /home/gitlab-runner/.ssh/id_ed25519.pub
+The key fingerprint is:
+SHA256:T1ttWDI65btasFvABt4Au3yY0VJFhfPBXf5J+LiDVmQ gitlab-runner@tsb-dev-playground2
+The key's randomart image is:
++--[ED25519 256]--+
+|      . .oo+.. ..|
+|       =  o o o. |
+|      + +  o+E...|
+|     . B = ++*+ o|
+|      = S X +ooo.|
+|       . + Boo.  |
+|          +o+o   |
+|          .+ ..  |
+|          o..    |
++----[SHA256]-----+
+ubuntu@tsb-dev-playground2:~$ sudo cat /home/gitlab-runner/.ssh/id_ed25519.pub
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHTtRA4W4SRycusvbdjlZJmzsknbEtrWGAvwF0kSeax+ gitlab-runner@tsb-dev-playground2
+ubuntu@tsb-dev-playground2:~$ ssh-copy-id -i /home/gitlab-runner/.ssh/id_ed25519.pub ubuntu@172.30.7.144
+
+/usr/bin/ssh-copy-id: ERROR: failed to open ID file '/home/gitlab-runner/.ssh/id_ed25519.pub': Permission denied
+ubuntu@tsb-dev-playground2:~$ sudo ssh-copy-id -i /home/gitlab-runner/.ssh/id_ed25519.pub ubuntu@172.30.7.144
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/gitlab-runner/.ssh/id_ed25519.pub"
+The authenticity of host '172.30.7.144 (172.30.7.144)' can't be established.
+ED25519 key fingerprint is SHA256:qYkOqVqwBS1sris5/fUcP1ncOdYaO2mj4u7h9v07VTU.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+ubuntu@172.30.7.144's password:
+Permission denied, please try again.
+ubuntu@172.30.7.144's password:
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with:   "ssh 'ubuntu@172.30.7.144'"
+and check to make sure that only the key(s) you wanted were added.
+
+ubuntu@tsb-dev-playground2:~$ sudo chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.ssh
+sudo chmod 700 /home/gitlab-runner/.ssh
+sudo chmod 600 /home/gitlab-runner/.ssh/id_ed25519
+sudo chmod 644 /home/gitlab-runner/.ssh/id_ed25519.pub
+ubuntu@tsb-dev-playground2:~$ sudo -u gitlab-runner -H env HOME=/home/gitlab-runner \
+ssh -o StrictHostKeyChecking=no ubuntu@172.30.7.144 "hostname"
+Warning: Permanently added '172.30.7.144' (ED25519) to the list of known hosts.
+tsb-dev-playground1
+ubuntu@tsb-dev-playground2:~$ ^C
+ubuntu@tsb-dev-playground2:~$ sudo gitlab-runner verify
+Runtime platform                                    arch=amd64 os=linux pid=629289 revision=9cbf0074 version=19.3.0
+Running in system-mode.
+
+Verifying runner... is valid                        correlation_id=a2e8ddde1e6fc369-DXB runner=tHL0vloNv runner_name=tsb-dev-playground2
+ubuntu@tsb-dev-playground2:~$ sudo systemctl status gitlab-runner --no-pager
+● gitlab-runner.service - GitLab Runner
+     Loaded: loaded (/etc/systemd/system/gitlab-runner.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-08-21 07:40:39 UTC; 2h 33min ago
+   Main PID: 605187 (gitlab-runner)
+      Tasks: 8 (limit: 4600)
+     Memory: 15.3M (peak: 18.9M)
+        CPU: 2.163s
+     CGroup: /system.slice/gitlab-runner.service
+             └─605187 /usr/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --u…
+
+Aug 21 08:15:02 tsb-dev-playground2 gitlab-runner[605187]: Configuration loaded                                builds=0 max_builds=1
+Aug 21 08:15:02 tsb-dev-playground2 gitlab-runner[605187]: WARNING: CONFIGURATION: Long polling issues detected.
+Aug 21 08:15:02 tsb-dev-playground2 gitlab-runner[605187]: Issues found:
+Aug 21 08:15:02 tsb-dev-playground2 gitlab-runner[605187]:   - Request bottleneck: 1 runners have request_concurrency=1, causing job delays during…ng polling
+Aug 21 08:15:02 tsb-dev-playground2 gitlab-runner[605187]: This can cause job delays matching your GitLab instance's long polling timeout.
+Aug 21 08:15:02 tsb-dev-playground2 gitlab-runner[605187]: Recommended solutions:
+Aug 21 08:15:02 tsb-dev-playground2 gitlab-runner[605187]:   1. Increase 'request_concurrency' to 2-4 for 1 runners currently using request_concurrency=1
+Aug 21 08:15:02 tsb-dev-playground2 gitlab-runner[605187]: Note: The 'FF_USE_ADAPTIVE_REQUEST_CONCURRENCY' feature flag can help automatically adj… workload.
+Aug 21 08:15:02 tsb-dev-playground2 gitlab-runner[605187]: This message will be printed each time the configuration is reloaded if the issues persist.
+Aug 21 08:15:02 tsb-dev-playground2 gitlab-runner[605187]: See documentation: https://docs.gitlab.com/runner/configuration/advanced-configuration.…x_builds=1
+Hint: Some lines were ellipsized, use -l to show in full.
+ubuntu@tsb-dev-playground2:~$
+
+
+
+
+
+
+
+
+
+
+
+OUTPUT PIPELINE OF GITLAB TEST
+------------------------------------------------------------------------------------------------------------
+2026-08-21T10:19:32.676739Z 00O [0KRunning with gitlab-runner 19.3.0 (9cbf0074)[0;m
+2026-08-21T10:19:32.676788Z 00O [0K  on tsb-dev-playground2 tHL0vloNv, system ID: s_8cedd8590a53[0;m
+2026-08-21T10:19:32.676907Z 00O section_start:1787307572:prepare_executor
+[0K
+2026-08-21T10:19:32.676920Z 00O+[0K[36;1mPreparing the "shell" executor[0;m[0;m
+2026-08-21T10:19:32.677236Z 00O [0KUsing Shell (bash) executor...[0;m
+2026-08-21T10:19:32.677241Z 00O section_end:1787307572:prepare_executor
+[0K
+2026-08-21T10:19:32.677838Z 00O+section_start:1787307572:prepare_script
+[0K
+2026-08-21T10:19:32.677851Z 00O+[0K[36;1mPreparing environment[0;m[0;m
+2026-08-21T10:19:33.422212Z 01O Running on tsb-dev-playground2...
+2026-08-21T10:19:33.441492Z 00O section_end:1787307573:prepare_script
+[0K
+2026-08-21T10:19:33.447177Z 00O+section_start:1787307573:get_sources
+[0K
+2026-08-21T10:19:33.447187Z 00O+[0K[36;1mGetting source from Git repository[0;m[0;m
+2026-08-21T10:19:33.731787Z 01O [32;1mGitaly correlation ID: a2e8e660fe9e4347-DXB[0;m
+2026-08-21T10:19:33.756532Z 01O [32;1mFetching changes with git depth set to 20...[0;m
+2026-08-21T10:19:33.793342Z 01O Initialized empty Git repository in /home/gitlab-runner/builds/tHL0vloNv/0/akshay852/linux-system-administration-tasks-gitlab/.git/
+2026-08-21T10:19:33.808063Z 01O [32;1mCreated fresh repository.[0;m
+2026-08-21T10:19:36.362797Z 01O [32;1mChecking out c5782f0a as detached HEAD (ref is main)...[0;m
+2026-08-21T10:19:36.414744Z 01O [32;1mSkipping Git submodules setup[0;m
+2026-08-21T10:19:36.428704Z 00O section_end:1787307576:get_sources
+[0K
+2026-08-21T10:19:36.435837Z 00O+section_start:1787307576:step_script
+[0K
+2026-08-21T10:19:36.435858Z 00O+[0K[36;1mExecuting "step_script" stage of the job script[0;m[0;m
+2026-08-21T10:19:36.599577Z 01O [32;1m$ echo "Testing GitLab Runner to Server 1"[0;m
+2026-08-21T10:19:36.599623Z 01O Testing GitLab Runner to Server 1
+2026-08-21T10:19:36.600168Z 01O [32;1m$ ssh -o StrictHostKeyChecking=no ubuntu@172.30.7.144 "hostname"[0;m
+2026-08-21T10:19:37.859963Z 01O tsb-dev-playground1
+2026-08-21T10:19:37.863556Z 01O [32;1m$ ssh -o StrictHostKeyChecking=no ubuntu@172.30.7.144 "docker --version"[0;m
+2026-08-21T10:19:38.548916Z 01O Docker version 29.7.2, build a7dcaa6
+2026-08-21T10:19:38.565936Z 00O section_end:1787307578:step_script
+[0K
+2026-08-21T10:19:38.574842Z 00O+section_start:1787307578:cleanup_file_variables
+[0K
+2026-08-21T10:19:38.574866Z 00O+[0K[36;1mCleaning up project directory and file based variables[0;m[0;m
+2026-08-21T10:19:38.822596Z 00O section_end:1787307578:cleanup_file_variables
+[0K
+2026-08-21T10:19:38.823043Z 00O [32;1mJob succeeded[0;m
+
+
+------------------------------------------------------------------------------
+
+OUTPUT OF GITLAB PIPELINE CI
+------------------
+------------------
+2026-08-27T07:47:27.057880Z 00O [0KRunning with gitlab-runner 19.3.0 (9cbf0074)[0;m
+2026-08-27T07:47:27.057924Z 00O [0K  on tsb-dev-playground2 tHL0vloNv, system ID: s_8cedd8590a53[0;m
+2026-08-27T07:47:27.057989Z 00O section_start:1787816847:prepare_executor
+[0K
+2026-08-27T07:47:27.057995Z 00O+[0K[36;1mPreparing the "shell" executor[0;m[0;m
+2026-08-27T07:47:27.058540Z 00O [0KUsing Shell (bash) executor...[0;m
+2026-08-27T07:47:27.058546Z 00O section_end:1787816847:prepare_executor
+[0K
+2026-08-27T07:47:27.058867Z 00O+section_start:1787816847:prepare_script
+[0K
+2026-08-27T07:47:27.058874Z 00O+[0K[36;1mPreparing environment[0;m[0;m
+2026-08-27T07:47:27.571604Z 01O Running on tsb-dev-playground2...
+2026-08-27T07:47:27.588782Z 00O section_end:1787816847:prepare_script
+[0K
+2026-08-27T07:47:27.590444Z 00O+section_start:1787816847:get_sources
+[0K
+2026-08-27T07:47:27.590454Z 00O+[0K[36;1mGetting source from Git repository[0;m[0;m
+2026-08-27T07:47:27.862011Z 01O [32;1mGitaly correlation ID: a31977d598729ccc-DXB[0;m
+2026-08-27T07:47:27.892637Z 01O [32;1mFetching changes with git depth set to 20...[0;m
+2026-08-27T07:47:27.899812Z 01O Reinitialized existing Git repository in /home/gitlab-runner/builds/tHL0vloNv/0/akshay852/linux-system-administration-tasks-gitlab/.git/
+2026-08-27T07:47:30.545943Z 01O [32;1mChecking out 22916b28 as detached HEAD (ref is main)...[0;m
+2026-08-27T07:47:30.577829Z 01O [32;1mSkipping Git submodules setup[0;m
+2026-08-27T07:47:30.593935Z 00O section_end:1787816850:get_sources
+[0K
+2026-08-27T07:47:30.599317Z 00O+section_start:1787816850:step_script
+[0K
+2026-08-27T07:47:30.599332Z 00O+[0K[36;1mExecuting "step_script" stage of the job script[0;m[0;m
+2026-08-27T07:47:30.776584Z 01O [32;1m$ echo "===== SSH TEST ====="[0;m
+2026-08-27T07:47:30.776627Z 01O ===== SSH TEST =====
+2026-08-27T07:47:30.776628Z 01O [32;1m$ ssh "$SERVER1" "hostname"[0;m
+2026-08-27T07:47:31.959040Z 01O tsb-dev-playground1
+2026-08-27T07:47:31.961572Z 01O [32;1m$ ssh "$SERVER1" "whoami"[0;m
+2026-08-27T07:47:32.549046Z 01O ubuntu
+2026-08-27T07:47:32.552238Z 01O [32;1m$ echo "===== CLONE GITLAB REPOSITORY ON SERVER 1 ====="[0;m
+2026-08-27T07:47:32.552242Z 01O ===== CLONE GITLAB REPOSITORY ON SERVER 1 =====
+2026-08-27T07:47:32.552244Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T07:47:33.136360Z 01E Cloning into '/home/ubuntu/linux-system-administration-tasks-gitlab'...
+2026-08-27T07:47:36.165348Z 01O [32;1m$ echo "===== BUILD BASE IMAGE ====="[0;m
+2026-08-27T07:47:36.165377Z 01O ===== BUILD BASE IMAGE =====
+2026-08-27T07:47:36.165378Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T07:47:37.546696Z 01E #0 building with "default" instance using docker driver
+2026-08-27T07:47:37.546709Z 01E 
+2026-08-27T07:47:37.546710Z 01E #1 [internal] load build definition from Dockerfile
+2026-08-27T07:47:37.546711Z 01E #1 transferring dockerfile: 360B done
+2026-08-27T07:47:37.546712Z 01E #1 DONE 0.1s
+2026-08-27T07:47:37.546713Z 01E 
+2026-08-27T07:47:37.546713Z 01E #2 [internal] load metadata for docker.io/library/ubuntu:24.04
+2026-08-27T07:47:38.668111Z 01E #2 ...
+2026-08-27T07:47:38.668124Z 01E 
+2026-08-27T07:47:38.668125Z 01E #3 [auth] library/ubuntu:pull token for registry-1.docker.io
+2026-08-27T07:47:38.668126Z 01E #3 DONE 0.0s
+2026-08-27T07:47:38.814818Z 01E 
+2026-08-27T07:47:38.814828Z 01E #2 [internal] load metadata for docker.io/library/ubuntu:24.04
+2026-08-27T07:47:39.617522Z 01E #2 DONE 2.2s
+2026-08-27T07:47:39.745346Z 01E 
+2026-08-27T07:47:39.745357Z 01E #4 [internal] load .dockerignore
+2026-08-27T07:47:39.745358Z 01E #4 transferring context: 2B done
+2026-08-27T07:47:39.745359Z 01E #4 DONE 0.0s
+2026-08-27T07:47:39.745360Z 01E 
+2026-08-27T07:47:39.745361Z 01E #5 [1/5] FROM docker.io/library/ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
+2026-08-27T07:47:39.745363Z 01E #5 resolve docker.io/library/ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517 0.1s done
+2026-08-27T07:47:39.850487Z 01E #5 DONE 0.1s
+2026-08-27T07:47:39.850498Z 01E 
+2026-08-27T07:47:39.850499Z 01E #6 [2/5] RUN apt-get update &&     apt-get install -y sudo curl wget
+2026-08-27T07:47:39.850501Z 01E #6 CACHED
+2026-08-27T07:47:39.850502Z 01E 
+2026-08-27T07:47:39.850503Z 01E #7 [3/5] RUN useradd -m -s /bin/bash appuser
+2026-08-27T07:47:39.850504Z 01E #7 CACHED
+2026-08-27T07:47:39.850504Z 01E 
+2026-08-27T07:47:39.850505Z 01E #8 [4/5] RUN echo "appuser ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/appuser &&     chmod 0440 /etc/sudoers.d/appuser
+2026-08-27T07:47:39.850506Z 01E #8 CACHED
+2026-08-27T07:47:39.850507Z 01E 
+2026-08-27T07:47:39.850507Z 01E #9 [5/5] WORKDIR /home/appuser
+2026-08-27T07:47:39.850508Z 01E #9 CACHED
+2026-08-27T07:47:39.850508Z 01E 
+2026-08-27T07:47:39.850509Z 01E #10 exporting to image
+2026-08-27T07:47:39.850509Z 01E #10 exporting layers done
+2026-08-27T07:47:39.850510Z 01E #10 exporting manifest sha256:7405e42336760592d17fcf1185dd5d17ab27be9ad9945d9ddf7d3bfc6713c54b done
+2026-08-27T07:47:39.850511Z 01E #10 exporting config sha256:ec045801fc50c366d8fb6c043391f758a8372e44215e28371147b7f91f9f5f79 done
+2026-08-27T07:47:39.850512Z 01E #10 exporting attestation manifest sha256:091e7f9013ecfed75479e729f028f05df64bed85b9889ca0234cc77a75a1e2c1 0.0s done
+2026-08-27T07:47:39.850513Z 01E #10 exporting manifest list sha256:4bc4c7c2ffe154129147a43253f360c2b051c579df6d616db0017293523ca4f9 0.0s done
+2026-08-27T07:47:39.850631Z 01E #10 naming to docker.io/library/akshaybase:gitlab-ci
+2026-08-27T07:47:40.083532Z 01E #10 naming to docker.io/library/akshaybase:gitlab-ci done
+2026-08-27T07:47:40.083546Z 01E #10 unpacking to docker.io/library/akshaybase:gitlab-ci 0.0s done
+2026-08-27T07:47:40.083548Z 01E #10 DONE 0.2s
+2026-08-27T07:47:40.106406Z 01O [32;1m$ echo "===== BUILD APP1 IMAGE ====="[0;m
+2026-08-27T07:47:40.106416Z 01O ===== BUILD APP1 IMAGE =====
+2026-08-27T07:47:40.106417Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T07:47:41.069021Z 01E #0 building with "default" instance using docker driver
+2026-08-27T07:47:41.069040Z 01E 
+2026-08-27T07:47:41.069094Z 01E #1 [internal] load build definition from Dockerfile
+2026-08-27T07:47:41.069827Z 01E #1 transferring dockerfile: 1.14kB done
+2026-08-27T07:47:41.069962Z 01E #1 DONE 0.0s
+2026-08-27T07:47:41.070044Z 01E 
+2026-08-27T07:47:41.070200Z 01E #2 [internal] load metadata for docker.io/library/akshaybase:app1-ci
+2026-08-27T07:47:41.071987Z 01E #2 DONE 0.0s
+2026-08-27T07:47:41.071990Z 01E 
+2026-08-27T07:47:41.071990Z 01E #3 [internal] load .dockerignore
+2026-08-27T07:47:41.071991Z 01E #3 transferring context: 2B done
+2026-08-27T07:47:41.072211Z 01E #3 DONE 0.0s
+2026-08-27T07:47:41.072213Z 01E 
+2026-08-27T07:47:41.072214Z 01E #4 [ 1/10] FROM docker.io/library/akshaybase:app1-ci@sha256:dfdcc317384e648f3212494c27db9f8330a0b591d8ea5fdeee601f6859c9b8c8
+2026-08-27T07:47:41.072215Z 01E #4 resolve docker.io/library/akshaybase:app1-ci@sha256:dfdcc317384e648f3212494c27db9f8330a0b591d8ea5fdeee601f6859c9b8c8 0.0s done
+2026-08-27T07:47:41.072217Z 01E #4 DONE 0.0s
+2026-08-27T07:47:41.072217Z 01E 
+2026-08-27T07:47:41.072218Z 01E #5 [internal] load build context
+2026-08-27T07:47:41.185445Z 01E #5 transferring context: 899B 0.0s done
+2026-08-27T07:47:41.185457Z 01E #5 DONE 0.0s
+2026-08-27T07:47:41.185458Z 01E 
+2026-08-27T07:47:41.185458Z 01E #6 [ 6/10] RUN printf "pagespeed on;\npagespeed FileCachePath /var/cache/ngx_pagespeed;\n"     > /etc/nginx/conf.d/pagespeed.conf
+2026-08-27T07:47:41.185461Z 01E #6 CACHED
+2026-08-27T07:47:41.185461Z 01E 
+2026-08-27T07:47:41.185462Z 01E #7 [ 7/10] COPY app/ /var/www/html/
+2026-08-27T07:47:41.185463Z 01E #7 CACHED
+2026-08-27T07:47:41.185463Z 01E 
+2026-08-27T07:47:41.185464Z 01E #8 [ 3/10] RUN curl -fsSL https://packages.modpagespeed.com/install.sh | sh &&     apt-get update &&     apt-get install -y nginx-module-pagespeed
+2026-08-27T07:47:41.185465Z 01E #8 CACHED
+2026-08-27T07:47:41.185466Z 01E 
+2026-08-27T07:47:41.185466Z 01E #9 [ 5/10] RUN mkdir -p /var/cache/ngx_pagespeed
+2026-08-27T07:47:41.185467Z 01E #9 CACHED
+2026-08-27T07:47:41.185468Z 01E 
+2026-08-27T07:47:41.185468Z 01E #10 [ 9/10] COPY start.sh /start.sh
+2026-08-27T07:47:41.185469Z 01E #10 CACHED
+2026-08-27T07:47:41.185469Z 01E 
+2026-08-27T07:47:41.185470Z 01E #11 [ 2/10] RUN sudo apt-get update &&     sudo apt-get install -y     nginx     php-fpm     curl     wget     unzip     libnginx-mod-http-modsecurity     modsecurity-crs
+2026-08-27T07:47:41.185471Z 01E #11 CACHED
+2026-08-27T07:47:41.185472Z 01E 
+2026-08-27T07:47:41.185472Z 01E #12 [ 4/10] RUN sudo sed -i 's/SecRuleEngine DetectionOnly/SecRuleEngine On/' /etc/nginx/modsecurity.conf &&     echo "Include /etc/modsecurity/crs/crs-setup.conf" | sudo tee -a /etc/nginx/modsecurity.conf &&     echo "Include /usr/share/modsecurity-crs/rules/*.conf" | sudo tee -a /etc/nginx/modsecurity.conf
+2026-08-27T07:47:41.185474Z 01E #12 CACHED
+2026-08-27T07:47:41.185475Z 01E 
+2026-08-27T07:47:41.185475Z 01E #13 [ 8/10] COPY default.conf /etc/nginx/sites-available/default
+2026-08-27T07:47:41.185476Z 01E #13 CACHED
+2026-08-27T07:47:41.185477Z 01E 
+2026-08-27T07:47:41.185477Z 01E #14 [10/10] RUN chmod +x /start.sh
+2026-08-27T07:47:41.185478Z 01E #14 CACHED
+2026-08-27T07:47:41.185478Z 01E 
+2026-08-27T07:47:41.185479Z 01E #15 exporting to image
+2026-08-27T07:47:41.185479Z 01E #15 exporting layers done
+2026-08-27T07:47:41.185480Z 01E #15 exporting manifest sha256:28b12df88310832e2ed8ce305d546d8fdff02f2dcc753a8b295f11bb266eb7dc done
+2026-08-27T07:47:41.185561Z 01E #15 exporting config sha256:04baa333958902cc2c55f7c6e8cddd759891e1794dcf1a98f5a310a4eb049d61 done
+2026-08-27T07:47:41.185562Z 01E #15 exporting attestation manifest sha256:f3e7a405f5a9a08e220c26168712b80255038bc4c2cab52d9a8942c40a58d149 0.0s done
+2026-08-27T07:47:41.185563Z 01E #15 exporting manifest list sha256:9e014896ce72b0ba13f7a81a61a177f21b37317e9afcd99dc3ab21021a50ae23 0.0s done
+2026-08-27T07:47:41.185564Z 01E #15 naming to docker.io/library/akshayimage:gitlab-app1 done
+2026-08-27T07:47:41.185565Z 01E #15 unpacking to docker.io/library/akshayimage:gitlab-app1 0.0s done
+2026-08-27T07:47:41.541564Z 01E #15 DONE 0.1s
+2026-08-27T07:47:41.792749Z 01O [32;1m$ echo "===== BUILD APP2 IMAGE ====="[0;m
+2026-08-27T07:47:41.792762Z 01O ===== BUILD APP2 IMAGE =====
+2026-08-27T07:47:41.792763Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T07:47:42.845903Z 01E #0 building with "default" instance using docker driver
+2026-08-27T07:47:42.845917Z 01E 
+2026-08-27T07:47:42.845918Z 01E #1 [internal] load build definition from Dockerfile
+2026-08-27T07:47:42.845919Z 01E #1 transferring dockerfile: 193B done
+2026-08-27T07:47:42.845920Z 01E #1 DONE 0.0s
+2026-08-27T07:47:42.845920Z 01E 
+2026-08-27T07:47:42.845921Z 01E #2 [internal] load metadata for docker.io/library/akshayimage:app1-ci
+2026-08-27T07:47:42.845923Z 01E #2 DONE 0.0s
+2026-08-27T07:47:42.845923Z 01E 
+2026-08-27T07:47:42.845924Z 01E #3 [internal] load .dockerignore
+2026-08-27T07:47:42.845924Z 01E #3 transferring context: 2B done
+2026-08-27T07:47:42.845925Z 01E #3 DONE 0.0s
+2026-08-27T07:47:42.845926Z 01E 
+2026-08-27T07:47:42.845926Z 01E #4 [1/1] FROM docker.io/library/akshayimage:app1-ci@sha256:c41c062a3c818343481bec8296a19e46cc7110cc87f7d5d7c587f9e22a6fb0b0
+2026-08-27T07:47:42.845927Z 01E #4 resolve docker.io/library/akshayimage:app1-ci@sha256:c41c062a3c818343481bec8296a19e46cc7110cc87f7d5d7c587f9e22a6fb0b0 0.0s done
+2026-08-27T07:47:42.845929Z 01E #4 DONE 0.0s
+2026-08-27T07:47:42.974417Z 01E 
+2026-08-27T07:47:42.974429Z 01E #4 [1/1] FROM docker.io/library/akshayimage:app1-ci@sha256:c41c062a3c818343481bec8296a19e46cc7110cc87f7d5d7c587f9e22a6fb0b0
+2026-08-27T07:47:42.974431Z 01E #4 CACHED
+2026-08-27T07:47:42.974432Z 01E 
+2026-08-27T07:47:42.974433Z 01E #5 exporting to image
+2026-08-27T07:47:42.974434Z 01E #5 exporting layers done
+2026-08-27T07:47:42.974434Z 01E #5 exporting manifest sha256:9b3c76a295265e4375712ce10db58f210f5a4257e1273393dd050b7ef42dd8a8 done
+2026-08-27T07:47:42.974436Z 01E #5 exporting config sha256:251b7d5717a31a29cc411ce5443973d128083485507a818032631d94981330cf done
+2026-08-27T07:47:42.974437Z 01E #5 exporting attestation manifest sha256:ef646985c6dd048941235e4f9bf3f5eb8e3c9e8bc46be51d3e3bb8549dc3a786 done
+2026-08-27T07:47:42.974438Z 01E #5 exporting manifest list sha256:951677cc4435b0989fbfc781f76d00a15cf837b728beeb77469179d4336de2ba 0.0s done
+2026-08-27T07:47:42.974439Z 01E #5 naming to docker.io/library/akshayimage:gitlab-app2 done
+2026-08-27T07:47:42.974440Z 01E #5 unpacking to docker.io/library/akshayimage:gitlab-app2 0.0s done
+2026-08-27T07:47:42.974441Z 01E #5 DONE 0.1s
+2026-08-27T07:47:43.122525Z 01O [32;1m$ echo "===== BUILD APP3 IMAGE ====="[0;m
+2026-08-27T07:47:43.122538Z 01O ===== BUILD APP3 IMAGE =====
+2026-08-27T07:47:43.122539Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T07:47:44.115918Z 01E #0 building with "default" instance using docker driver
+2026-08-27T07:47:44.115931Z 01E 
+2026-08-27T07:47:44.115932Z 01E #1 [internal] load build definition from Dockerfile
+2026-08-27T07:47:44.115933Z 01E #1 transferring dockerfile: 265B done
+2026-08-27T07:47:44.115934Z 01E #1 DONE 0.0s
+2026-08-27T07:47:44.115935Z 01E 
+2026-08-27T07:47:44.115935Z 01E #2 [internal] load metadata for docker.io/library/akshayimage:app2-ci
+2026-08-27T07:47:44.115937Z 01E #2 DONE 0.0s
+2026-08-27T07:47:44.115937Z 01E 
+2026-08-27T07:47:44.115938Z 01E #3 [internal] load .dockerignore
+2026-08-27T07:47:44.116063Z 01E #3 transferring context: 2B done
+2026-08-27T07:47:44.116065Z 01E #3 DONE 0.0s
+2026-08-27T07:47:44.116066Z 01E 
+2026-08-27T07:47:44.116067Z 01E #4 [internal] load build context
+2026-08-27T07:47:44.116068Z 01E #4 transferring context: 2.97kB 0.0s done
+2026-08-27T07:47:44.116068Z 01E #4 DONE 0.0s
+2026-08-27T07:47:44.116069Z 01E 
+2026-08-27T07:47:44.116069Z 01E #5 [1/3] FROM docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347fa2fb
+2026-08-27T07:47:44.116187Z 01E #5 resolve docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347fa2fb
+2026-08-27T07:47:44.224916Z 01E #5 resolve docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347fa2fb 0.0s done
+2026-08-27T07:47:44.224929Z 01E #5 DONE 0.0s
+2026-08-27T07:47:44.224930Z 01E 
+2026-08-27T07:47:44.224931Z 01E #6 [2/3] RUN sudo apt-get update &&     sudo apt-get install -y     php-pgsql     postgresql-client
+2026-08-27T07:47:44.224932Z 01E #6 CACHED
+2026-08-27T07:47:44.224933Z 01E 
+2026-08-27T07:47:44.224933Z 01E #7 [3/3] COPY app/ /var/www/html/
+2026-08-27T07:47:44.224934Z 01E #7 CACHED
+2026-08-27T07:47:44.224935Z 01E 
+2026-08-27T07:47:44.224935Z 01E #8 exporting to image
+2026-08-27T07:47:44.224936Z 01E #8 exporting layers 0.0s done
+2026-08-27T07:47:44.224937Z 01E #8 exporting manifest sha256:c567b7c82e6ffaaf66eb7ddaf8bea650046bcc6c31153dcbec7fa96c5193f913 done
+2026-08-27T07:47:44.224938Z 01E #8 exporting config sha256:26652958ddf337692facf4dbde0a9fb7c5e9004d0a8c5a7391640edc20934178 done
+2026-08-27T07:47:44.224939Z 01E #8 exporting attestation manifest sha256:96ccb497c06bdcff0702b319d0460f825253cfe1105a6ffeb1aa30f3b94a5f3b 0.0s done
+2026-08-27T07:47:44.224940Z 01E #8 exporting manifest list sha256:ca02691bb3fcb323e8861a11419d294abb467358bbcfea20fdbf109a944208ac 0.0s done
+2026-08-27T07:47:44.224941Z 01E #8 naming to docker.io/library/akshayimage:gitlab-app3 done
+2026-08-27T07:47:44.224942Z 01E #8 unpacking to docker.io/library/akshayimage:gitlab-app3 0.0s done
+2026-08-27T07:47:44.410907Z 01E #8 DONE 0.2s
+2026-08-27T07:47:44.431128Z 01O [32;1m$ echo "===== VERIFY IMAGES ====="[0;m
+2026-08-27T07:47:44.431144Z 01O ===== VERIFY IMAGES =====
+2026-08-27T07:47:44.431147Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T07:47:48.319544Z 01O akshay852/akshaybase:app1-ci        dfdcc317384e        226MB         71.8MB        
+2026-08-27T07:47:48.319562Z 01O akshay852/akshaybase:gitlab-ci      e15f25290812        226MB         71.8MB        
+2026-08-27T07:47:48.319564Z 01O akshay852/akshayimage:app1-ci       c41c062a3c81        537MB          146MB        
+2026-08-27T07:47:48.319566Z 01O akshay852/akshayimage:app2-ci       f3f45aff59fa        537MB          146MB        
+2026-08-27T07:47:48.319568Z 01O akshay852/akshayimage:app3          4341215369f5        626MB          163MB        
+2026-08-27T07:47:48.319569Z 01O akshay852/akshayimage:app3-ci       747030d56db7        615MB          160MB        
+2026-08-27T07:47:48.319570Z 01O akshay852/akshayimage:gitlab-app1   09ef7481b574        537MB          146MB        
+2026-08-27T07:47:48.319571Z 01O akshay852/akshayimage:gitlab-app2   e6526eb26a58        537MB          146MB        
+2026-08-27T07:47:48.319572Z 01O akshay852/akshayimage:gitlab-app3   bb4d6c4d5ffe        615MB          160MB        
+2026-08-27T07:47:48.319574Z 01O akshaybase:app1-ci                  dfdcc317384e        226MB         71.8MB        
+2026-08-27T07:47:48.319575Z 01O akshaybase:gitlab-ci                4bc4c7c2ffe1        226MB         71.8MB        
+2026-08-27T07:47:48.319576Z 01O akshayimage:app1-ci                 c41c062a3c81        537MB          146MB        
+2026-08-27T07:47:48.319577Z 01O akshayimage:app2-ci                 f3f45aff59fa        537MB          146MB        
+2026-08-27T07:47:48.319578Z 01O akshayimage:app3-ci                 747030d56db7        615MB          160MB        
+2026-08-27T07:47:48.319579Z 01O akshayimage:gitlab-app1             9e014896ce72        537MB          146MB        
+2026-08-27T07:47:48.319657Z 01O akshayimage:gitlab-app2             951677cc4435        537MB          146MB        
+2026-08-27T07:47:48.319660Z 01O akshayimage:gitlab-app3             ca02691bb3fc        615MB          160MB        
+2026-08-27T07:47:48.322641Z 01O [32;1m$ echo "===== TAG IMAGES FOR DOCKER HUB ====="[0;m
+2026-08-27T07:47:48.322647Z 01O ===== TAG IMAGES FOR DOCKER HUB =====
+2026-08-27T07:47:48.322648Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T07:47:49.509395Z 01O [32;1m$ echo "===== PUSH IMAGES TO DOCKER HUB ====="[0;m
+2026-08-27T07:47:49.509485Z 01O ===== PUSH IMAGES TO DOCKER HUB =====
+2026-08-27T07:47:49.509557Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T07:47:50.182785Z 01O The push refers to repository [docker.io/akshay852/akshaybase]
+2026-08-27T07:47:50.285850Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:50.285914Z 01O ad394be90208: Waiting
+2026-08-27T07:47:50.285915Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:50.285916Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:50.385081Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:50.385383Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:50.385386Z 01O ad394be90208: Waiting
+2026-08-27T07:47:50.385387Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:50.485770Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:50.485783Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:50.485787Z 01O ad394be90208: Waiting
+2026-08-27T07:47:50.485789Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:50.585394Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:50.585405Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:50.585406Z 01O ad394be90208: Waiting
+2026-08-27T07:47:50.585407Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:50.685868Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:50.685879Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:50.685880Z 01O ad394be90208: Waiting
+2026-08-27T07:47:50.685881Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:50.785736Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:50.785747Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:50.785748Z 01O ad394be90208: Waiting
+2026-08-27T07:47:50.785749Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:50.885208Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:50.885377Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:50.885380Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:50.885381Z 01O ad394be90208: Waiting
+2026-08-27T07:47:50.986328Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:50.986339Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:50.986483Z 01O ad394be90208: Waiting
+2026-08-27T07:47:50.986484Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:51.086065Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:51.086077Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:51.086079Z 01O ad394be90208: Waiting
+2026-08-27T07:47:51.086080Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:51.185548Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:51.185559Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:51.185560Z 01O ad394be90208: Waiting
+2026-08-27T07:47:51.185561Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:51.286884Z 01O ad394be90208: Waiting
+2026-08-27T07:47:51.286896Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:51.286897Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:51.286898Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:51.385136Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:51.385147Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:51.385148Z 01O ad394be90208: Waiting
+2026-08-27T07:47:51.385149Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:51.485590Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:51.485907Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:51.488733Z 01O ad394be90208: Waiting
+2026-08-27T07:47:51.488740Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:51.586489Z 01O ad394be90208: Waiting
+2026-08-27T07:47:51.586500Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:51.586501Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:51.586502Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:51.685202Z 01O 44136fa355b3: Already exists
+2026-08-27T07:47:51.685412Z 01O ad394be90208: Waiting
+2026-08-27T07:47:51.685414Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:51.685502Z 01O d1da34da7750: Waiting
+2026-08-27T07:47:51.685503Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:51.785626Z 01O ad394be90208: Waiting
+2026-08-27T07:47:51.785637Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:51.785638Z 01O d1da34da7750: Waiting
+2026-08-27T07:47:51.785640Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:51.885081Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:51.885092Z 01O 5f13cb1a534e: Waiting
+2026-08-27T07:47:51.885093Z 01O ad394be90208: Layer already exists
+2026-08-27T07:47:51.885094Z 01O 0926a8eb0e60: Layer already exists
+2026-08-27T07:47:51.885095Z 01O d1da34da7750: Waiting
+2026-08-27T07:47:51.885096Z 01O 4f4fb700ef54: Waiting
+2026-08-27T07:47:51.985023Z 01O 5f13cb1a534e: Waiting
+2026-08-27T07:47:51.985034Z 01O d1da34da7750: Waiting
+2026-08-27T07:47:51.985035Z 01O 4f4fb700ef54: Waiting
+2026-08-27T07:47:51.985036Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:52.085375Z 01O 5f13cb1a534e: Layer already exists
+2026-08-27T07:47:52.085388Z 01O d1da34da7750: Layer already exists
+2026-08-27T07:47:52.085389Z 01O 4f4fb700ef54: Layer already exists
+2026-08-27T07:47:52.085390Z 01O cd58c83360ab: Waiting
+2026-08-27T07:47:52.985443Z 01O cd58c83360ab: Pushed
+2026-08-27T07:47:55.425209Z 01O gitlab-ci: digest: sha256:4bc4c7c2ffe154129147a43253f360c2b051c579df6d616db0017293523ca4f9 size: 856
+2026-08-27T07:47:55.459973Z 01O The push refers to repository [docker.io/akshay852/akshayimage]
+2026-08-27T07:47:55.563096Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:55.563107Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:55.563109Z 01O ad394be90208: Waiting
+2026-08-27T07:47:55.563109Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:55.663008Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:55.663019Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:55.663020Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:55.663021Z 01O ad394be90208: Waiting
+2026-08-27T07:47:55.763452Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:55.763462Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:55.763464Z 01O ad394be90208: Waiting
+2026-08-27T07:47:55.763464Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:55.862664Z 01O ad394be90208: Waiting
+2026-08-27T07:47:55.862861Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:55.862864Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:55.862865Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:55.963242Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:55.963353Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:55.963355Z 01O ad394be90208: Waiting
+2026-08-27T07:47:55.963356Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:56.064114Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:56.064127Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:56.064128Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:56.064129Z 01O ad394be90208: Waiting
+2026-08-27T07:47:56.163229Z 01O ad394be90208: Waiting
+2026-08-27T07:47:56.163241Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:56.163242Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:56.163243Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:56.262962Z 01O ad394be90208: Waiting
+2026-08-27T07:47:56.262974Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:56.262975Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:56.262976Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:56.363527Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:56.363538Z 01O ad394be90208: Waiting
+2026-08-27T07:47:56.363539Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:56.363540Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:56.463531Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:56.463658Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:56.463660Z 01O ad394be90208: Waiting
+2026-08-27T07:47:56.463661Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:56.562896Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:56.562907Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:56.562908Z 01O ad394be90208: Waiting
+2026-08-27T07:47:56.562909Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:47:56.562909Z 01O d1da34da7750: Waiting
+2026-08-27T07:47:56.663162Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:56.663175Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:56.663176Z 01O ad394be90208: Waiting
+2026-08-27T07:47:56.663178Z 01O 0926a8eb0e60: Layer already exists
+2026-08-27T07:47:56.663180Z 01O d1da34da7750: Waiting
+2026-08-27T07:47:56.663343Z 01O 5f13cb1a534e: Waiting
+2026-08-27T07:47:56.763721Z 01O 5f13cb1a534e: Waiting
+2026-08-27T07:47:56.763732Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:56.763733Z 01O 44136fa355b3: Waiting
+2026-08-27T07:47:56.763734Z 01O ad394be90208: Layer already exists
+2026-08-27T07:47:56.763735Z 01O 4f4fb700ef54: Waiting
+2026-08-27T07:47:56.763736Z 01O d1da34da7750: Waiting
+2026-08-27T07:47:56.862778Z 01O 5f13cb1a534e: Waiting
+2026-08-27T07:47:56.862789Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:56.862790Z 01O 44136fa355b3: Already exists
+2026-08-27T07:47:56.862915Z 01O cf41f5e60994: Waiting
+2026-08-27T07:47:56.862995Z 01O 4f4fb700ef54: Waiting
+2026-08-27T07:47:56.863298Z 01O d1da34da7750: Waiting
+2026-08-27T07:47:56.963104Z 01O d762f3276b54: Waiting
+2026-08-27T07:47:56.963115Z 01O cf41f5e60994: Layer already exists
+2026-08-27T07:47:56.963117Z 01O 4f4fb700ef54: Layer already exists
+2026-08-27T07:47:56.963118Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:56.963118Z 01O d1da34da7750: Layer already exists
+2026-08-27T07:47:56.963119Z 01O 5f13cb1a534e: Layer already exists
+2026-08-27T07:47:56.963120Z 01O 1697aabf0cb4: Waiting
+2026-08-27T07:47:56.963121Z 01O 69bceed5e768: Waiting
+2026-08-27T07:47:56.963121Z 01O a05285b380b1: Waiting
+2026-08-27T07:47:57.064971Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:57.064987Z 01O 1697aabf0cb4: Waiting
+2026-08-27T07:47:57.064990Z 01O 69bceed5e768: Waiting
+2026-08-27T07:47:57.064992Z 01O a05285b380b1: Waiting
+2026-08-27T07:47:57.064995Z 01O d762f3276b54: Waiting
+2026-08-27T07:47:57.164905Z 01O fa6529a1b2e4: Waiting
+2026-08-27T07:47:57.164915Z 01O ed5e5f1b8968: Waiting
+2026-08-27T07:47:57.164917Z 01O 1697aabf0cb4: Layer already exists
+2026-08-27T07:47:57.164918Z 01O 69bceed5e768: Layer already exists
+2026-08-27T07:47:57.164919Z 01O a05285b380b1: Layer already exists
+2026-08-27T07:47:57.164919Z 01O d762f3276b54: Layer already exists
+2026-08-27T07:47:57.164920Z 01O 18b6c0fba8ca: Waiting
+2026-08-27T07:47:57.164921Z 01O beb6c440f106: Waiting
+2026-08-27T07:47:57.164921Z 01O 42a492c9b0f0: Waiting
+2026-08-27T07:47:57.263104Z 01O 18b6c0fba8ca: Waiting
+2026-08-27T07:47:57.263752Z 01O beb6c440f106: Waiting
+2026-08-27T07:47:57.263756Z 01O 42a492c9b0f0: Waiting
+2026-08-27T07:47:57.263757Z 01O ed5e5f1b8968: Waiting
+2026-08-27T07:47:57.362907Z 01O 42a492c9b0f0: Layer already exists
+2026-08-27T07:47:57.362919Z 01O ed5e5f1b8968: Layer already exists
+2026-08-27T07:47:57.362921Z 01O 18b6c0fba8ca: Layer already exists
+2026-08-27T07:47:57.362923Z 01O beb6c440f106: Layer already exists
+2026-08-27T07:47:58.063498Z 01O fa6529a1b2e4: Pushed
+2026-08-27T07:48:00.541219Z 01O gitlab-app1: digest: sha256:9e014896ce72b0ba13f7a81a61a177f21b37317e9afcd99dc3ab21021a50ae23 size: 856
+2026-08-27T07:48:00.581929Z 01O The push refers to repository [docker.io/akshay852/akshayimage]
+2026-08-27T07:48:00.685272Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:00.685481Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:00.685484Z 01O ad394be90208: Waiting
+2026-08-27T07:48:00.685485Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:00.785742Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:00.785750Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:00.785751Z 01O ad394be90208: Waiting
+2026-08-27T07:48:00.785752Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:00.885496Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:00.885508Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:00.885509Z 01O ad394be90208: Waiting
+2026-08-27T07:48:00.885740Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:00.984596Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:00.984606Z 01O ad394be90208: Waiting
+2026-08-27T07:48:00.984607Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:00.984608Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:01.085265Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:01.085277Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:01.085278Z 01O ad394be90208: Waiting
+2026-08-27T07:48:01.085280Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:01.186255Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:01.186267Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:01.186268Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:01.186357Z 01O ad394be90208: Waiting
+2026-08-27T07:48:01.286069Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:01.286081Z 01O ad394be90208: Waiting
+2026-08-27T07:48:01.286082Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:01.286083Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:01.385124Z 01O ad394be90208: Waiting
+2026-08-27T07:48:01.385274Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:01.385277Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:01.385278Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:01.485470Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:01.485481Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:01.485483Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:01.486489Z 01O ad394be90208: Waiting
+2026-08-27T07:48:01.584927Z 01O ad394be90208: Waiting
+2026-08-27T07:48:01.584939Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:01.584940Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:01.584941Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:01.685454Z 01O ad394be90208: Waiting
+2026-08-27T07:48:01.685464Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:01.685466Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:01.685467Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:01.785558Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:01.785572Z 01O d1da34da7750: Waiting
+2026-08-27T07:48:01.785574Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:01.785578Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:01.785581Z 01O ad394be90208: Waiting
+2026-08-27T07:48:01.885977Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:01.885991Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:01.885994Z 01O ad394be90208: Waiting
+2026-08-27T07:48:01.885997Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:01.885998Z 01O d1da34da7750: Waiting
+2026-08-27T07:48:01.985404Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:01.985415Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:01.985417Z 01O ad394be90208: Layer already exists
+2026-08-27T07:48:01.985418Z 01O 0926a8eb0e60: Layer already exists
+2026-08-27T07:48:01.985419Z 01O d1da34da7750: Waiting
+2026-08-27T07:48:01.985419Z 01O 5f13cb1a534e: Waiting
+2026-08-27T07:48:01.985420Z 01O 4f4fb700ef54: Waiting
+2026-08-27T07:48:02.085134Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:02.085147Z 01O 44136fa355b3: Already exists
+2026-08-27T07:48:02.085148Z 01O cf41f5e60994: Waiting
+2026-08-27T07:48:02.085149Z 01O d1da34da7750: Waiting
+2026-08-27T07:48:02.085149Z 01O 5f13cb1a534e: Waiting
+2026-08-27T07:48:02.085150Z 01O 4f4fb700ef54: Waiting
+2026-08-27T07:48:02.185947Z 01O 4f4fb700ef54: Layer already exists
+2026-08-27T07:48:02.185959Z 01O 69bceed5e768: Waiting
+2026-08-27T07:48:02.185960Z 01O 4952153860fe: Waiting
+2026-08-27T07:48:02.185961Z 01O d762f3276b54: Waiting
+2026-08-27T07:48:02.185961Z 01O cf41f5e60994: Waiting
+2026-08-27T07:48:02.185962Z 01O 1697aabf0cb4: Waiting
+2026-08-27T07:48:02.185963Z 01O d1da34da7750: Layer already exists
+2026-08-27T07:48:02.185964Z 01O 5f13cb1a534e: Layer already exists
+2026-08-27T07:48:02.285173Z 01O 1697aabf0cb4: Waiting
+2026-08-27T07:48:02.285182Z 01O a05285b380b1: Waiting
+2026-08-27T07:48:02.285184Z 01O 18b6c0fba8ca: Waiting
+2026-08-27T07:48:02.285185Z 01O 69bceed5e768: Waiting
+2026-08-27T07:48:02.285185Z 01O d762f3276b54: Layer already exists
+2026-08-27T07:48:02.285186Z 01O cf41f5e60994: Layer already exists
+2026-08-27T07:48:02.385858Z 01O ed5e5f1b8968: Waiting
+2026-08-27T07:48:02.385871Z 01O 1697aabf0cb4: Layer already exists
+2026-08-27T07:48:02.385872Z 01O a05285b380b1: Waiting
+2026-08-27T07:48:02.385873Z 01O 18b6c0fba8ca: Waiting
+2026-08-27T07:48:02.385874Z 01O 69bceed5e768: Layer already exists
+2026-08-27T07:48:02.385875Z 01O beb6c440f106: Waiting
+2026-08-27T07:48:02.485884Z 01O a05285b380b1: Layer already exists
+2026-08-27T07:48:02.485899Z 01O 18b6c0fba8ca: Layer already exists
+2026-08-27T07:48:02.486337Z 01O beb6c440f106: Waiting
+2026-08-27T07:48:02.486340Z 01O ed5e5f1b8968: Waiting
+2026-08-27T07:48:02.486341Z 01O 42a492c9b0f0: Waiting
+2026-08-27T07:48:02.585422Z 01O ed5e5f1b8968: Layer already exists
+2026-08-27T07:48:02.585434Z 01O 42a492c9b0f0: Waiting
+2026-08-27T07:48:02.585435Z 01O beb6c440f106: Layer already exists
+2026-08-27T07:48:02.685238Z 01O 42a492c9b0f0: Layer already exists
+2026-08-27T07:48:02.984686Z 01O 4952153860fe: Pushed
+2026-08-27T07:48:05.649886Z 01O gitlab-app2: digest: sha256:951677cc4435b0989fbfc781f76d00a15cf837b728beeb77469179d4336de2ba size: 856
+2026-08-27T07:48:05.692934Z 01O The push refers to repository [docker.io/akshay852/akshayimage]
+2026-08-27T07:48:05.793305Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:05.793311Z 01O ad394be90208: Waiting
+2026-08-27T07:48:05.793312Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:05.793313Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:05.892330Z 01O ad394be90208: Waiting
+2026-08-27T07:48:05.892341Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:05.892342Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:05.892343Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:05.993276Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:05.993287Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:05.993288Z 01O ad394be90208: Waiting
+2026-08-27T07:48:05.993289Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:06.092577Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:06.092590Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:06.092591Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:06.092592Z 01O ad394be90208: Waiting
+2026-08-27T07:48:06.193166Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:06.193177Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:06.193179Z 01O ad394be90208: Waiting
+2026-08-27T07:48:06.193179Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:06.295316Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:06.295328Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:06.295329Z 01O ad394be90208: Waiting
+2026-08-27T07:48:06.295330Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:06.392482Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:06.392493Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:06.392494Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:06.392495Z 01O ad394be90208: Waiting
+2026-08-27T07:48:06.492870Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:06.492882Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:06.492883Z 01O ad394be90208: Waiting
+2026-08-27T07:48:06.492884Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:06.592313Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:06.592323Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:06.592325Z 01O ad394be90208: Waiting
+2026-08-27T07:48:06.592326Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:06.693937Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:06.693951Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:06.693955Z 01O ad394be90208: Waiting
+2026-08-27T07:48:06.693957Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:06.796158Z 01O d1da34da7750: Waiting
+2026-08-27T07:48:06.796406Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:06.796409Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:06.796410Z 01O ad394be90208: Layer already exists
+2026-08-27T07:48:06.796411Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:06.892654Z 01O 44136fa355b3: Waiting
+2026-08-27T07:48:06.892665Z 01O 0926a8eb0e60: Waiting
+2026-08-27T07:48:06.892667Z 01O d1da34da7750: Waiting
+2026-08-27T07:48:06.892973Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:06.993057Z 01O 5f13cb1a534e: Waiting
+2026-08-27T07:48:06.993068Z 01O 0926a8eb0e60: Layer already exists
+2026-08-27T07:48:06.993069Z 01O d1da34da7750: Waiting
+2026-08-27T07:48:06.993070Z 01O 4f4fb700ef54: Waiting
+2026-08-27T07:48:06.993071Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:06.993072Z 01O 44136fa355b3: Already exists
+2026-08-27T07:48:07.092931Z 01O 4f4fb700ef54: Waiting
+2026-08-27T07:48:07.092944Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:07.092945Z 01O 5f13cb1a534e: Waiting
+2026-08-27T07:48:07.093102Z 01O d1da34da7750: Waiting
+2026-08-27T07:48:07.192602Z 01O 1697aabf0cb4: Waiting
+2026-08-27T07:48:07.192613Z 01O 69bceed5e768: Waiting
+2026-08-27T07:48:07.192757Z 01O 971e114c7d57: Waiting
+2026-08-27T07:48:07.193320Z 01O cf41f5e60994: Waiting
+2026-08-27T07:48:07.193322Z 01O 5f13cb1a534e: Layer already exists
+2026-08-27T07:48:07.193323Z 01O d762f3276b54: Waiting
+2026-08-27T07:48:07.193324Z 01O d1da34da7750: Layer already exists
+2026-08-27T07:48:07.193325Z 01O 4f4fb700ef54: Layer already exists
+2026-08-27T07:48:07.294921Z 01O d762f3276b54: Waiting
+2026-08-27T07:48:07.294935Z 01O 1697aabf0cb4: Waiting
+2026-08-27T07:48:07.295032Z 01O 69bceed5e768: Waiting
+2026-08-27T07:48:07.295036Z 01O cf41f5e60994: Waiting
+2026-08-27T07:48:07.393094Z 01O cf41f5e60994: Layer already exists
+2026-08-27T07:48:07.393106Z 01O a05285b380b1: Waiting
+2026-08-27T07:48:07.393107Z 01O d762f3276b54: Layer already exists
+2026-08-27T07:48:07.393108Z 01O 18b6c0fba8ca: Waiting
+2026-08-27T07:48:07.393109Z 01O beb6c440f106: Waiting
+2026-08-27T07:48:07.393110Z 01O 1697aabf0cb4: Layer already exists
+2026-08-27T07:48:07.393110Z 01O ed5e5f1b8968: Waiting
+2026-08-27T07:48:07.393111Z 01O 69bceed5e768: Layer already exists
+2026-08-27T07:48:07.493325Z 01O ed5e5f1b8968: Waiting
+2026-08-27T07:48:07.493340Z 01O a05285b380b1: Waiting
+2026-08-27T07:48:07.493482Z 01O 18b6c0fba8ca: Waiting
+2026-08-27T07:48:07.493484Z 01O beb6c440f106: Waiting
+2026-08-27T07:48:07.592771Z 01O 42a492c9b0f0: Waiting
+2026-08-27T07:48:07.592782Z 01O a05285b380b1: Layer already exists
+2026-08-27T07:48:07.592784Z 01O 18b6c0fba8ca: Layer already exists
+2026-08-27T07:48:07.592836Z 01O beb6c440f106: Layer already exists
+2026-08-27T07:48:07.593042Z 01O ed5e5f1b8968: Layer already exists
+2026-08-27T07:48:07.593164Z 01O 9229b90cc280: Waiting
+2026-08-27T07:48:07.593167Z 01O 07b6c7377407: Waiting
+2026-08-27T07:48:07.692649Z 01O 9229b90cc280: Waiting
+2026-08-27T07:48:07.692660Z 01O 07b6c7377407: Waiting
+2026-08-27T07:48:07.692661Z 01O 42a492c9b0f0: Waiting
+2026-08-27T07:48:07.792985Z 01O 9229b90cc280: Layer already exists
+2026-08-27T07:48:07.792996Z 01O 07b6c7377407: Layer already exists
+2026-08-27T07:48:07.792997Z 01O 42a492c9b0f0: Layer already exists
+2026-08-27T07:48:08.165901Z 01O 971e114c7d57: Pushed
+2026-08-27T07:48:10.743041Z 01O gitlab-app3: digest: sha256:ca02691bb3fcb323e8861a11419d294abb467358bbcfea20fdbf109a944208ac size: 856
+2026-08-27T07:48:10.751072Z 01O [32;1m$ echo "===== CI COMPLETED ====="[0;m
+2026-08-27T07:48:10.751314Z 01O ===== CI COMPLETED =====
+2026-08-27T07:48:10.758598Z 00O section_end:1787816890:step_script
+[0K
+2026-08-27T07:48:10.760782Z 00O+section_start:1787816890:cleanup_file_variables
+[0K
+2026-08-27T07:48:10.760790Z 00O+[0K[36;1mCleaning up project directory and file based variables[0;m[0;m
+2026-08-27T07:48:10.960162Z 00O section_end:1787816890:cleanup_file_variables
+[0K
+2026-08-27T07:48:10.960407Z 00O [32;1mJob succeeded[0;m 
+
+-------------------------------------
+
+OUTPUT OF GITLAB PIPELINE CD
+
+--------------------------
+
+2026-08-27T09:13:00.361856Z 00O [0KRunning with gitlab-runner 19.3.0 (9cbf0074)[0;m
+2026-08-27T09:13:00.361904Z 00O [0K  on tsb-dev-playground2 tHL0vloNv, system ID: s_8cedd8590a53[0;m
+2026-08-27T09:13:00.361982Z 00O section_start:1787821980:prepare_executor
+[0K
+2026-08-27T09:13:00.361989Z 00O+[0K[36;1mPreparing the "shell" executor[0;m[0;m
+2026-08-27T09:13:00.362268Z 00O [0KUsing Shell (bash) executor...[0;m
+2026-08-27T09:13:00.362273Z 00O section_end:1787821980:prepare_executor
+[0K
+2026-08-27T09:13:00.362633Z 00O+section_start:1787821980:prepare_script
+[0K
+2026-08-27T09:13:00.362640Z 00O+[0K[36;1mPreparing environment[0;m[0;m
+2026-08-27T09:13:00.904892Z 01O Running on tsb-dev-playground2...
+2026-08-27T09:13:00.919109Z 00O section_end:1787821980:prepare_script
+[0K
+2026-08-27T09:13:00.920443Z 00O+section_start:1787821980:get_sources
+[0K
+2026-08-27T09:13:00.920452Z 00O+[0K[36;1mGetting source from Git repository[0;m[0;m
+2026-08-27T09:13:01.198118Z 01O [32;1mGitaly correlation ID: a319f52b1e939793-DXB[0;m
+2026-08-27T09:13:01.225483Z 01O [32;1mFetching changes with git depth set to 20...[0;m
+2026-08-27T09:13:01.232768Z 01O Reinitialized existing Git repository in /home/gitlab-runner/builds/tHL0vloNv/0/akshay852/linux-system-administration-tasks-gitlab/.git/
+2026-08-27T09:13:03.729953Z 01O [32;1mChecking out 1cc4045d as detached HEAD (ref is main)...[0;m
+2026-08-27T09:13:03.767981Z 01O [32;1mSkipping Git submodules setup[0;m
+2026-08-27T09:13:03.785467Z 00O section_end:1787821983:get_sources
+[0K
+2026-08-27T09:13:03.790592Z 00O+section_start:1787821983:step_script
+[0K
+2026-08-27T09:13:03.790606Z 00O+[0K[36;1mExecuting "step_script" stage of the job script[0;m[0;m
+2026-08-27T09:13:03.980504Z 01O [32;1m$ echo "===== SSH TEST ====="[0;m
+2026-08-27T09:13:03.980560Z 01O ===== SSH TEST =====
+2026-08-27T09:13:03.980561Z 01O [32;1m$ ssh "$SERVER1" "hostname"[0;m
+2026-08-27T09:13:05.168445Z 01O tsb-dev-playground1
+2026-08-27T09:13:05.171407Z 01O [32;1m$ ssh "$SERVER1" "whoami"[0;m
+2026-08-27T09:13:05.783288Z 01O ubuntu
+2026-08-27T09:13:05.786776Z 01O [32;1m$ echo "===== CLONE GITLAB REPOSITORY ON SERVER 1 ====="[0;m
+2026-08-27T09:13:05.786781Z 01O ===== CLONE GITLAB REPOSITORY ON SERVER 1 =====
+2026-08-27T09:13:05.786782Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T09:13:06.434206Z 01E Cloning into '/home/ubuntu/linux-system-administration-tasks-gitlab'...
+2026-08-27T09:13:09.335781Z 01O [32;1m$ echo "===== CHECK DOCKER COMPOSE FILE ====="[0;m
+2026-08-27T09:13:09.336551Z 01O ===== CHECK DOCKER COMPOSE FILE =====
+2026-08-27T09:13:09.336555Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T09:13:09.909374Z 01O -rw-rw-r-- 1 ubuntu ubuntu 424 Aug 27 09:13 docker-compose.yml
+2026-08-27T09:13:09.913638Z 01O [32;1m$ echo "===== PULL APP3 IMAGE ====="[0;m
+2026-08-27T09:13:09.913642Z 01O ===== PULL APP3 IMAGE =====
+2026-08-27T09:13:09.913643Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T09:13:11.801397Z 01O gitlab-app3: Pulling from akshay852/akshayimage
+2026-08-27T09:13:13.362609Z 01O Digest: sha256:c75f09d46d9d128319b972878302a04ee60cc0abd1b4cbe790eebd3ed53c2f1b
+2026-08-27T09:13:13.362623Z 01O Status: Image is up to date for akshay852/akshayimage:gitlab-app3
+2026-08-27T09:13:13.364119Z 01O docker.io/akshay852/akshayimage:gitlab-app3
+2026-08-27T09:13:13.374312Z 01O [32;1m$ echo "===== PULL POSTGRESQL IMAGE ====="[0;m
+2026-08-27T09:13:13.374316Z 01O ===== PULL POSTGRESQL IMAGE =====
+2026-08-27T09:13:13.374317Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T09:13:16.759350Z 01O 16: Pulling from library/postgres
+2026-08-27T09:13:18.832152Z 01O af7708f26521: Pulling fs layer
+2026-08-27T09:13:18.832166Z 01O 6310eb16bf42: Pulling fs layer
+2026-08-27T09:13:18.832544Z 01O 9d1e9c1e61f4: Pulling fs layer
+2026-08-27T09:13:18.833464Z 01O 48dd761b6bfe: Pulling fs layer
+2026-08-27T09:13:18.834280Z 01O 4d710b756578: Pulling fs layer
+2026-08-27T09:13:18.834282Z 01O 8a082189cfe1: Pulling fs layer
+2026-08-27T09:13:18.834283Z 01O 988d57697ad2: Pulling fs layer
+2026-08-27T09:13:18.834284Z 01O 3fa541d8cac9: Pulling fs layer
+2026-08-27T09:13:18.834284Z 01O 9f809ec5ff35: Pulling fs layer
+2026-08-27T09:13:18.834285Z 01O b3ffe1fd6e79: Pulling fs layer
+2026-08-27T09:13:18.834593Z 01O f122bc3261fc: Pulling fs layer
+2026-08-27T09:13:18.836819Z 01O 5322d81b9b21: Pulling fs layer
+2026-08-27T09:13:18.837513Z 01O 9bd242f25e75: Pulling fs layer
+2026-08-27T09:13:18.837801Z 01O 00034b17b963: Pulling fs layer
+2026-08-27T09:13:19.194638Z 01O 266e5ab4e0e8: Download complete
+2026-08-27T09:13:19.390580Z 01O 344d251825bb: Download complete
+2026-08-27T09:13:19.500323Z 01O af7708f26521: Download complete
+2026-08-27T09:13:19.590633Z 01O b3ffe1fd6e79: Download complete
+2026-08-27T09:13:19.790082Z 01O 9d1e9c1e61f4: Download complete
+2026-08-27T09:13:20.001867Z 01O 988d57697ad2: Download complete
+2026-08-27T09:13:20.204370Z 01O 8a082189cfe1: Download complete
+2026-08-27T09:13:20.400113Z 01O 4d710b756578: Download complete
+2026-08-27T09:13:22.228563Z 01O 6310eb16bf42: Download complete
+2026-08-27T09:13:22.242593Z 01O 3fa541d8cac9: Download complete
+2026-08-27T09:13:22.245122Z 01O 9f809ec5ff35: Download complete
+2026-08-27T09:13:22.474216Z 01O 9bd242f25e75: Download complete
+2026-08-27T09:13:22.644963Z 01O 00034b17b963: Download complete
+2026-08-27T09:13:22.672122Z 01O f122bc3261fc: Download complete
+2026-08-27T09:13:22.803647Z 01O 5322d81b9b21: Download complete
+2026-08-27T09:13:27.408616Z 01O 48dd761b6bfe: Download complete
+2026-08-27T09:13:29.418243Z 01O 4d710b756578: Pull complete
+2026-08-27T09:13:29.419576Z 01O 6310eb16bf42: Pull complete
+2026-08-27T09:13:30.097426Z 01O 3fa541d8cac9: Pull complete
+2026-08-27T09:13:30.188269Z 01O b3ffe1fd6e79: Pull complete
+2026-08-27T09:13:31.199079Z 01O f122bc3261fc: Pull complete
+2026-08-27T09:13:31.404992Z 01O 9bd242f25e75: Pull complete
+2026-08-27T09:13:31.414657Z 01O 5322d81b9b21: Pull complete
+2026-08-27T09:13:31.491383Z 01O 9d1e9c1e61f4: Pull complete
+2026-08-27T09:13:46.508056Z 01O 48dd761b6bfe: Pull complete
+2026-08-27T09:13:46.589478Z 01O 988d57697ad2: Pull complete
+2026-08-27T09:13:46.593157Z 01O 8a082189cfe1: Pull complete
+2026-08-27T09:13:46.598169Z 01O 00034b17b963: Pull complete
+2026-08-27T09:13:46.667504Z 01O af7708f26521: Pull complete
+2026-08-27T09:13:46.672712Z 01O 9f809ec5ff35: Pull complete
+2026-08-27T09:13:46.673225Z 01O Digest: sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
+2026-08-27T09:13:46.673444Z 01O Status: Downloaded newer image for postgres:16
+2026-08-27T09:13:46.676755Z 01O docker.io/library/postgres:16
+2026-08-27T09:13:46.686655Z 01O [32;1m$ echo "===== STOP EXISTING CONTAINERS ====="[0;m
+2026-08-27T09:13:46.686665Z 01O ===== STOP EXISTING CONTAINERS =====
+2026-08-27T09:13:46.686666Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T09:13:48.357022Z 01E  Network linux-system-administration-tasks-gitlab_default Removing 
+2026-08-27T09:13:48.561977Z 01E  Network linux-system-administration-tasks-gitlab_default Removed 
+2026-08-27T09:13:48.585514Z 01O [32;1m$ echo "===== START APPLICATION ====="[0;m
+2026-08-27T09:13:48.586173Z 01O ===== START APPLICATION =====
+2026-08-27T09:13:48.586176Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T09:13:49.666054Z 01E  Network linux-system-administration-tasks-gitlab_default Creating 
+2026-08-27T09:13:49.666068Z 01E  Network linux-system-administration-tasks-gitlab_default Creating 
+2026-08-27T09:13:49.917882Z 01E  Network linux-system-administration-tasks-gitlab_default Created 
+2026-08-27T09:13:49.917896Z 01E  Network linux-system-administration-tasks-gitlab_default Created 
+2026-08-27T09:13:49.917897Z 01E  Container postgres-db Creating 
+2026-08-27T09:13:52.525988Z 01E  Container postgres-db Created 
+2026-08-27T09:13:52.526429Z 01E  Container app3-container Creating 
+2026-08-27T09:13:52.730940Z 01E  Container app3-container Created 
+2026-08-27T09:13:52.783777Z 01E  Container postgres-db Starting 
+2026-08-27T09:13:53.525246Z 01E  Container postgres-db Started 
+2026-08-27T09:13:53.525261Z 01E  Container app3-container Starting 
+2026-08-27T09:13:55.076659Z 01E  Container app3-container Started 
+2026-08-27T09:13:55.093790Z 01O [32;1m$ echo "===== WAIT FOR CONTAINERS ====="[0;m
+2026-08-27T09:13:55.093825Z 01O ===== WAIT FOR CONTAINERS =====
+2026-08-27T09:13:55.093826Z 01O [32;1m$ sleep 5[0;m
+2026-08-27T09:14:00.099197Z 01O [32;1m$ echo "===== VERIFY COMPOSE ====="[0;m
+2026-08-27T09:14:00.100034Z 01O ===== VERIFY COMPOSE =====
+2026-08-27T09:14:00.100037Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T09:14:01.035118Z 01O NAME             IMAGE                               COMMAND                  SERVICE       CREATED          STATUS         PORTS
+2026-08-27T09:14:01.036114Z 01O app3-container   akshay852/akshayimage:gitlab-app3   "/start.sh"              app           9 seconds ago    Up 6 seconds   0.0.0.0:9091->80/tcp, [::]:9091->80/tcp
+2026-08-27T09:14:01.036235Z 01O postgres-db      postgres:16                         "docker-entrypoint.s…"   postgres-db   12 seconds ago   Up 8 seconds   5432/tcp
+2026-08-27T09:14:01.051183Z 01O [32;1m$ echo "===== VERIFY RUNNING CONTAINERS ====="[0;m
+2026-08-27T09:14:01.051191Z 01O ===== VERIFY RUNNING CONTAINERS =====
+2026-08-27T09:14:01.051192Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-27T09:14:01.743282Z 01O CONTAINER ID   IMAGE                               COMMAND                  CREATED          STATUS         PORTS                                     NAMES
+2026-08-27T09:14:01.743297Z 01O 31c0ee504a18   akshay852/akshayimage:gitlab-app3   "/start.sh"              9 seconds ago    Up 7 seconds   0.0.0.0:9091->80/tcp, [::]:9091->80/tcp   app3-container
+2026-08-27T09:14:01.743299Z 01O e9d3bcfdbe98   postgres:16                         "docker-entrypoint.s…"   12 seconds ago   Up 8 seconds   5432/tcp                                  postgres-db
+2026-08-27T09:14:01.752939Z 01O [32;1m$ echo "===== CD COMPLETED ====="[0;m
+2026-08-27T09:14:01.753758Z 01O ===== CD COMPLETED =====
+2026-08-27T09:14:01.763057Z 00O section_end:1787822041:step_script
+[0K
+2026-08-27T09:14:01.769395Z 00O+section_start:1787822041:cleanup_file_variables
+[0K
+2026-08-27T09:14:01.769406Z 00O+[0K[36;1mCleaning up project directory and file based variables[0;m[0;m
+2026-08-27T09:14:01.958202Z 00O section_end:1787822041:cleanup_file_variables
+[0K
+2026-08-27T09:14:01.959831Z 00O [32;1mJob succeeded[0;m
+
+
+
 
 
