@@ -272,7 +272,7 @@ pipeline {
 step12 
 Build 
 
-
+---------------------------------------------------------------------------------------------------------------------------
 Requirement2 
 Configure GitLab Runner (`gitlabrunner`) on Server 2 to build, push, and deploy App3 with PostgreSQL using Docker Hub and Server 1.
 
@@ -608,6 +608,313 @@ deploy-app3:
 
     - echo "===== CD COMPLETED ====="
 
+---------------------------------------------------------------------------------------------------------------------------
+
+
+Requirement 3
+
+Install Prometheus and Grafana on Server 1 using Docker Compose, monitor CPU utilization and Docker container metrics, and verify their status and logs.
+
+
+step1
+update docker-compose.yml file 
+
+services:
+
+  app:
+    image: akshay852/akshayimage:gitlab-app3
+    container_name: app3-container
+    ports:
+      - "9091:80"
+    depends_on:
+      - postgres-db
+    restart: unless-stopped
+
+  postgres-db:
+    image: postgres:16
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: appdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - "/:/host:ro,rslave"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9092:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      - node-exporter
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SERVER_PROTOCOL: http
+      GF_SERVER_HTTP_PORT: 3000
+      GF_SERVER_DOMAIN: devops-intern-app2.luluex.com
+      GF_SERVER_ROOT_URL: "https://devops-intern-app2.luluex.com/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  prometheus-data:
+  grafana-data:
+
+
+
+
+step2 
+create prometheus.yml 
+
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: "server1"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+
+
+step3
+update .gitlab-cd.yml 
+
+stages:
+  - cd
+
+variables:
+  SERVER1: "ubuntu@172.30.7.144"
+  REPO: "git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git"
+  REPO_DIR: "/home/ubuntu/linux-system-administration-tasks-gitlab"
+
+deploy-monitoring-stack:
+  stage: cd
+  tags:
+    - gitlabrunner
+
+  script:
+    - echo "===== SSH TEST ====="
+    - ssh "$SERVER1" "hostname"
+    - ssh "$SERVER1" "whoami"
+
+    - echo "===== CLONE GITLAB REPOSITORY ====="
+    - |
+      ssh "$SERVER1" "
+        rm -rf $REPO_DIR &&
+        git clone $REPO $REPO_DIR
+      "
+
+    - echo "===== VERIFY REQUIRED FILES ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        test -f docker-compose.yml &&
+        test -f prometheus.yml &&
+        echo 'Required files found'
+      "
+
+    - echo "===== PULL DOCKER IMAGES ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        docker compose pull
+      "
+
+    - echo "===== STOP OLD DEPLOYMENT ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        docker compose down || true
+      "
+
+    - echo "===== START DEPLOYMENT ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        docker compose up -d
+      "
+
+    - echo "===== WAIT FOR SERVICES ====="
+    - |
+      ssh "$SERVER1" "
+        sleep 10
+      "
+
+    - echo "===== VERIFY CONTAINERS ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        docker compose ps
+      "
+
+    - echo "===== CHECK PROMETHEUS ====="
+    - |
+      ssh "$SERVER1" '
+        for i in $(seq 1 12); do
+          echo "Prometheus check $i/12"
+
+          if curl -fsS http://localhost:9092/-/healthy; then
+            echo "Prometheus is healthy"
+            exit 0
+          fi
+
+          sleep 5
+        done
+
+        echo "Prometheus health check failed"
+        docker logs prometheus --tail 50
+        exit 1
+      '
+
+    - echo "===== CHECK GRAFANA ====="
+    - |
+      ssh "$SERVER1" '
+        for i in $(seq 1 12); do
+          echo "Grafana check $i/12"
+
+          if curl -fsS http://localhost:3000/api/health; then
+            echo "Grafana is healthy"
+            exit 0
+          fi
+
+          sleep 5
+        done
+
+        echo "Grafana health check failed"
+        docker logs grafana --tail 50
+        exit 1
+      '
+
+    - echo "===== CHECK NODE EXPORTER ====="
+    - |
+      ssh "$SERVER1" '
+        for i in $(seq 1 12); do
+          echo "Node Exporter check $i/12"
+
+          if curl -fsS http://localhost:9100/metrics >/dev/null; then
+            echo "Node Exporter is healthy"
+            exit 0
+          fi
+
+          sleep 5
+        done
+
+        echo "Node Exporter health check failed"
+        docker logs node-exporter --tail 50
+        exit 1
+      '
+
+    - echo "===== CHECK APP3 ====="
+    - |
+      ssh "$SERVER1" '
+        if curl -fsS http://localhost:9091 >/dev/null; then
+          echo "App3 is reachable"
+        else
+          echo "App3 health check failed"
+          docker logs app3-container --tail 50
+          exit 1
+        fi
+      '
+
+    - echo "===== FINAL STATUS ====="
+    - |
+      ssh "$SERVER1" "
+        docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+      "
+
+    - echo "===== CD COMPLETED SUCCESSFULLY ====="
+
+
+
+step3 
+
+config file updated 
+
+
+server {
+    listen 443 ssl;
+    server_name devops-intern-app2.luluex.com;
+
+    ssl_certificate /etc/ssl/luluex/fullchain.pem;
+    ssl_certificate_key /etc/ssl/luluex/privkey.pem;
+
+    location /grafana/ {
+        proxy_pass http://172.30.7.144:3001;
+
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Prefix /grafana;
+
+        proxy_redirect off;
+    }
+
+    location / {
+        proxy_pass http://172.30.7.144:9091;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /jenkins/ {
+        proxy_pass http://127.0.0.1:8080/jenkins/;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_http_version 1.1;
+    }
+}
+
+
+step4 
+verify in browser 
+
+172.30.7.144:9100   node exporter
+172.30.7.144:9092   prometheus 
+https://devops-intern-app2.luluex.com/grafana/
+
+step5
+Prometheus, Node Exporter & Grafana Monitoring and Alerting
+Take screenshorts 
 
 
 
@@ -617,10 +924,7 @@ deploy-app3:
 
 
 
-
-
-
-
+-------------------------------------------------------------------------------------------------------------------------
 
 
 
@@ -2880,6 +3184,228 @@ OUTPUT OF GITLAB PIPELINE CD
 2026-08-27T09:14:01.958202Z 00O section_end:1787822041:cleanup_file_variables
 [0K
 2026-08-27T09:14:01.959831Z 00O [32;1mJob succeeded[0;m
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+OUTPUT OF REQUIREMENT 3 ON GITLAB 
+--------------------------------
+
+
+
+
+2026-08-28T09:06:03.640433Z 00O [0KRunning with gitlab-runner 19.3.0 (9cbf0074)[0;m
+2026-08-28T09:06:03.640483Z 00O [0K  on tsb-dev-playground2 tHL0vloNv, system ID: s_8cedd8590a53[0;m
+2026-08-28T09:06:03.640570Z 00O section_start:1787907963:prepare_executor
+[0K
+2026-08-28T09:06:03.640578Z 00O+[0K[36;1mPreparing the "shell" executor[0;m[0;m
+2026-08-28T09:06:03.640827Z 00O [0KUsing Shell (bash) executor...[0;m
+2026-08-28T09:06:03.640831Z 00O section_end:1787907963:prepare_executor
+[0K
+2026-08-28T09:06:03.641247Z 00O+section_start:1787907963:prepare_script
+[0K
+2026-08-28T09:06:03.641255Z 00O+[0K[36;1mPreparing environment[0;m[0;m
+2026-08-28T09:06:04.160948Z 01O Running on tsb-dev-playground2...
+2026-08-28T09:06:04.178803Z 00O section_end:1787907964:prepare_script
+[0K
+2026-08-28T09:06:04.181203Z 00O+section_start:1787907964:get_sources
+[0K
+2026-08-28T09:06:04.181212Z 00O+[0K[36;1mGetting source from Git repository[0;m[0;m
+2026-08-28T09:06:04.455435Z 01O [32;1mGitaly correlation ID: a322285e6fa42e9b-DXB[0;m
+2026-08-28T09:06:04.487939Z 01O [32;1mFetching changes with git depth set to 20...[0;m
+2026-08-28T09:06:04.500402Z 01O Reinitialized existing Git repository in /home/gitlab-runner/builds/tHL0vloNv/0/akshay852/linux-system-administration-tasks-gitlab/.git/
+2026-08-28T09:06:06.599493Z 01O [32;1mChecking out 9f0b0fdd as detached HEAD (ref is main)...[0;m
+2026-08-28T09:06:06.627752Z 01O [32;1mSkipping Git submodules setup[0;m
+2026-08-28T09:06:06.643524Z 00O section_end:1787907966:get_sources
+[0K
+2026-08-28T09:06:06.651111Z 00O+section_start:1787907966:step_script
+[0K
+2026-08-28T09:06:06.651136Z 00O+[0K[36;1mExecuting "step_script" stage of the job script[0;m[0;m
+2026-08-28T09:06:06.834759Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:06.834805Z 01O ========================================
+2026-08-28T09:06:06.834806Z 01O [32;1m$ echo "        SSH TEST - SERVER 1"[0;m
+2026-08-28T09:06:06.834807Z 01O         SSH TEST - SERVER 1
+2026-08-28T09:06:06.834808Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:06.834809Z 01O ========================================
+2026-08-28T09:06:06.834809Z 01O [32;1m$ ssh "$SERVER1" "hostname"[0;m
+2026-08-28T09:06:08.058021Z 01O tsb-dev-playground1
+2026-08-28T09:06:08.060913Z 01O [32;1m$ ssh "$SERVER1" "whoami"[0;m
+2026-08-28T09:06:08.653359Z 01O ubuntu
+2026-08-28T09:06:08.657472Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:08.657476Z 01O ========================================
+2026-08-28T09:06:08.657477Z 01O [32;1m$ echo "        UPDATE GITLAB REPOSITORY"[0;m
+2026-08-28T09:06:08.657478Z 01O         UPDATE GITLAB REPOSITORY
+2026-08-28T09:06:08.657479Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:08.657480Z 01O ========================================
+2026-08-28T09:06:08.657481Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-28T09:06:09.343815Z 01E Cloning into '/home/ubuntu/linux-system-administration-tasks-gitlab'...
+2026-08-28T09:06:12.238706Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:12.238720Z 01O ========================================
+2026-08-28T09:06:12.238721Z 01O [32;1m$ echo "        DEPLOY APPLICATION"[0;m
+2026-08-28T09:06:12.238723Z 01O         DEPLOY APPLICATION
+2026-08-28T09:06:12.238723Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:12.238724Z 01O ========================================
+2026-08-28T09:06:12.238725Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-28T09:06:13.302355Z 01E  Image akshay852/akshayimage:gitlab-app3 Pulling 
+2026-08-28T09:06:13.302368Z 01E  Image prom/prometheus:latest Pulling 
+2026-08-28T09:06:13.302369Z 01E  Image grafana/grafana:latest Pulling 
+2026-08-28T09:06:13.302371Z 01E  Image prom/node-exporter:latest Pulling 
+2026-08-28T09:06:13.303114Z 01E  Image postgres:16 Pulling 
+2026-08-28T09:06:15.248359Z 01E  Image prom/node-exporter:latest Pulled 
+2026-08-28T09:06:15.292425Z 01E  Image prom/prometheus:latest Pulled 
+2026-08-28T09:06:15.295351Z 01E  Image grafana/grafana:latest Pulled 
+2026-08-28T09:06:17.583951Z 01E  Image akshay852/akshayimage:gitlab-app3 Pulled 
+2026-08-28T09:06:17.701653Z 01E  Image postgres:16 Pulled 
+2026-08-28T09:06:18.190133Z 01E  Container prometheus Running 
+2026-08-28T09:06:18.190149Z 01E  Container app3-container Running 
+2026-08-28T09:06:18.190154Z 01E  Container postgres-db Running 
+2026-08-28T09:06:18.190157Z 01E  Container node-exporter Running 
+2026-08-28T09:06:18.190161Z 01E  Container grafana Recreate 
+2026-08-28T09:06:19.908115Z 01E  Container grafana Recreated 
+2026-08-28T09:06:20.010619Z 01E  Container grafana Starting 
+2026-08-28T09:06:20.530480Z 01E  Container grafana Started 
+2026-08-28T09:06:20.546281Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:20.546288Z 01O ========================================
+2026-08-28T09:06:20.546295Z 01O [32;1m$ echo "        VERIFY CONTAINERS"[0;m
+2026-08-28T09:06:20.546332Z 01O         VERIFY CONTAINERS
+2026-08-28T09:06:20.546333Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:20.546363Z 01O ========================================
+2026-08-28T09:06:20.546368Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-28T09:06:21.434817Z 01O NAME      IMAGE     COMMAND   SERVICE   CREATED   STATUS    PORTS
+2026-08-28T09:06:21.459272Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:21.459285Z 01O ========================================
+2026-08-28T09:06:21.459286Z 01O [32;1m$ echo "        CHECK APP3"[0;m
+2026-08-28T09:06:21.459293Z 01O         CHECK APP3
+2026-08-28T09:06:21.459294Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:21.459299Z 01O ========================================
+2026-08-28T09:06:21.459317Z 01O [32;1m$ ssh "$SERVER1" ' # collapsed multi-line command[0;m
+2026-08-28T09:06:22.094269Z 01O App3 check 1/12
+2026-08-28T09:06:22.135558Z 01O <!DOCTYPE html>
+2026-08-28T09:06:22.135567Z 01O 
+2026-08-28T09:06:22.135567Z 01O <html>
+2026-08-28T09:06:22.135568Z 01O 
+2026-08-28T09:06:22.135569Z 01O <head>
+2026-08-28T09:06:22.135569Z 01O <title>Akshay Demo Website</title>
+2026-08-28T09:06:22.135570Z 01O </head>
+2026-08-28T09:06:22.135571Z 01O 
+2026-08-28T09:06:22.135572Z 01O 
+2026-08-28T09:06:22.135572Z 01O <body>
+2026-08-28T09:06:22.135573Z 01O 
+2026-08-28T09:06:22.135573Z 01O <h1>Welcome to Akshay's Website</h1>
+2026-08-28T09:06:22.135574Z 01O 
+2026-08-28T09:06:22.135574Z 01O <p>Requirement 2 Demo Application</p>
+2026-08-28T09:06:22.135575Z 01O 
+2026-08-28T09:06:22.135575Z 01O <p>PHP is working successfully.</p>
+2026-08-28T09:06:22.135576Z 01O 
+2026-08-28T09:06:22.135577Z 01O <a href="phpinfo.php">
+2026-08-28T09:06:22.135577Z 01O View PHP Information
+2026-08-28T09:06:22.135578Z 01O </a>
+2026-08-28T09:06:22.135578Z 01O 
+2026-08-28T09:06:22.135579Z 01O </body>
+2026-08-28T09:06:22.135579Z 01O 
+2026-08-28T09:06:22.135580Z 01O </html>
+2026-08-28T09:06:22.140803Z 01O 
+2026-08-28T09:06:22.140806Z 01O App3 is healthy
+2026-08-28T09:06:22.144948Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:22.144952Z 01O ========================================
+2026-08-28T09:06:22.144953Z 01O [32;1m$ echo "        CHECK POSTGRESQL"[0;m
+2026-08-28T09:06:22.144954Z 01O         CHECK POSTGRESQL
+2026-08-28T09:06:22.144955Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:22.144955Z 01O ========================================
+2026-08-28T09:06:22.144956Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-28T09:06:23.318142Z 01O /var/run/postgresql:5432 - accepting connections
+2026-08-28T09:06:23.338189Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:23.338198Z 01O ========================================
+2026-08-28T09:06:23.338205Z 01O [32;1m$ echo "        CHECK PROMETHEUS"[0;m
+2026-08-28T09:06:23.338219Z 01O         CHECK PROMETHEUS
+2026-08-28T09:06:23.338235Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:23.338249Z 01O ========================================
+2026-08-28T09:06:23.338280Z 01O [32;1m$ ssh "$SERVER1" ' # collapsed multi-line command[0;m
+2026-08-28T09:06:23.957901Z 01O Prometheus check 1/12
+2026-08-28T09:06:23.985281Z 01O Prometheus Server is Healthy.
+2026-08-28T09:06:23.990269Z 01O 
+2026-08-28T09:06:23.990272Z 01O Prometheus is healthy
+2026-08-28T09:06:23.993124Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:23.993127Z 01O ========================================
+2026-08-28T09:06:23.993128Z 01O [32;1m$ echo "        CHECK GRAFANA"[0;m
+2026-08-28T09:06:23.993129Z 01O         CHECK GRAFANA
+2026-08-28T09:06:23.993130Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:23.993131Z 01O ========================================
+2026-08-28T09:06:23.993131Z 01O [32;1m$ ssh "$SERVER1" ' # collapsed multi-line command[0;m
+2026-08-28T09:06:24.610847Z 01O Grafana check 1/12
+2026-08-28T09:06:24.634756Z 01E curl: (56) Recv failure: Connection reset by peer
+2026-08-28T09:06:29.648820Z 01O Grafana check 2/12
+2026-08-28T09:06:29.668581Z 01E curl: (56) Recv failure: Connection reset by peer
+2026-08-28T09:06:34.678781Z 01O Grafana check 3/12
+2026-08-28T09:06:34.702487Z 01E curl: (56) Recv failure: Connection reset by peer
+2026-08-28T09:06:39.713083Z 01O Grafana check 4/12
+2026-08-28T09:06:39.731605Z 01O {
+2026-08-28T09:06:39.731610Z 01O   "database": "ok",
+2026-08-28T09:06:39.731611Z 01O   "version": "13.2.0",
+2026-08-28T09:06:39.731612Z 01O   "commit": "f681b1359f6a0b8ecb9f2c49a88ac72b75bde73b"
+2026-08-28T09:06:39.731613Z 01O }
+2026-08-28T09:06:39.734875Z 01O Grafana is healthy
+2026-08-28T09:06:39.738535Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:39.738609Z 01O ========================================
+2026-08-28T09:06:39.738695Z 01O [32;1m$ echo "        CHECK NODE EXPORTER"[0;m
+2026-08-28T09:06:39.738759Z 01O         CHECK NODE EXPORTER
+2026-08-28T09:06:39.738827Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:39.738888Z 01O ========================================
+2026-08-28T09:06:39.738956Z 01O [32;1m$ ssh "$SERVER1" ' # collapsed multi-line command[0;m
+2026-08-28T09:06:40.398531Z 01O Node Exporter check 1/12
+2026-08-28T09:06:40.487156Z 01O Node Exporter is healthy
+2026-08-28T09:06:40.490967Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:40.490971Z 01O ========================================
+2026-08-28T09:06:40.490972Z 01O [32;1m$ echo "        FINAL CONTAINER STATUS"[0;m
+2026-08-28T09:06:40.490973Z 01O         FINAL CONTAINER STATUS
+2026-08-28T09:06:40.490974Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:40.490975Z 01O ========================================
+2026-08-28T09:06:40.490975Z 01O [32;1m$ ssh "$SERVER1" " # collapsed multi-line command[0;m
+2026-08-28T09:06:41.218445Z 01O NAMES            IMAGE                               STATUS             PORTS
+2026-08-28T09:06:41.218464Z 01O grafana          grafana/grafana:latest              Up 21 seconds      0.0.0.0:3001->3000/tcp, [::]:3001->3000/tcp
+2026-08-28T09:06:41.218470Z 01O node-exporter    prom/node-exporter:latest           Up About an hour   0.0.0.0:9100->9100/tcp, [::]:9100->9100/tcp
+2026-08-28T09:06:41.218472Z 01O app3-container   akshay852/akshayimage:gitlab-app3   Up 2 hours         0.0.0.0:9091->80/tcp, [::]:9091->80/tcp
+2026-08-28T09:06:41.218474Z 01O prometheus       prom/prometheus:latest              Up 2 hours         0.0.0.0:9092->9090/tcp, [::]:9092->9090/tcp
+2026-08-28T09:06:41.218477Z 01O postgres-db      postgres:16                         Up 2 hours         5432/tcp
+2026-08-28T09:06:41.227942Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:41.227948Z 01O ========================================
+2026-08-28T09:06:41.227949Z 01O [32;1m$ echo "        CD COMPLETED SUCCESSFULLY"[0;m
+2026-08-28T09:06:41.227950Z 01O         CD COMPLETED SUCCESSFULLY
+2026-08-28T09:06:41.227951Z 01O [32;1m$ echo "========================================"[0;m
+2026-08-28T09:06:41.227952Z 01O ========================================
+2026-08-28T09:06:41.234738Z 00O section_end:1787908001:step_script
+[0K
+2026-08-28T09:06:41.236508Z 00O+section_start:1787908001:cleanup_file_variables
+[0K
+2026-08-28T09:06:41.236517Z 00O+[0K[36;1mCleaning up project directory and file based variables[0;m[0;m
+2026-08-28T09:06:41.432623Z 00O section_end:1787908001:cleanup_file_variables
+[0K
+2026-08-28T09:06:41.432866Z 00O [32;1mJob succeeded[0;m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
