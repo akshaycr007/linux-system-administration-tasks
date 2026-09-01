@@ -1,0 +1,671 @@
+REQUIREMENET
+
+Please ensure that only the app you developed is running on server1.
+Rest of the application like, Jenkins, Gitlab, Prometheus, Grafana should be running on server2.
+From Server2: Prometheus and Grafana should monitor all resources (server memory, CPU, storage, running containers) on server1 or any futher servers.
+PS: You may use Jenkins/GitLab-related client tools if needed on server1 to deploy your application. 
+
+SERVER1
+
+step1 
+docker rm -f prometheus Grafana
+
+step2
+docker ps
+
+step3
+cd ~/linux-system-administration-tasks-gitlab
+
+step4 
+Backup current compose file 
+
+cp docker-compose.yml docker-compose.old.yml
+
+step5
+nano docker-compose.yml
+
+services:
+
+  app:
+    image: akshay852/akshayimage:gitlab-app3
+    container_name: app3-container
+    ports:
+      - "9091:80"
+    depends_on:
+      - postgres-db
+    restart: unless-stopped
+
+  postgres-db:
+    image: postgres:16
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: appdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - "/:/host:ro,rslave"
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+
+
+step6 
+docker compose up -d 
+
+step7
+verify 
+
+curl http://localhost:9091
+curl http://localhost:8080/metrics | head
+curl http://localhost:9100/metrics | head
+
+step8 
+Test from server2 
+
+curl http://172.30.7.144:9100/metrics
+curl http://172.30.7.144:8080/metrics
+curl http://172.30.7.144:9091/metrics.php
+
+
+SERVER2 
+
+step1
+
+mkdir -p ~/monitoring
+cd ~/monitoring
+
+step2
+nano docker-compose-monitoring.yml
+
+services:
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9092:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox-exporter
+    ports:
+      - "9115:9115"
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+
+step3
+nano prometheus.yml
+
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+
+  - job_name: "server1-node"
+    static_configs:
+      - targets: ["172.30.7.144:9100"]
+
+  - job_name: "server1-cadvisor"
+    static_configs:
+      - targets: ["172.30.7.144:8080"]
+
+  - job_name: "php-application"
+    metrics_path: /metrics.php
+    static_configs:
+      - targets: ["172.30.7.144:9091"]
+
+  - job_name: "application-url"
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://172.30.7.144:9091
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+
+      - source_labels: [__param_target]
+        target_label: instance
+
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+step4
+cd ~/monitoring
+docker compose -f docker-compose-monitoring.yml up -d
+
+step5
+Remove GitLab Runner from Server 2
+
+sudo gitlab-runner stop
+sudo gitlab-runner uninstall
+sudo apt remove gitlab-runner -y
+
+SERVER1 
+install gitlab-runner on server1
+
+step1 
+curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" | sudo bash
+
+step2
+sudo apt install gitlab-runner -y
+
+step3
+sudo usermod -aG docker gitlab-runner
+sudo -u gitlab-runner docker ps
+
+step4
+connect GitLab runner to gitlab
+
+GitLab repository create a new gitlab-runner connected via authorized token
+
+gitlab-runner register
+
+step5 
+updated .gitlab-ci.yml and  .gitlab-cd.yml run GitLab pipeline 
+
+.gitlab-ci.yml 
+
+stages:
+  - build
+
+build-images:
+  stage: build
+
+  tags:
+    - gitlabrunner
+
+  script:
+    - echo "========================================"
+    - echo "        CI STARTED"
+    - echo "========================================"
+
+    - echo "===== SERVER ====="
+    - hostname
+    - whoami
+
+    - echo "===== DOCKER ====="
+    - docker --version
+
+    - echo "===== BUILD BASE IMAGE ====="
+    - docker build -t akshaybase:gitlab-ci ./image1-base
+
+    - echo "===== BUILD APP1 IMAGE ====="
+    - docker build -t akshayimage:gitlab-app1 ./image2-app1
+
+    - echo "===== BUILD APP2 IMAGE ====="
+    - docker build -t akshayimage:gitlab-app2 ./image3-app2
+
+    - echo "===== BUILD APP3 IMAGE ====="
+    - docker build -t akshayimage:gitlab-app3 ./image4-app3
+
+    - echo "===== VERIFY IMAGES ====="
+    - docker images | grep -E 'akshaybase|akshayimage'
+
+    - echo "===== TAG IMAGES ====="
+    - docker tag akshaybase:gitlab-ci akshay852/akshaybase:gitlab-ci
+    - docker tag akshayimage:gitlab-app1 akshay852/akshayimage:gitlab-app1
+    - docker tag akshayimage:gitlab-app2 akshay852/akshayimage:gitlab-app2
+    - docker tag akshayimage:gitlab-app3 akshay852/akshayimage:gitlab-app3
+
+    - echo "===== PUSH TO DOCKER HUB ====="
+    - docker push akshay852/akshaybase:gitlab-ci
+    - docker push akshay852/akshayimage:gitlab-app1
+    - docker push akshay852/akshayimage:gitlab-app2
+    - docker push akshay852/akshayimage:gitlab-app3
+
+    - echo "========================================"
+    - echo "        CI COMPLETED"
+    - echo "========================================"
+
+
+.gitlab-cd.yml
+
+stages:
+  - deploy
+
+deploy-application:
+  stage: deploy
+
+  tags:
+    - gitlabrunner
+
+  script:
+    - echo "========================================"
+    - echo "        CD STARTED"
+    - echo "========================================"
+
+    - hostname
+    - whoami
+    - docker --version
+    - docker compose version
+
+    - test -f docker-compose.yml
+    - echo "docker-compose.yml found"
+
+    - echo "===== PULL IMAGES ====="
+    - docker compose pull
+
+    - echo "===== DEPLOY APPLICATION ====="
+    - docker compose up -d
+
+    - echo "===== VERIFY APPLICATION ====="
+    - curl -fsS http://localhost:9091/ > /dev/null
+    - echo "Application is healthy"
+
+    - echo "===== VERIFY POSTGRESQL ====="
+    - docker exec postgres-db pg_isready -U admin -d appdb
+
+    - echo "===== VERIFY NODE EXPORTER ====="
+    - curl -fsS http://localhost:9100/metrics > /dev/null
+
+    - echo "===== VERIFY CADVISOR ====="
+    - curl -fsS http://localhost:8080/metrics > /dev/null
+
+    - echo "===== FINAL STATUS ====="
+    - docker compose ps
+
+    - echo "========================================"
+    - echo "        CD COMPLETED"
+    - echo "========================================"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OUTPUT OF SERVER2 
+
+m_docker_compose_image="sha256:485935f94cc7165afa896978809c37b592dc07f0a37d2c8f645f12412d0212c8",container_label_com_docker_compose_oneoff="False",container_label_com_docker_compose_project="linux-system-administration-tasks-gitlab",container_label_com_docker_compose_project_config_files="/home/ubuntu/linux-system-administration-tasks-gitlab/docker-compose.yml",container_label_com_docker_compose_project_working_dir="/home/ubuntu/linux-system-administration-tasks-gitlab",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="postgres-db",container_label_com_docker_compose_version="5.4.0",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",id="/system.slice/docker-791a1cf776414f361737c0318d23b681843b4662c565db5a33855dd903b77179.scope",image="postgres:16",name="postgres-db",state="sleeping"} 0 1788169155012
+container_tasks_state{container_label_com_docker_compose_config_hash="94cd54fad50c38b194e543d28dc80aaa4443a072bf7ca0600586efba1d9f7e19",container_label_com_docker_compose_container_number="1",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="sha256:485935f94cc7165afa896978809c37b592dc07f0a37d2c8f645f12412d0212c8",container_label_com_docker_compose_oneoff="False",container_label_com_docker_compose_project="linux-system-administration-tasks-gitlab",container_label_com_docker_compose_project_config_files="/home/ubuntu/linux-system-administration-tasks-gitlab/docker-compose.yml",container_label_com_docker_compose_project_working_dir="/home/ubuntu/linux-system-administration-tasks-gitlab",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="postgres-db",container_label_com_docker_compose_version="5.4.0",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",id="/system.slice/docker-791a1cf776414f361737c0318d23b681843b4662c565db5a33855dd903b77179.scope",image="postgres:16",name="postgres-db",state="stopped"} 0 1788169155012
+container_tasks_state{container_label_com_docker_compose_config_hash="94cd54fad50c38b194e543d28dc80aaa4443a072bf7ca0600586efba1d9f7e19",container_label_com_docker_compose_container_number="1",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="sha256:485935f94cc7165afa896978809c37b592dc07f0a37d2c8f645f12412d0212c8",container_label_com_docker_compose_oneoff="False",container_label_com_docker_compose_project="linux-system-administration-tasks-gitlab",container_label_com_docker_compose_project_config_files="/home/ubuntu/linux-system-administration-tasks-gitlab/docker-compose.yml",container_label_com_docker_compose_project_working_dir="/home/ubuntu/linux-system-administration-tasks-gitlab",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="postgres-db",container_label_com_docker_compose_version="5.4.0",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",id="/system.slice/docker-791a1cf776414f361737c0318d23b681843b4662c565db5a33855dd903b77179.scope",image="postgres:16",name="postgres-db",state="uninterruptible"} 0 1788169155012
+container_tasks_state{container_label_com_docker_compose_config_hash="a445b4168ccb71478da0db4408dd6ea18f170b3921b4fbfc23949e132bc2b845",container_label_com_docker_compose_container_number="1",container_label_com_docker_compose_depends_on="postgres-db:service_started:false",container_label_com_docker_compose_image="sha256:5caa66093b2cdf1b8f8b6bc1efc218430213516c5ea61779acee05cbeb539d65",container_label_com_docker_compose_oneoff="False",container_label_com_docker_compose_project="linux-system-administration-tasks-gitlab",container_label_com_docker_compose_project_config_files="/home/ubuntu/linux-system-administration-tasks-gitlab/docker-compose.yml",container_label_com_docker_compose_project_working_dir="/home/ubuntu/linux-system-administration-tasks-gitlab",container_label_com_docker_compose_replace="app3-container",container_label_com_docker_compose_service="app",container_label_com_docker_compose_version="5.4.0",container_label_description="Application exposed on port 7071",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="24.04",container_label_requirement="Requirement-3",id="/system.slice/docker-2b17689857483eb01c206d78a2e2fffea57c57082636cd1cd26dd5ede9a3ed82.scope",image="akshay852/akshayimage:gitlab-app3",name="app3-container",state="iowaiting"} 0 1788169155365
+container_tasks_state{container_label_com_docker_compose_config_hash="a445b4168ccb71478da0db4408dd6ea18f170b3921b4fbfc23949e132bc2b845",container_label_com_docker_compose_container_number="1",container_label_com_docker_compose_depends_on="postgres-db:service_started:false",container_label_com_docker_compose_image="sha256:5caa66093b2cdf1b8f8b6bc1efc218430213516c5ea61779acee05cbeb539d65",container_label_com_docker_compose_oneoff="False",container_label_com_docker_compose_project="linux-system-administration-tasks-gitlab",container_label_com_docker_compose_project_config_files="/home/ubuntu/linux-system-administration-tasks-gitlab/docker-compose.yml",container_label_com_docker_compose_project_working_dir="/home/ubuntu/linux-system-administration-tasks-gitlab",container_label_com_docker_compose_replace="app3-container",container_label_com_docker_compose_service="app",container_label_com_docker_compose_version="5.4.0",container_label_description="Application exposed on port 7071",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="24.04",container_label_requirement="Requirement-3",id="/system.slice/docker-2b17689857483eb01c206d78a2e2fffea57c57082636cd1cd26dd5ede9a3ed82.scope",image="akshay852/akshayimage:gitlab-app3",name="app3-container",state="running"} 0 1788169155365
+container_tasks_state{container_label_com_docker_compose_config_hash="a445b4168ccb71478da0db4408dd6ea18f170b3921b4fbfc23949e132bc2b845",container_label_com_docker_compose_container_number="1",container_label_com_docker_compose_depends_on="postgres-db:service_started:false",container_label_com_docker_compose_image="sha256:5caa66093b2cdf1b8f8b6bc1efc218430213516c5ea61779acee05cbeb539d65",container_label_com_docker_compose_oneoff="False",container_label_com_docker_compose_project="linux-system-administration-tasks-gitlab",container_label_com_docker_compose_project_config_files="/home/ubuntu/linux-system-administration-tasks-gitlab/docker-compose.yml",container_label_com_docker_compose_project_working_dir="/home/ubuntu/linux-system-administration-tasks-gitlab",container_label_com_docker_compose_replace="app3-container",container_label_com_docker_compose_service="app",container_label_com_docker_compose_version="5.4.0",container_label_description="Application exposed on port 7071",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="24.04",container_label_requirement="Requirement-3",id="/system.slice/docker-2b17689857483eb01c206d78a2e2fffea57c57082636cd1cd26dd5ede9a3ed82.scope",image="akshay852/akshayimage:gitlab-app3",name="app3-container",state="sleeping"} 0 1788169155365
+container_tasks_state{container_label_com_docker_compose_config_hash="a445b4168ccb71478da0db4408dd6ea18f170b3921b4fbfc23949e132bc2b845",container_label_com_docker_compose_container_number="1",container_label_com_docker_compose_depends_on="postgres-db:service_started:false",container_label_com_docker_compose_image="sha256:5caa66093b2cdf1b8f8b6bc1efc218430213516c5ea61779acee05cbeb539d65",container_label_com_docker_compose_oneoff="False",container_label_com_docker_compose_project="linux-system-administration-tasks-gitlab",container_label_com_docker_compose_project_config_files="/home/ubuntu/linux-system-administration-tasks-gitlab/docker-compose.yml",container_label_com_docker_compose_project_working_dir="/home/ubuntu/linux-system-administration-tasks-gitlab",container_label_com_docker_compose_replace="app3-container",container_label_com_docker_compose_service="app",container_label_com_docker_compose_version="5.4.0",container_label_description="Application exposed on port 7071",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="24.04",container_label_requirement="Requirement-3",id="/system.slice/docker-2b17689857483eb01c206d78a2e2fffea57c57082636cd1cd26dd5ede9a3ed82.scope",image="akshay852/akshayimage:gitlab-app3",name="app3-container",state="stopped"} 0 1788169155365
+container_tasks_state{container_label_com_docker_compose_config_hash="a445b4168ccb71478da0db4408dd6ea18f170b3921b4fbfc23949e132bc2b845",container_label_com_docker_compose_container_number="1",container_label_com_docker_compose_depends_on="postgres-db:service_started:false",container_label_com_docker_compose_image="sha256:5caa66093b2cdf1b8f8b6bc1efc218430213516c5ea61779acee05cbeb539d65",container_label_com_docker_compose_oneoff="False",container_label_com_docker_compose_project="linux-system-administration-tasks-gitlab",container_label_com_docker_compose_project_config_files="/home/ubuntu/linux-system-administration-tasks-gitlab/docker-compose.yml",container_label_com_docker_compose_project_working_dir="/home/ubuntu/linux-system-administration-tasks-gitlab",container_label_com_docker_compose_replace="app3-container",container_label_com_docker_compose_service="app",container_label_com_docker_compose_version="5.4.0",container_label_description="Application exposed on port 7071",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="24.04",container_label_requirement="Requirement-3",id="/system.slice/docker-2b17689857483eb01c206d78a2e2fffea57c57082636cd1cd26dd5ede9a3ed82.scope",image="akshay852/akshayimage:gitlab-app3",name="app3-container",state="uninterruptible"} 0 1788169155365
+# HELP go_gc_duration_seconds A summary of the wall-time pause (stop-the-world) duration in garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 6.6693e-05
+go_gc_duration_seconds{quantile="0.25"} 8.701e-05
+go_gc_duration_seconds{quantile="0.5"} 0.000106079
+go_gc_duration_seconds{quantile="0.75"} 0.000147569
+go_gc_duration_seconds{quantile="1"} 0.004923688
+go_gc_duration_seconds_sum 0.022798162
+go_gc_duration_seconds_count 112
+# HELP go_gc_gogc_percent Heap size target percentage configured by the user, otherwise 100. This value is set by the GOGC environment variable, and the runtime/debug.SetGCPercent function. Sourced from /gc/gogc:percent.
+# TYPE go_gc_gogc_percent gauge
+go_gc_gogc_percent 100
+# HELP go_gc_gomemlimit_bytes Go runtime memory limit configured by the user, otherwise math.MaxInt64. This value is set by the GOMEMLIMIT environment variable, and the runtime/debug.SetMemoryLimit function. Sourced from /gc/gomemlimit:bytes.
+# TYPE go_gc_gomemlimit_bytes gauge
+go_gc_gomemlimit_bytes 9.223372036854776e+18
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 77
+# HELP go_info Information about the Go environment.
+# TYPE go_info gauge
+go_info{version="go1.25.5"} 1
+# HELP go_memstats_alloc_bytes Number of bytes allocated in heap and currently in use. Equals to /memory/classes/heap/objects:bytes.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 1.9379848e+07
+# HELP go_memstats_alloc_bytes_total Total number of bytes allocated in heap until now, even if released already. Equals to /gc/heap/allocs:bytes.
+# TYPE go_memstats_alloc_bytes_total counter
+go_memstats_alloc_bytes_total 1.139084344e+09
+# HELP go_memstats_buck_hash_sys_bytes Number of bytes used by the profiling bucket hash table. Equals to /memory/classes/profiling/buckets:bytes.
+# TYPE go_memstats_buck_hash_sys_bytes gauge
+go_memstats_buck_hash_sys_bytes 1.583911e+06
+# HELP go_memstats_frees_total Total number of heap objects frees. Equals to /gc/heap/frees:objects + /gc/heap/tiny/allocs:objects.
+# TYPE go_memstats_frees_total counter
+go_memstats_frees_total 6.274647e+06
+# HELP go_memstats_gc_sys_bytes Number of bytes used for garbage collection system metadata. Equals to /memory/classes/metadata/other:bytes.
+# TYPE go_memstats_gc_sys_bytes gauge
+go_memstats_gc_sys_bytes 3.950864e+06
+# HELP go_memstats_heap_alloc_bytes Number of heap bytes allocated and currently in use, same as go_memstats_alloc_bytes. Equals to /memory/classes/heap/objects:bytes.
+# TYPE go_memstats_heap_alloc_bytes gauge
+go_memstats_heap_alloc_bytes 1.9379848e+07
+# HELP go_memstats_heap_idle_bytes Number of heap bytes waiting to be used. Equals to /memory/classes/heap/released:bytes + /memory/classes/heap/free:bytes.
+# TYPE go_memstats_heap_idle_bytes gauge
+go_memstats_heap_idle_bytes 2.8278784e+07
+# HELP go_memstats_heap_inuse_bytes Number of heap bytes that are in use. Equals to /memory/classes/heap/objects:bytes + /memory/classes/heap/unused:bytes
+# TYPE go_memstats_heap_inuse_bytes gauge
+go_memstats_heap_inuse_bytes 2.441216e+07
+# HELP go_memstats_heap_objects Number of currently allocated objects. Equals to /gc/heap/objects:objects.
+# TYPE go_memstats_heap_objects gauge
+go_memstats_heap_objects 64853
+# HELP go_memstats_heap_released_bytes Number of heap bytes released to OS. Equals to /memory/classes/heap/released:bytes.
+# TYPE go_memstats_heap_released_bytes gauge
+go_memstats_heap_released_bytes 1.9013632e+07
+# HELP go_memstats_heap_sys_bytes Number of heap bytes obtained from system. Equals to /memory/classes/heap/objects:bytes + /memory/classes/heap/unused:bytes + /memory/classes/heap/released:bytes + /memory/classes/heap/free:bytes.
+# TYPE go_memstats_heap_sys_bytes gauge
+go_memstats_heap_sys_bytes 5.2690944e+07
+# HELP go_memstats_last_gc_time_seconds Number of seconds since 1970 of last garbage collection.
+# TYPE go_memstats_last_gc_time_seconds gauge
+go_memstats_last_gc_time_seconds 1.7881691522444353e+09
+# HELP go_memstats_mallocs_total Total number of heap objects allocated, both live and gc-ed. Semantically a counter version for go_memstats_heap_objects gauge. Equals to /gc/heap/allocs:objects + /gc/heap/tiny/allocs:objects.
+# TYPE go_memstats_mallocs_total counter
+go_memstats_mallocs_total 6.3395e+06
+# HELP go_memstats_mcache_inuse_bytes Number of bytes in use by mcache structures. Equals to /memory/classes/metadata/mcache/inuse:bytes.
+# TYPE go_memstats_mcache_inuse_bytes gauge
+go_memstats_mcache_inuse_bytes 2416
+# HELP go_memstats_mcache_sys_bytes Number of bytes used for mcache structures obtained from system. Equals to /memory/classes/metadata/mcache/inuse:bytes + /memory/classes/metadata/mcache/free:bytes.
+# TYPE go_memstats_mcache_sys_bytes gauge
+go_memstats_mcache_sys_bytes 15704
+# HELP go_memstats_mspan_inuse_bytes Number of bytes in use by mspan structures. Equals to /memory/classes/metadata/mspan/inuse:bytes.
+# TYPE go_memstats_mspan_inuse_bytes gauge
+go_memstats_mspan_inuse_bytes 356640
+# HELP go_memstats_mspan_sys_bytes Number of bytes used for mspan structures obtained from system. Equals to /memory/classes/metadata/mspan/inuse:bytes + /memory/classes/metadata/mspan/free:bytes.
+# TYPE go_memstats_mspan_sys_bytes gauge
+go_memstats_mspan_sys_bytes 832320
+# HELP go_memstats_next_gc_bytes Number of heap bytes when next garbage collection will take place. Equals to /gc/heap/goal:bytes.
+# TYPE go_memstats_next_gc_bytes gauge
+go_memstats_next_gc_bytes 3.1579066e+07
+# HELP go_memstats_other_sys_bytes Number of bytes used for other system allocations. Equals to /memory/classes/other:bytes.
+# TYPE go_memstats_other_sys_bytes gauge
+go_memstats_other_sys_bytes 717881
+# HELP go_memstats_stack_inuse_bytes Number of bytes obtained from system for stack allocator in non-CGO environments. Equals to /memory/classes/heap/stacks:bytes.
+# TYPE go_memstats_stack_inuse_bytes gauge
+go_memstats_stack_inuse_bytes 1.835008e+06
+# HELP go_memstats_stack_sys_bytes Number of bytes obtained from system for stack allocator. Equals to /memory/classes/heap/stacks:bytes + /memory/classes/os-stacks:bytes.
+# TYPE go_memstats_stack_sys_bytes gauge
+go_memstats_stack_sys_bytes 1.835008e+06
+# HELP go_memstats_sys_bytes Number of bytes obtained from system. Equals to /memory/classes/total:byte.
+# TYPE go_memstats_sys_bytes gauge
+go_memstats_sys_bytes 6.1626632e+07
+# HELP go_sched_gomaxprocs_threads The current runtime.GOMAXPROCS setting, or the number of operating system threads that can execute user-level Go code simultaneously. Sourced from /sched/gomaxprocs:threads.
+# TYPE go_sched_gomaxprocs_threads gauge
+go_sched_gomaxprocs_threads 2
+# HELP go_threads Number of OS threads created.
+# TYPE go_threads gauge
+go_threads 13
+# HELP machine_cpu_cores Number of logical CPU cores.
+# TYPE machine_cpu_cores gauge
+machine_cpu_cores{boot_id="d9beafd6-e4e2-4317-9bdd-9143f85d882f",machine_id="2842d1bcfcf54d9abc234e245ad95880",system_uuid="c0d33842-1968-252c-0318-2a2e0354b17e"} 2 1788169051765
+# HELP machine_cpu_physical_cores Number of physical CPU cores.
+# TYPE machine_cpu_physical_cores gauge
+machine_cpu_physical_cores{boot_id="d9beafd6-e4e2-4317-9bdd-9143f85d882f",machine_id="2842d1bcfcf54d9abc234e245ad95880",system_uuid="c0d33842-1968-252c-0318-2a2e0354b17e"} 1 1788169051765
+# HELP machine_cpu_sockets Number of CPU sockets.
+# TYPE machine_cpu_sockets gauge
+machine_cpu_sockets{boot_id="d9beafd6-e4e2-4317-9bdd-9143f85d882f",machine_id="2842d1bcfcf54d9abc234e245ad95880",system_uuid="c0d33842-1968-252c-0318-2a2e0354b17e"} 2 1788169051765
+# HELP machine_memory_bytes Amount of memory installed on the machine.
+# TYPE machine_memory_bytes gauge
+machine_memory_bytes{boot_id="d9beafd6-e4e2-4317-9bdd-9143f85d882f",machine_id="2842d1bcfcf54d9abc234e245ad95880",system_uuid="c0d33842-1968-252c-0318-2a2e0354b17e"} 4.106108928e+09 1788169051765
+# HELP machine_nvm_avg_power_budget_watts NVM power budget.
+# TYPE machine_nvm_avg_power_budget_watts gauge
+machine_nvm_avg_power_budget_watts{boot_id="d9beafd6-e4e2-4317-9bdd-9143f85d882f",machine_id="2842d1bcfcf54d9abc234e245ad95880",system_uuid="c0d33842-1968-252c-0318-2a2e0354b17e"} 0 1788169051765
+# HELP machine_nvm_capacity NVM capacity value labeled by NVM mode (memory mode or app direct mode).
+# TYPE machine_nvm_capacity gauge
+machine_nvm_capacity{boot_id="d9beafd6-e4e2-4317-9bdd-9143f85d882f",machine_id="2842d1bcfcf54d9abc234e245ad95880",mode="app_direct_mode",system_uuid="c0d33842-1968-252c-0318-2a2e0354b17e"} 0 1788169051765
+machine_nvm_capacity{boot_id="d9beafd6-e4e2-4317-9bdd-9143f85d882f",machine_id="2842d1bcfcf54d9abc234e245ad95880",mode="memory_mode",system_uuid="c0d33842-1968-252c-0318-2a2e0354b17e"} 0 1788169051765
+# HELP machine_scrape_error 1 if there was an error while getting machine metrics, 0 otherwise.
+# TYPE machine_scrape_error gauge
+machine_scrape_error 0
+# HELP machine_swap_bytes Amount of swap memory available on the machine.
+# TYPE machine_swap_bytes gauge
+machine_swap_bytes{boot_id="d9beafd6-e4e2-4317-9bdd-9143f85d882f",machine_id="2842d1bcfcf54d9abc234e245ad95880",system_uuid="c0d33842-1968-252c-0318-2a2e0354b17e"} 4.10621952e+09 1788169051765
+# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE process_cpu_seconds_total counter
+process_cpu_seconds_total 34.32
+# HELP process_max_fds Maximum number of open file descriptors.
+# TYPE process_max_fds gauge
+process_max_fds 524287
+# HELP process_network_receive_bytes_total Number of bytes received by the process over the network.
+# TYPE process_network_receive_bytes_total counter
+process_network_receive_bytes_total 2671
+# HELP process_network_transmit_bytes_total Number of bytes sent by the process over the network.
+# TYPE process_network_transmit_bytes_total counter
+process_network_transmit_bytes_total 170292
+# HELP process_open_fds Number of open file descriptors.
+# TYPE process_open_fds gauge
+process_open_fds 12
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 6.6260992e+07
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1.78816844793e+09
+# HELP process_virtual_memory_bytes Virtual memory size in bytes.
+# TYPE process_virtual_memory_bytes gauge
+process_virtual_memory_bytes 1.291997184e+09
+# HELP process_virtual_memory_max_bytes Maximum amount of virtual memory available in bytes.
+# TYPE process_virtual_memory_max_bytes gauge
+process_virtual_memory_max_bytes 1.8446744073709552e+19
+ubuntu@tsb-dev-playground2:~$ curl http://172.30.7.144:9091/metrics.php
+# HELP app_up Application availability
+# TYPE app_up gauge
+app_up 1
+# HELP app_info Application information
+# TYPE app_info gauge
+app_info{application="php-app"} 1
+ubuntu@tsb-dev-playground2:~$ docker ps
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+ubuntu@tsb-dev-playground2:~$ mkdir -p ~/monitoring
+cd ~/monitoring
+ubuntu@tsb-dev-playground2:~/monitoring$ nano docker-compose-monitoring.yml
+ubuntu@tsb-dev-playground2:~/monitoring$ nano prometheus.yml
+ubuntu@tsb-dev-playground2:~/monitoring$ docker compose -f docker-compose-monitoring.yml up -d
+[+] up 33/33
+ ✔ Image prom/blackbox-exporter:latest Pulled                                                                            11.8s
+ ✔ Image grafana/grafana:latest        Pulled                                                                            79.9s
+ ✔ Image prom/prometheus:latest        Pulled                                                                            27.5s
+ ✔ Network monitoring_default          Created                                                                            0.4s
+ ✔ Volume monitoring_grafana-data      Created                                                                            0.1s
+ ✔ Volume monitoring_prometheus-data   Created                                                                            0.1s
+ ✔ Container prometheus                Started                                                                            5.2s
+ ✔ Container blackbox-exporter         Started                                                                            5.4s
+ ✔ Container grafana                   Started                                                                            4.2s
+ubuntu@tsb-dev-playground2:~/monitoring$ docker ps
+CONTAINER ID   IMAGE                           COMMAND                  CREATED          STATUS          PORTS                                         NAMES
+b862d5307942   grafana/grafana:latest          "/run.sh"                20 seconds ago   Up 16 seconds   0.0.0.0:3001->3000/tcp, [::]:3001->3000/tcp   grafana
+8ef17de83d86   prom/blackbox-exporter:latest   "/bin/blackbox_expor…"   22 seconds ago   Up 18 seconds   0.0.0.0:9115->9115/tcp, [::]:9115->9115/tcp   blackbox-exporter
+04cfbab5e3d7   prom/prometheus:latest          "/bin/prometheus --c…"   22 seconds ago   Up 18 seconds   0.0.0.0:9092->9090/tcp, [::]:9092->9090/tcp   prometheus
+ubuntu@tsb-dev-playground2:~/monitoring$ ^C
+ubuntu@tsb-dev-playground2:~/monitoring$ curl -s http://172.30.7.144:9100/metrics | head
+# HELP go_gc_duration_seconds A summary of the wall-time pause (stop-the-world) duration in garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 5.2499e-05
+go_gc_duration_seconds{quantile="0.25"} 6.1275e-05
+go_gc_duration_seconds{quantile="0.5"} 7.6495e-05
+go_gc_duration_seconds{quantile="0.75"} 0.00010645
+go_gc_duration_seconds{quantile="1"} 0.001164277
+go_gc_duration_seconds_sum 1.40097589
+go_gc_duration_seconds_count 17220
+# HELP go_gc_gogc_percent Heap size target percentage configured by the user, otherwise 100. This value is set by the GOGC environment variable, and the runtime/debug.SetGCPercent function. Sourced from /gc/gogc:percent.
+ubuntu@tsb-dev-playground2:~/monitoring$ curl -s http://172.30.7.144:8080/metrics | head
+# HELP cadvisor_version_info A metric with a constant '1' value labeled by kernel version, OS version, docker version, cadvisor version & cadvisor revision.
+# TYPE cadvisor_version_info gauge
+cadvisor_version_info{cadvisorRevision="f5bec374",cadvisorVersion="v0.55.1",dockerVersion="",kernelVersion="6.8.0-137-generic",osVersion="Alpine Linux v3.22"} 1
+# HELP container_blkio_device_usage_total Blkio Device bytes usage
+# TYPE container_blkio_device_usage_total counter
+container_blkio_device_usage_total{container_label_com_docker_compose_config_hash="",container_label_com_docker_compose_container_number="",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="",container_label_com_docker_compose_oneoff="",container_label_com_docker_compose_project="",container_label_com_docker_compose_project_config_files="",container_label_com_docker_compose_project_working_dir="",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="",container_label_com_docker_compose_version="",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",device="",id="/",image="",major="11",minor="0",name="",operation="Read"} 2.164736e+06 1788171369850
+container_blkio_device_usage_total{container_label_com_docker_compose_config_hash="",container_label_com_docker_compose_container_number="",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="",container_label_com_docker_compose_oneoff="",container_label_com_docker_compose_project="",container_label_com_docker_compose_project_config_files="",container_label_com_docker_compose_project_working_dir="",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="",container_label_com_docker_compose_version="",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",device="",id="/",image="",major="11",minor="0",name="",operation="Write"} 0 1788171369850
+container_blkio_device_usage_total{container_label_com_docker_compose_config_hash="",container_label_com_docker_compose_container_number="",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="",container_label_com_docker_compose_oneoff="",container_label_com_docker_compose_project="",container_label_com_docker_compose_project_config_files="",container_label_com_docker_compose_project_working_dir="",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="",container_label_com_docker_compose_version="",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",device="",id="/",image="",major="7",minor="0",name="",operation="Read"} 14336 1788171369850
+container_blkio_device_usage_total{container_label_com_docker_compose_config_hash="",container_label_com_docker_compose_container_number="",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="",container_label_com_docker_compose_oneoff="",container_label_com_docker_compose_project="",container_label_com_docker_compose_project_config_files="",container_label_com_docker_compose_project_working_dir="",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="",container_label_com_docker_compose_version="",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",device="",id="/",image="",major="7",minor="0",name="",operation="Write"} 0 1788171369850
+container_blkio_device_usage_total{container_label_com_docker_compose_config_hash="",container_label_com_docker_compose_container_number="",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="",container_label_com_docker_compose_oneoff="",container_label_com_docker_compose_project="",container_label_com_docker_compose_project_config_files="",container_label_com_docker_compose_project_working_dir="",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="",container_label_com_docker_compose_version="",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",device="",id="/system.slice",image="",major="11",minor="0",name="",operation="Read"} 1.091584e+06 1788171369674
+ubuntu@tsb-dev-playground2:~/monitoring$ curl -s http://172.30.7.144:9091/metrics.php
+# HELP app_up Application availability
+# TYPE app_up gauge
+app_up 1
+# HELP app_info Application information
+# TYPE app_info gauge
+app_info{application="php-app"} 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+OUTPUT OF SERVER1 
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ docker ps
+CONTAINER ID   IMAGE                               COMMAND                  CREATED          STATUS          PORTS                                         NAMES
+1be8f6d8dcd4   akshay852/akshayimage:gitlab-app3   "/start.sh"              49 minutes ago   Up 49 minutes                                                 app3-container
+ec121f765931   grafana/grafana:latest              "/run.sh"                2 days ago       Up 2 days       0.0.0.0:3001->3000/tcp, [::]:3001->3000/tcp   grafana
+b37896221f36   prom/node-exporter:latest           "/bin/node_exporter"     3 days ago       Up 3 days       0.0.0.0:9100->9100/tcp, [::]:9100->9100/tcp   node-exporter
+82fe96a04c61   prom/prometheus:latest              "/bin/prometheus --c…"   3 days ago       Up 3 hours      0.0.0.0:9092->9090/tcp, [::]:9092->9090/tcp   prometheus
+791a1cf77641   postgres:16                         "docker-entrypoint.s…"   3 days ago       Up 3 days       5432/tcp                                      postgres-db
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ docker rm -rf prometheus grafana
+unknown shorthand flag: 'r' in -rf
+
+Usage:  docker rm [OPTIONS] CONTAINER [CONTAINER...]
+
+Run 'docker rm --help' for more information
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ docker rm -f prometheus grafana
+prometheus
+grafana
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ docker ps
+CONTAINER ID   IMAGE                               COMMAND                  CREATED          STATUS          PORTS                                         NAMES
+1be8f6d8dcd4   akshay852/akshayimage:gitlab-app3   "/start.sh"              51 minutes ago   Up 50 minutes                                                 app3-container
+b37896221f36   prom/node-exporter:latest           "/bin/node_exporter"     3 days ago       Up 3 days       0.0.0.0:9100->9100/tcp, [::]:9100->9100/tcp   node-exporter
+791a1cf77641   postgres:16                         "docker-entrypoint.s…"   3 days ago       Up 3 days       5432/tcp                                      postgres-db
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd ..
+ubuntu@tsb-dev-playground1:~$ ls
+' ~'                       docker-compose.yml   linux-system-administration-tasks          steps-of-task
+ app3-gitlab-ci            docker-lab-images    linux-system-administration-tasks-gitlab   tasks
+ custom-nginx-php          gitlab-app3          pagespeed-test
+ custom-nginx-php-backup   jenkins-app3         ssh
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks-gitlab/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ls
+docker-compose.yml  image1-base  image2-app1  image3-app2  image4-app3  prometheus.yml  README.md
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cp docker-compose.yml docker-compose.old.yml
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ nano docker-compose.yml
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ docker compose up -d
+[+] up 10/10
+ ✔ Image gcr.io/cadvisor/cadvisor:latest Pulled                                                                          24.6s
+ ✔ Container postgres-db                 Running                                                                          0.0s
+ ✔ Container node-exporter               Running                                                                          0.0s
+ ✔ Container cadvisor                    Started                                                                         26.8s
+ ✔ Container app3-container              Started                                                                         26.9s
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ docker ps
+CONTAINER ID   IMAGE                               COMMAND                  CREATED              STATUS                        PORTS                                         NAMES
+2b1768985748   akshay852/akshayimage:gitlab-app3   "/start.sh"              About a minute ago   Up About a minute             0.0.0.0:9091->80/tcp, [::]:9091->80/tcp       app3-container
+1be5a9729f6a   gcr.io/cadvisor/cadvisor:latest     "/usr/bin/cadvisor -…"   About a minute ago   Up About a minute (healthy)   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp   cadvisor
+b37896221f36   prom/node-exporter:latest           "/bin/node_exporter"     3 days ago           Up 3 days                     0.0.0.0:9100->9100/tcp, [::]:9100->9100/tcp   node-exporter
+791a1cf77641   postgres:16                         "docker-entrypoint.s…"   3 days ago           Up 3 days                     5432/tcp                                      postgres-db
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ curl http://localhost:9091/
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<title>Akshay Demo Website</title>
+</head>
+
+
+<body>
+
+<h1>Welcome to Akshay's Website</h1>
+
+<p>Requirement 2 Demo Application</p>
+
+<p>PHP is working successfully.</p>
+
+<a href="phpinfo.php">
+View PHP Information
+</a>
+
+</body>
+
+</html>
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ curl http://localhost:9091/metrics.php
+# HELP app_up Application availability
+# TYPE app_up gauge
+app_up 1
+# HELP app_info Application information
+# TYPE app_info gauge
+app_info{application="php-app"} 1
+
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ curl http://localhost:9100/metrics | head
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0# HELP go_gc_duration_seconds A summary of the wall-time pause (stop-the-world) duration in garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 4.7688e-05
+go_gc_duration_seconds{quantile="0.25"} 6.0082e-05
+go_gc_duration_seconds{quantile="0.5"} 7.3421e-05
+go_gc_duration_seconds{quantile="0.75"} 9.8533e-05
+go_gc_duration_seconds{quantile="1"} 0.000273682
+go_gc_duration_seconds_sum 1.392812239
+go_gc_duration_seconds_count 17145
+# HELP go_gc_gogc_percent Heap size target percentage configured by the user, otherwise 100. This value is set by the GOGC environment variable, and the runtime/debug.SetGCPercent function. Sourced from /gc/gogc:percent.
+100  8192    0  8192    0     0   262k      0 --:--:-- --:--:-- --:--:--  266k
+curl: (23) Failure writing output to destination
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ curl http://localhost:8080/metrics | head
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0# HELP cadvisor_version_info A metric with a constant '1' value labeled by kernel version, OS version, docker version, cadvisor version & cadvisor revision.
+# TYPE cadvisor_version_info gauge
+cadvisor_version_info{cadvisorRevision="f5bec374",cadvisorVersion="v0.55.1",dockerVersion="",kernelVersion="6.8.0-137-generic",osVersion="Alpine Linux v3.22"} 1
+# HELP container_blkio_device_usage_total Blkio Device bytes usage
+# TYPE container_blkio_device_usage_total counter
+container_blkio_device_usage_total{container_label_com_docker_compose_config_hash="",container_label_com_docker_compose_container_number="",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="",container_label_com_docker_compose_oneoff="",container_label_com_docker_compose_project="",container_label_com_docker_compose_project_config_files="",container_label_com_docker_compose_project_working_dir="",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="",container_label_com_docker_compose_version="",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",device="",id="/",image="",major="11",minor="0",name="",operation="Read"} 2.164736e+06 1788168779962
+container_blkio_device_usage_total{container_label_com_docker_compose_config_hash="",container_label_com_docker_compose_container_number="",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="",container_label_com_docker_compose_oneoff="",container_label_com_docker_compose_project="",container_label_com_docker_compose_project_config_files="",container_label_com_docker_compose_project_working_dir="",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="",container_label_com_docker_compose_version="",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",device="",id="/",image="",major="11",minor="0",name="",operation="Write"} 0 1788168779962
+container_blkio_device_usage_total{container_label_com_docker_compose_config_hash="",container_label_com_docker_compose_container_number="",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="",container_label_com_docker_compose_oneoff="",container_label_com_docker_compose_project="",container_label_com_docker_compose_project_config_files="",container_label_com_docker_compose_project_working_dir="",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="",container_label_com_docker_compose_version="",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",device="",id="/",image="",major="7",minor="0",name="",operation="Read"} 14336 1788168779962
+container_blkio_device_usage_total{container_label_com_docker_compose_config_hash="",container_label_com_docker_compose_container_number="",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="",container_label_com_docker_compose_oneoff="",container_label_com_docker_compose_project="",container_label_com_docker_compose_project_config_files="",container_label_com_docker_compose_project_working_dir="",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="",container_label_com_docker_compose_version="",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",device="",id="/",image="",major="7",minor="0",name="",operation="Write"} 0 1788168779962
+container_blkio_device_usage_total{container_label_com_docker_compose_config_hash="",container_label_com_docker_compose_container_number="",container_label_com_docker_compose_depends_on="",container_label_com_docker_compose_image="",container_label_com_docker_compose_oneoff="",container_label_com_docker_compose_project="",container_label_com_docker_compose_project_config_files="",container_label_com_docker_compose_project_working_dir="",container_label_com_docker_compose_replace="",container_label_com_docker_compose_service="",container_label_com_docker_compose_version="",container_label_description="",container_label_io_prometheus_image_variant="",container_label_maintainer="",container_label_org_opencontainers_image_authors="",container_label_org_opencontainers_image_description="",container_label_org_opencontainers_image_documentation="",container_label_org_opencontainers_image_licenses="",container_label_org_opencontainers_image_source="",container_label_org_opencontainers_image_title="",container_label_org_opencontainers_image_url="",container_label_org_opencontainers_image_vendor="",container_label_org_opencontainers_image_version="",container_label_requirement="",device="",id="/system.slice",image="",major="11",minor="0",name="",operation="Read"} 1.091584e+06 1788168780322
+100 32538    0 32538    0     0   180k      0 --:--:-- --:--:-- --:--:--  180k
+curl: (23) Failure writing output to destination
+

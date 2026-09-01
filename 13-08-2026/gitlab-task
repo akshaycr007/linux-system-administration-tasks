@@ -916,10 +916,77 @@ step5
 Prometheus, Node Exporter & Grafana Monitoring and Alerting
 Take screenshorts 
 
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
 
 
+Requirement 
+monitoring application 
+
+step1
+create metrics.php in GitLab repository where the application php file  is here
+
+nano metrics.php
+
+<?php
+
+header('Content-Type: text/plain; version=0.0.4');
+
+echo "# HELP app_up Application availability\n";
+echo "# TYPE app_up gauge\n";
+echo "app_up 1\n";
+
+echo "# HELP app_info Application information\n";
+echo "# TYPE app_info gauge\n";
+echo "app_info{application=\"php-app\"} 1\n";
+?> 
 
 
+step2 
+docker build -t akshayimage:gitlab-app3 .
+
+step3
+docker run -d --name metrics-test -p 9099:80 akshayimage:gitlab-app3
+
+step4
+docker exec metrics-test ls -l /var/www/html/metrics.php
+
+step5 
+curl http://localhost:9099/metrics.php
+
+step6
+docker rm -f metrics-test
+
+step7
+git add image4-app3/Dockerfile image4-app3/app/metrics.php
+git commit -m "Add Prometheus application metrics"
+git push origin main
+
+step8
+docker exec app3-container ls -l /var/www/html/metrics.php
+
+step9
+curl http://localhost:9091/metrics.php
+
+step10
+prometheus.yml
+
+  - job_name: "php-application"
+    metrics_path: /metrics.php
+    static_configs:
+      - targets: ["172.30.7.144:9091"]
+
+step11
+docker compose restart prometheus
+
+step12
+verify
+http://172.30.7.144:9092
+
+php-application → UP
+
+
+step13 
 
 
 
@@ -3388,6 +3455,844 @@ OUTPUT OF REQUIREMENT 3 ON GITLAB
 
 
 
+--------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
+
+
+OUTPUT OF APPLICATION MONITORING 
+
+ubuntu@tsb-dev-playground1:~$ docker ps
+CONTAINER ID   IMAGE                               COMMAND                  CREATED      STATUS      PORTS                                         NAMES
+ec121f765931   grafana/grafana:latest              "/run.sh"                2 days ago   Up 2 days   0.0.0.0:3001->3000/tcp, [::]:3001->3000/tcp   grafana
+b37896221f36   prom/node-exporter:latest           "/bin/node_exporter"     2 days ago   Up 2 days   0.0.0.0:9100->9100/tcp, [::]:9100->9100/tcp   node-exporter
+ae7b54148560   akshay852/akshayimage:gitlab-app3   "/start.sh"              2 days ago   Up 2 days   0.0.0.0:9091->80/tcp, [::]:9091->80/tcp       app3-container
+82fe96a04c61   prom/prometheus:latest              "/bin/prometheus --c…"   2 days ago   Up 2 days   0.0.0.0:9092->9090/tcp, [::]:9092->9090/tcp   prometheus
+791a1cf77641   postgres:16                         "docker-entrypoint.s…"   2 days ago   Up 2 days   5432/tcp                                      postgres-db
+ubuntu@tsb-dev-playground1:~$ curl -I http://localhost:9091
+HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Content-Type: text/html; charset=UTF-8
+Connection: keep-alive
+Date: Mon, 31 Aug 2026 04:27:19 GMT
+X-Page-Speed: 1.15.0
+x-pagespeed-warn: unlicensed
+Cache-Control: max-age=0, no-cache
+
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks-gitlab/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ls
+docker-compose.yml  image1-base  image2-app1  image3-app2  image4-app3  prometheus.yml  README.md
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cd image-app3
+-bash: cd: image-app3: No such file or directory
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cd image4-app3
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ls
+app  default.conf  Dockerfile  start.sh
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ cd app
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3/app$ ls
+create.php  db.php  index.php  list.php  phpinfo.php  testdb.php
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3/app$ nano metrics.php
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3/app$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ls
+app  default.conf  Dockerfile  start.sh
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ nano Dockerfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ pwd
+git status
+/home/ubuntu/linux-system-administration-tasks-gitlab/image4-app3
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   Dockerfile
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        app/metrics.php
+
+no changes added to commit (use "git add" and/or "git commit -a")
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ grep -n "metrics" Dockerfile
+cat app/metrics.php
+docker build -t test-app3-monitoring .
+13:COPY metrics.php /var/www/html/metrics.php
+<?php
+
+header('Content-Type: text/plain; version=0.0.4');
+
+echo "# HELP app_up Application availability\n";
+echo "# TYPE app_up gauge\n";
+echo "app_up 1\n";
+
+echo "# HELP app_info Application information\n";
+echo "# TYPE app_info gauge\n";
+echo "app_info{application=\"php-app\"} 1\n";
+?>
+
+[+] Building 0.7s (8/8) FINISHED                                                                               docker:default
+ => [internal] load build definition from Dockerfile                                                                     0.1s
+ => => transferring dockerfile: 308B                                                                                     0.0s
+ => [internal] load metadata for docker.io/library/akshayimage:app2-ci                                                   0.0s
+ => [internal] load .dockerignore                                                                                        0.0s
+ => => transferring context: 2B                                                                                          0.0s
+ => CANCELED [1/4] FROM docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac469  0.1s
+ => => resolve docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347  0.0s
+ => [internal] load build context                                                                                        0.0s
+ => => transferring context: 3.31kB                                                                                      0.0s
+ => CACHED [2/4] RUN sudo apt-get update &&     sudo apt-get install -y     php-pgsql     postgresql-client              0.0s
+ => CACHED [3/4] COPY app/ /var/www/html/                                                                                0.0s
+ => ERROR [4/4] COPY metrics.php /var/www/html/metrics.php                                                               0.0s
+------
+ > [4/4] COPY metrics.php /var/www/html/metrics.php:
+------
+Dockerfile:13
+--------------------
+  11 |
+  12 |     COPY app/ /var/www/html/
+  13 | >>> COPY metrics.php /var/www/html/metrics.php
+  14 |
+  15 |     EXPOSE 80
+--------------------
+ERROR: failed to build: failed to solve: failed to compute cache key: failed to calculate checksum of ref i001kfyfq7arwm0kzosyqz020::x9dojrfx0ei4h3xi53e96ndfg: "/metrics.php": not found
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ nano Dockerfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker build -t test-app3-monitoring .
+[+] Building 1.8s (9/9) FINISHED                                                                               docker:default
+ => [internal] load build definition from Dockerfile                                                                     0.0s
+ => => transferring dockerfile: 311B                                                                                     0.0s
+ => [internal] load metadata for docker.io/library/akshayimage:app2-ci                                                   0.0s
+ => [internal] load .dockerignore                                                                                        0.0s
+ => => transferring context: 2B                                                                                          0.0s
+ => [1/4] FROM docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347  0.1s
+ => => resolve docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347  0.1s
+ => [internal] load build context                                                                                        0.1s
+ => => transferring context: 3.31kB                                                                                      0.0s
+ => CACHED [2/4] RUN sudo apt-get update &&     sudo apt-get install -y     php-pgsql     postgresql-client              0.0s
+ => [3/4] COPY app/ /var/www/html/                                                                                       0.5s
+ => [4/4] COPY app/metrics.php /var/www/html/metrics.php                                                                 0.0s
+ => exporting to image                                                                                                   0.6s
+ => => exporting layers                                                                                                  0.1s
+ => => exporting manifest sha256:da3edec95f85062bbe9c35b9376daa49d722d9f4e9a040665deec6a1f0ff5b55                        0.0s
+ => => exporting config sha256:d97fcceac44fe2533d1bb1e5830350ad5e2a0fea2eadf4bfedcd6baa77a17e04                          0.0s
+ => => exporting attestation manifest sha256:32008e708af4192c729b4f59aea90f2e84ecdc7fc26771346c4c7a0b9c8eacdb            0.0s
+ => => exporting manifest list sha256:73ab562595ab48cf4bff748e4234d5baed384239601bcc331b490b3ba769b97f                   0.0s
+ => => naming to docker.io/library/test-app3-monitoring:latest                                                           0.0s
+ => => unpacking to docker.io/library/test-app3-monitoring:latest                                                        0.3s
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker run -d --name test-app3-monitoring -p 9099:80 test-app3-monitoring
+32498c70bb682518cf47ef3ef7e296927d6e4f46848e3a32a1b8114f09f978d9
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ curl http://localhost:9099/metrics.php
+# HELP app_up Application availability
+# TYPE app_up gauge
+app_up 1
+# HELP app_info Application information
+# TYPE app_info gauge
+app_info{application="php-app"} 1
+
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ git add Dockerfile app/metrics.php
+git commit -m "Add application Prometheus metrics"
+git push origin main
+[main d1229c6] Add application Prometheus metrics
+ 2 files changed, 14 insertions(+), 1 deletion(-)
+ create mode 100644 image4-app3/app/metrics.php
+Enumerating objects: 10, done.
+Counting objects: 100% (10/10), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (6/6), done.
+Writing objects: 100% (6/6), 777 bytes | 388.00 KiB/s, done.
+Total 6 (delta 3), reused 0 (delta 0), pack-reused 0
+To gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git
+   9f0b0fd..d1229c6  main -> main
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker ps -a
+CONTAINER ID   IMAGE                               COMMAND                  CREATED         STATUS         PORTS                                         NAMES
+32498c70bb68   test-app3-monitoring                "/start.sh"              9 minutes ago   Up 9 minutes   0.0.0.0:9099->80/tcp, [::]:9099->80/tcp       test-app3-monitoring
+ec121f765931   grafana/grafana:latest              "/run.sh"                2 days ago      Up 2 days      0.0.0.0:3001->3000/tcp, [::]:3001->3000/tcp   grafana
+b37896221f36   prom/node-exporter:latest           "/bin/node_exporter"     2 days ago      Up 2 days      0.0.0.0:9100->9100/tcp, [::]:9100->9100/tcp   node-exporter
+ae7b54148560   akshay852/akshayimage:gitlab-app3   "/start.sh"              2 days ago      Up 2 days      0.0.0.0:9091->80/tcp, [::]:9091->80/tcp       app3-container
+82fe96a04c61   prom/prometheus:latest              "/bin/prometheus --c…"   2 days ago      Up 2 days      0.0.0.0:9092->9090/tcp, [::]:9092->9090/tcp   prometheus
+791a1cf77641   postgres:16                         "docker-entrypoint.s…"   2 days ago      Up 2 days      5432/tcp                                      postgres-db
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker images
+                                                                                                          i Info →   U  In Use
+IMAGE                               ID             DISK USAGE   CONTENT SIZE   EXTRA
+akshay852/akshaybase:app1-ci        dfdcc317384e        226MB         71.8MB
+akshay852/akshaybase:gitlab-ci      c41a0b6d80ba        226MB         71.8MB
+akshay852/akshayimage:app1-ci       c41c062a3c81        537MB          146MB
+akshay852/akshayimage:app2-ci       f3f45aff59fa        537MB          146MB
+akshay852/akshayimage:app3          4341215369f5        626MB          163MB
+akshay852/akshayimage:app3-ci       747030d56db7        615MB          160MB    U
+akshay852/akshayimage:gitlab-app1   203c439cdfe5        537MB          146MB
+akshay852/akshayimage:gitlab-app2   2006ef8da0ab        537MB          146MB
+akshay852/akshayimage:gitlab-app3   c75f09d46d9d        615MB          160MB    U
+akshaybase:app1-ci                  dfdcc317384e        226MB         71.8MB
+akshaybase:gitlab-ci                c41a0b6d80ba        226MB         71.8MB
+akshayimage:app1-ci                 c41c062a3c81        537MB          146MB
+akshayimage:app2-ci                 f3f45aff59fa        537MB          146MB
+akshayimage:app3-ci                 747030d56db7        615MB          160MB    U
+akshayimage:gitlab-app1             203c439cdfe5        537MB          146MB
+akshayimage:gitlab-app2             2006ef8da0ab        537MB          146MB
+akshayimage:gitlab-app3             c75f09d46d9d        615MB          160MB    U
+grafana/grafana:latest              3fd54ae12146       1.91GB          474MB    U
+postgres:16                         f1c3376c26f2        642MB          166MB    U
+prom/node-exporter:latest           1b4e4438faca         41MB         13.4MB    U
+prom/prometheus:latest              5ce7540c3c00        372MB          109MB    U
+test-app3-monitoring:latest         73ab562595ab        615MB          160MB    U
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker volume ls
+DRIVER    VOLUME NAME
+local     ci-cd-app3_postgres-data
+local     linux-system-administration-tasks-gitlab_grafana-data
+local     linux-system-administration-tasks-gitlab_postgres-data
+local     linux-system-administration-tasks-gitlab_prometheus-data
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker rm -f test-app3-monitoring
+test-app3-monitoring
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker ps
+CONTAINER ID   IMAGE                               COMMAND                  CREATED      STATUS      PORTS                                         NAMES
+ec121f765931   grafana/grafana:latest              "/run.sh"                2 days ago   Up 2 days   0.0.0.0:3001->3000/tcp, [::]:3001->3000/tcp   grafana
+b37896221f36   prom/node-exporter:latest           "/bin/node_exporter"     2 days ago   Up 2 days   0.0.0.0:9100->9100/tcp, [::]:9100->9100/tcp   node-exporter
+ae7b54148560   akshay852/akshayimage:gitlab-app3   "/start.sh"              2 days ago   Up 2 days   0.0.0.0:9091->80/tcp, [::]:9091->80/tcp       app3-container
+82fe96a04c61   prom/prometheus:latest              "/bin/prometheus --c…"   2 days ago   Up 2 days   0.0.0.0:9092->9090/tcp, [::]:9092->9090/tcp   prometheus
+791a1cf77641   postgres:16                         "docker-entrypoint.s…"   2 days ago   Up 2 days   5432/tcp                                      postgres-db
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ curl http://localhost:9091/metrics.php
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx/1.24.0 (Ubuntu)</center>
+</body>
+</html>
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker exec prometheus cat /etc/prometheus/prometheus.yml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: "server1"
+    static_configs:
+      - targets: ["node-exporter:9100"]ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker images
+                                                                                                          i Info →   U  In Use
+IMAGE                               ID             DISK USAGE   CONTENT SIZE   EXTRA
+akshay852/akshaybase:app1-ci        dfdcc317384e        226MB         71.8MB
+akshay852/akshaybase:gitlab-ci      c41a0b6d80ba        226MB         71.8MB
+akshay852/akshayimage:app1-ci       c41c062a3c81        537MB          146MB
+akshay852/akshayimage:app2-ci       f3f45aff59fa        537MB          146MB
+akshay852/akshayimage:app3          4341215369f5        626MB          163MB
+akshay852/akshayimage:app3-ci       747030d56db7        615MB          160MB    U
+akshay852/akshayimage:gitlab-app1   203c439cdfe5        537MB          146MB
+akshay852/akshayimage:gitlab-app2   2006ef8da0ab        537MB          146MB
+akshay852/akshayimage:gitlab-app3   c75f09d46d9d        615MB          160MB    U
+akshaybase:app1-ci                  dfdcc317384e        226MB         71.8MB
+akshaybase:gitlab-ci                c41a0b6d80ba        226MB         71.8MB
+akshayimage:app1-ci                 c41c062a3c81        537MB          146MB
+akshayimage:app2-ci                 f3f45aff59fa        537MB          146MB
+akshayimage:app3-ci                 747030d56db7        615MB          160MB    U
+akshayimage:gitlab-app1             203c439cdfe5        537MB          146MB
+akshayimage:gitlab-app2             2006ef8da0ab        537MB          146MB
+akshayimage:gitlab-app3             c75f09d46d9d        615MB          160MB    U
+grafana/grafana:latest              3fd54ae12146       1.91GB          474MB    U
+postgres:16                         f1c3376c26f2        642MB          166MB    U
+prom/node-exporter:latest           1b4e4438faca         41MB         13.4MB    U
+prom/prometheus:latest              5ce7540c3c00        372MB          109MB    U
+test-app3-monitoring:latest         73ab562595ab        615MB          160MB
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ls
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ls
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ls
+docker-compose.yml  image1-base  image2-app1  image3-app2  image4-app3  prometheus.yml  README.md
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cd image4-app3/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ls
+app  default.conf  Dockerfile  start.sh
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ nano Dockerfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker build -t test-app3-monitoring .
+[+] Building 0.6s (8/8) FINISHED                                                                               docker:default
+ => [internal] load build definition from Dockerfile                                                                     0.0s
+ => => transferring dockerfile: 264B                                                                                     0.0s
+ => [internal] load metadata for docker.io/library/akshayimage:app2-ci                                                   0.0s
+ => [internal] load .dockerignore                                                                                        0.0s
+ => => transferring context: 2B                                                                                          0.0s
+ => [1/3] FROM docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347  0.0s
+ => => resolve docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347  0.0s
+ => [internal] load build context                                                                                        0.0s
+ => => transferring context: 3.31kB                                                                                      0.0s
+ => CACHED [2/3] RUN sudo apt-get update &&     sudo apt-get install -y     php-pgsql     postgresql-client              0.0s
+ => CACHED [3/3] COPY app/ /var/www/html/                                                                                0.0s
+ => exporting to image                                                                                                   0.2s
+ => => exporting layers                                                                                                  0.0s
+ => => exporting manifest sha256:f8b2ef39dd5cecd68b9ed191848c830b98805b126691995af6e1895af6227448                        0.1s
+ => => exporting config sha256:d586c55cb10eee2a2c36100cfd69a325076ff5ed8e28cb53ed7934309023b189                          0.0s
+ => => exporting attestation manifest sha256:4b9dbfe0af9d516f1bddf054b2c38f224f23cad9b41bec8ab5da781360c771c0            0.0s
+ => => exporting manifest list sha256:27ce22798848fb576229cd22464050839eee288d718998b7aeb4045f5e8cccb6                   0.0s
+ => => naming to docker.io/library/test-app3-monitoring:latest                                                           0.0s
+ => => unpacking to docker.io/library/test-app3-monitoring:latest                                                        0.0s
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker run -d \
+  --name test-app3-monitoring \
+  -p 9099:80 \
+  test-app3-monitoring
+81a783bf682d2278aebb566cc07cdec6bd487985ad34385e0ae2216eef12cc49
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker ps | grep test-app3-monitoring
+81a783bf682d   test-app3-monitoring                "/start.sh"              7 seconds ago   Up 6 seconds   0.0.0.0:9099->80/tcp, [::]:9099->80/tcp       test-app3-monitoring
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ curl http://localhost:9099/metrics.php
+# HELP app_up Application availability
+# TYPE app_up gauge
+app_up 1
+# HELP app_info Application information
+# TYPE app_info gauge
+app_info{application="php-app"} 1
+
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker rm -f test-app3-monitoring
+test-app3-monitoring
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   Dockerfile
+
+no changes added to commit (use "git add" and/or "git commit -a")
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ls
+app  default.conf  Dockerfile  start.sh
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ cd app
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3/app$ ls
+create.php  db.php  index.php  list.php  metrics.php  phpinfo.php  testdb.php
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3/app$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ git add Dockerfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ git add Dockerfile app/metrics.php
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ git push origin main
+Everything up-to-date
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ nano Dockerfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ git add Dockerfile
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ git push origin main
+Everything up-to-date
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ find ~/linux-system-administration-tasks-gitlab -name prometheus.yml
+/home/ubuntu/linux-system-administration-tasks-gitlab/prometheus.yml
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ls
+docker-compose.yml  image1-base  image2-app1  image3-app2  image4-app3  prometheus.yml  README.md
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ nano prometheus.yml
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ docker exec prometheus promtool check config /etc/prometheus/prometheus.yml
+Checking /etc/prometheus/prometheus.yml
+ SUCCESS: /etc/prometheus/prometheus.yml is valid prometheus config file syntax
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ docker restart prometheus
+prometheus
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ docker exec app3-container ls -l /var/www/html/metrics.php
+ls: cannot access '/var/www/html/metrics.php': No such file or directory
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ docker exec app3-container ls -la /var/www/html/
+total 36
+drwxr-xr-x 1 root root 4096 Aug 19 08:02 .
+drwxr-xr-x 1 root root 4096 Aug 19 08:03 ..
+-rw-rw-r-- 1 root root 1111 Aug 19 08:02 create.php
+-rw-rw-r-- 1 root root  509 Aug 19 08:02 db.php
+-rw-r--r-- 1 root root  615 Aug 19 08:03 index.nginx-debian.html
+-rw-rw-r-- 1 root root  266 Aug 19 08:02 index.php
+-rw-rw-r-- 1 root root  700 Aug 19 08:02 list.php
+-rw-rw-r-- 1 root root   22 Aug 19 08:02 phpinfo.php
+-rw-rw-r-- 1 root root   81 Aug 19 08:02 testdb.php
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ curl -i http://localhost:9091/metrics.php
+HTTP/1.1 404 Not Found
+Server: nginx/1.24.0 (Ubuntu)
+Date: Mon, 31 Aug 2026 05:48:41 GMT
+Content-Type: text/html
+Content-Length: 162
+Connection: keep-alive
+
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx/1.24.0 (Ubuntu)</center>
+</body>
+</html>
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cd ~/linux-system-administration-tasks-gitlab/image4-app3
+
+git add Dockerfile app/metrics.php
+
+git commit -m "Add Prometheus application metrics"
+
+git push origin main
+[main ceca920] Add Prometheus application metrics
+ 1 file changed, 1 deletion(-)
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 483 bytes | 483.00 KiB/s, done.
+Total 4 (delta 2), reused 0 (delta 0), pack-reused 0
+To gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git
+   d1229c6..ceca920  main -> main
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker exec app3-container ls -l /var/www/html/metrics.php
+ls: cannot access '/var/www/html/metrics.php': No such file or directory
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ curl http://localhost:9091/metrics.php
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx/1.24.0 (Ubuntu)</center>
+</body>
+</html>
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker ps -a
+CONTAINER ID   IMAGE                               COMMAND                  CREATED      STATUS          PORTS                                         NAMES
+ec121f765931   grafana/grafana:latest              "/run.sh"                2 days ago   Up 2 days       0.0.0.0:3001->3000/tcp, [::]:3001->3000/tcp   grafana
+b37896221f36   prom/node-exporter:latest           "/bin/node_exporter"     2 days ago   Up 2 days       0.0.0.0:9100->9100/tcp, [::]:9100->9100/tcp   node-exporter
+ae7b54148560   akshay852/akshayimage:gitlab-app3   "/start.sh"              2 days ago   Up 2 days       0.0.0.0:9091->80/tcp, [::]:9091->80/tcp       app3-container
+82fe96a04c61   prom/prometheus:latest              "/bin/prometheus --c…"   2 days ago   Up 10 minutes   0.0.0.0:9092->9090/tcp, [::]:9092->9090/tcp   prometheus
+791a1cf77641   postgres:16                         "docker-entrypoint.s…"   2 days ago   Up 2 days       5432/tcp                                      postgres-db
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ cd ..
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cat docker-compose.yml
+services:
+
+  app:
+    image: akshay852/akshayimage:gitlab-app3
+    container_name: app3-container
+    ports:
+      - "9091:80"
+    depends_on:
+      - postgres-db
+    restart: unless-stopped
+
+  postgres-db:
+    image: postgres:16
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: appdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - "/:/host:ro,rslave"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9092:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      - node-exporter
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SERVER_PROTOCOL: http
+      GF_SERVER_HTTP_PORT: 3000
+      GF_SERVER_DOMAIN: devops-intern-app2.luluex.com
+      GF_SERVER_ROOT_URL: "https://devops-intern-app2.luluex.com/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  prometheus-data:
+  grafana-data:
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cat .gitlab-ci.yml
+stages:
+  - ci
+
+variables:
+  SERVER1: "ubuntu@172.30.7.144"
+  REPO: "git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git"
+  REPO_DIR: "/home/ubuntu/linux-system-administration-tasks-gitlab"
+
+build-images:
+  stage: ci
+
+  tags:
+    - gitlabrunner
+
+  script:
+
+    - echo "===== SSH TEST ====="
+    - ssh "$SERVER1" "hostname"
+    - ssh "$SERVER1" "whoami"
+
+    - echo "===== CLONE GITLAB REPOSITORY ON SERVER 1 ====="
+    - |
+      ssh "$SERVER1" "
+        rm -rf $REPO_DIR &&
+        git clone $REPO $REPO_DIR
+      "
+
+    - echo "===== BUILD BASE IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR/image1-base &&
+        docker build -t akshaybase:gitlab-ci .
+      "
+
+    - echo "===== BUILD APP1 IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR/image2-app1 &&
+        docker build -t akshayimage:gitlab-app1 .
+      "
+
+    - echo "===== BUILD APP2 IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR/image3-app2 &&
+        docker build -t akshayimage:gitlab-app2 .
+      "
+
+    - echo "===== BUILD APP3 IMAGE ====="
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR/image4-app3 &&
+        docker build -t akshayimage:gitlab-app3 .
+      "
+
+    - echo "===== VERIFY IMAGES ====="
+    - |
+      ssh "$SERVER1" "
+        docker images | grep -E 'akshaybase|akshayimage'
+      "
+
+    - echo "===== TAG IMAGES FOR DOCKER HUB ====="
+    - |
+      ssh "$SERVER1" "
+        docker tag akshaybase:gitlab-ci akshay852/akshaybase:gitlab-ci &&
+        docker tag akshayimage:gitlab-app1 akshay852/akshayimage:gitlab-app1 &&
+        docker tag akshayimage:gitlab-app2 akshay852/akshayimage:gitlab-app2 &&
+        docker tag akshayimage:gitlab-app3 akshay852/akshayimage:gitlab-app3
+      "
+
+    - echo "===== PUSH IMAGES TO DOCKER HUB ====="
+    - |
+      ssh "$SERVER1" "
+        docker push akshay852/akshaybase:gitlab-ci &&
+        docker push akshay852/akshayimage:gitlab-app1 &&
+        docker push akshay852/akshayimage:gitlab-app2 &&
+        docker push akshay852/akshayimage:gitlab-app3
+      "
+
+    - echo "===== CI COMPLETED ====="ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ls
+docker-compose.yml  image1-base  image2-app1  image3-app2  image4-app3  prometheus.yml  README.md
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cd ..
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks-gitlab/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ls
+docker-compose.yml  image1-base  image2-app1  image3-app2  image4-app3  prometheus.yml  README.md
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cd .gitlab-cd.yml
+-bash: cd: .gitlab-cd.yml: Not a directory
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cat .gitlab-cd.yml
+stages:
+  - cd
+
+variables:
+  SERVER1: "ubuntu@172.30.7.144"
+  REPO: "git@gitlab.com:akshay852/linux-system-administration-tasks-gitlab.git"
+  REPO_DIR: "/home/ubuntu/linux-system-administration-tasks-gitlab"
+
+deploy:
+  stage: cd
+
+  tags:
+    - gitlabrunner
+
+  script:
+
+    - echo "========================================"
+    - echo "        SSH TEST - SERVER 1"
+    - echo "========================================"
+
+    - ssh "$SERVER1" "hostname"
+    - ssh "$SERVER1" "whoami"
+
+    - echo "========================================"
+    - echo "        UPDATE GITLAB REPOSITORY"
+    - echo "========================================"
+
+    - |
+      ssh "$SERVER1" "
+        rm -rf $REPO_DIR &&
+        git clone $REPO $REPO_DIR
+      "
+
+    - echo "========================================"
+    - echo "        DEPLOY APPLICATION"
+    - echo "========================================"
+
+    - |
+      ssh "$SERVER1" "
+        cd $REPO_DIR &&
+        docker compose pull &&
+        docker compose up -d
+      "
+
+    - echo "========================================"
+    - echo "        VERIFY CONTAINERS"
+    - echo "========================================"
+
+    - |
+      ssh "$SERVER1" "
+        docker compose ps
+      "
+
+    - echo "========================================"
+    - echo "        CHECK APP3"
+    - echo "========================================"
+
+    - |
+      ssh "$SERVER1" '
+        for i in $(seq 1 12); do
+          echo "App3 check $i/12"
+
+          if curl -fsS http://localhost:9091/; then
+            echo
+            echo "App3 is healthy"
+            exit 0
+          fi
+
+          sleep 5
+        done
+
+        echo "App3 health check failed"
+        exit 1
+      '
+
+    - echo "========================================"
+    - echo "        CHECK POSTGRESQL"
+    - echo "========================================"
+
+    - |
+      ssh "$SERVER1" "
+        docker exec postgres-db pg_isready -U admin -d appdb
+      "
+
+    - echo "========================================"
+    - echo "        CHECK PROMETHEUS"
+    - echo "========================================"
+
+    - |
+      ssh "$SERVER1" '
+        for i in $(seq 1 12); do
+          echo "Prometheus check $i/12"
+
+          if curl -fsS http://localhost:9092/-/healthy; then
+            echo
+            echo "Prometheus is healthy"
+            exit 0
+          fi
+
+          sleep 5
+        done
+
+        echo "Prometheus health check failed"
+        exit 1
+      '
+
+    - echo "========================================"
+    - echo "        CHECK GRAFANA"
+    - echo "========================================"
+
+    - |
+      ssh "$SERVER1" '
+        for i in $(seq 1 12); do
+          echo "Grafana check $i/12"
+
+          if curl -fsS http://localhost:3001/api/health; then
+            echo
+            echo "Grafana is healthy"
+            exit 0
+          fi
+
+          sleep 5
+        done
+
+        echo "Grafana health check failed"
+        exit 1
+      '
+
+    - echo "========================================"
+    - echo "        CHECK NODE EXPORTER"
+    - echo "========================================"
+
+    - |
+      ssh "$SERVER1" '
+        for i in $(seq 1 12); do
+          echo "Node Exporter check $i/12"
+
+          if curl -fsS http://localhost:9100/metrics | grep -q "node_cpu"; then
+            echo "Node Exporter is healthy"
+            exit 0
+          fi
+
+          sleep 5
+        done
+
+        echo "Node Exporter health check failed"
+        exit 1
+      '
+
+    - echo "========================================"
+    - echo "        FINAL CONTAINER STATUS"
+    - echo "========================================"
+
+    - |
+      ssh "$SERVER1" "
+        docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+      "
+
+    - echo "========================================"
+    - echo "        CD COMPLETED SUCCESSFULLY"
+    - echo "========================================"
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cd ~/linux-system-administration-tasks-gitlab
+docker compose pull app
+docker compose up -d app
+[+] pull 1/1
+ ✔ Image akshay852/akshayimage:gitlab-app3 Pulled                                                                         4.4s
+[+] up 2/2
+ ✔ Container app3-container Running                                                                                       0.0s
+ ✔ Container postgres-db    Running                                                                                       0.0s
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ docker exec app3-container ls -l /var/www/html/metrics.php
+ls: cannot access '/var/www/html/metrics.php': No such file or directory
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ curl http://localhost:9091/metrics.php
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx/1.24.0 (Ubuntu)</center>
+</body>
+</html>
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ls -l image4-app3/app/metrics.php
+grep -n "COPY" image4-app3/Dockerfile
+cat image4-app3/.dockerignore
+-rw-rw-r-- 1 ubuntu ubuntu 291 Aug 31 05:50 image4-app3/app/metrics.php
+12:COPY app/ /var/www/html/
+cat: image4-app3/.dockerignore: No such file or directory
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ ^C
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cd ~/linux-system-administration-tasks-gitlab/image4-app3
+docker build --no-cache -t akshay852/akshayimage:gitlab-app3 .
+[+] Building 51.7s (8/8) FINISHED                                                                              docker:default
+ => [internal] load build definition from Dockerfile                                                                     0.0s
+ => => transferring dockerfile: 264B                                                                                     0.0s
+ => [internal] load metadata for docker.io/library/akshayimage:app2-ci                                                   0.0s
+ => [internal] load .dockerignore                                                                                        0.0s
+ => => transferring context: 2B                                                                                          0.0s
+ => CACHED [1/3] FROM docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690c  0.2s
+ => => resolve docker.io/library/akshayimage:app2-ci@sha256:f3f45aff59faa03c0219fda96803935b1c8fc226bf656ac4690cfe7d347  0.2s
+ => [internal] load build context                                                                                        0.2s
+ => => transferring context: 3.31kB                                                                                      0.0s
+ => [2/3] RUN sudo apt-get update &&     sudo apt-get install -y     php-pgsql     postgresql-client                    38.6s
+ => [3/3] COPY app/ /var/www/html/                                                                                       0.3s
+ => exporting to image                                                                                                  12.2s
+ => => exporting layers                                                                                                  7.9s
+ => => exporting manifest sha256:5caa66093b2cdf1b8f8b6bc1efc218430213516c5ea61779acee05cbeb539d65                        0.0s
+ => => exporting config sha256:cab5a3ffe9d5ee124d92afd0bf768180c3a8b0b3671a14c8730d51d85c7fce72                          0.0s
+ => => exporting attestation manifest sha256:28d05662355d340cc5de65503da1ce97d3730963ffa26c242d1c0bcb87534acf            0.0s
+ => => exporting manifest list sha256:1b72c3020e4673f076ce9bb6da4f7b3cc8b0998a16376387f7725a58225e9457                   0.0s
+ => => naming to docker.io/akshay852/akshayimage:gitlab-app3                                                             0.0s
+ => => unpacking to docker.io/akshay852/akshayimage:gitlab-app3                                                          4.0s
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker run -d --name verify-metrics -p 9099:80 akshay852/akshayimage:gitlab-app3
+b8d6519bcb9200d0970dce9a95527f0c37be5a27262a526ff63b6289adc37232
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker exec verify-metrics ls -l /var/www/html/metrics.php
+-rw-rw-r-- 1 root root 291 Aug 31 05:50 /var/www/html/metrics.php
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ curl http://localhost:9099/metrics.php
+# HELP app_up Application availability
+# TYPE app_up gauge
+app_up 1
+# HELP app_info Application information
+# TYPE app_info gauge
+app_info{application="php-app"} 1
+
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker push akshay852/akshayimage:gitlab-app3
+The push refers to repository [docker.io/akshay852/akshayimage]
+1b924ef70837: Pushed
+44136fa355b3: Already exists
+ad394be90208: Layer already exists
+0926a8eb0e60: Layer already exists
+d1da34da7750: Layer already exists
+5f13cb1a534e: Layer already exists
+4f4fb700ef54: Layer already exists
+cf41f5e60994: Layer already exists
+1697aabf0cb4: Layer already exists
+d762f3276b54: Layer already exists
+69bceed5e768: Layer already exists
+18b6c0fba8ca: Layer already exists
+a05285b380b1: Layer already exists
+beb6c440f106: Layer already exists
+ed5e5f1b8968: Layer already exists
+42a492c9b0f0: Layer already exists
+ba5bd025d140: Pushed
+20f4bcde8ba6: Pushed
+gitlab-app3: digest: sha256:1b72c3020e4673f076ce9bb6da4f7b3cc8b0998a16376387f7725a58225e9457 size: 856
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ docker rm -f verify-metrics
+verify-metrics
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab/image4-app3$ cd ~/linux-system-administration-tasks-gitlab
+docker compose pull app
+docker compose up -d --force-recreate app
+[+] pull 1/1
+ ✔ Image akshay852/akshayimage:gitlab-app3 Pulled                                                                         3.9s
+[+] up 2/2
+ ✔ Container postgres-db    Running                                                                                       0.0s
+ ✔ Container app3-container Started                                                                                      12.1s
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ docker exec app3-container ls -l /var/www/html/metrics.php
+-rw-rw-r-- 1 root root 291 Aug 31 05:50 /var/www/html/metrics.php
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ curl http://localhost:9091/metrics.php
+# HELP app_up Application availability
+# TYPE app_up gauge
+app_up 1
+# HELP app_info Application information
+# TYPE app_info gauge
+app_info{application="php-app"} 1
+
+
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ git add image4-app3/Dockerfile image4-app3/app/metrics.php
+git commit -m "Add application monitoring metrics"
+git push origin main
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+Everything up-to-date
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ git add .
+git commit -m "Add Prometheus metrics"
+git push origin main
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+Everything up-to-date
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cd..
+cd..: command not found
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks-gitlab$ cd ..
+ubuntu@tsb-dev-playground1:~$ cd linux-system-administration-tasks
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks$ cd 13-08-2026/
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$ nano gitlab-task
+ubuntu@tsb-dev-playground1:~/linux-system-administration-tasks/13-08-2026$
 
 
 
