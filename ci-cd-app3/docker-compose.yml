@@ -1,5 +1,14 @@
 services:
 
+  app:
+    image: akshay852/akshayimage:gitlab-app3
+    container_name: app3-container
+    ports:
+      - "9091:80"
+    depends_on:
+      - postgres-db
+    restart: unless-stopped
+
   postgres-db:
     image: postgres:16
     container_name: postgres-db
@@ -9,14 +18,29 @@ services:
       POSTGRES_DB: appdb
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
 
-  app:
-    image: akshay852/akshayimage:app3
-    container_name: app3-container
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
     ports:
-      - "9091:80"
-    depends_on:
-      - postgres-db
+      - "9100:9100"
+    volumes:
+      - "/:/host:ro,rslave"
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    restart: unless-stopped
 
 volumes:
   postgres-data:
