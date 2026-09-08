@@ -1,1 +1,1559 @@
+REQUIREMENT 
+HOSTNAME is different change to required
+
+step1 
+on both servers 
+sudo hostnamectl set-hostname tsb-dev-play-k8m1
+sudo hostnamectl set-hostname tsb-dev-play-k8m2
+sudo hostnamectl set-hostname  tsb-dev-play-k8w1
+
+----------------------------------------------------
+OUTPUT 
+ubuntu@tsb-master1:~$ sudo hostnamectl set-hostname tsb-dev-play-k8m1
+[sudo] password for ubuntu:
+Sorry, try again.
+[sudo] password for ubuntu:
+ubuntu@tsb-master1:~$ hostanem
+-bash: hostanem: command not found
+ubuntu@tsb-master1:~$ hostaname
+-bash: hostaname: command not found
+ubuntu@tsb-master1:~$ hostname
+tsb-dev-play-k8m1
+
+ubuntu@tsb-master2:~$ hostname
+tsb-master2
+ubuntu@tsb-master2:~$ sudo hostnamectl set-hostname tsb-dev-play-k8m2
+[sudo] password for ubuntu:
+ubuntu@tsb-master2:~$ hostname
+tsb-dev-play-k8m2
+
+ubuntu@tsb-master2:~$
+ubuntu@tsb-worker1:~$ hostname
+tsb-worker1
+ubuntu@tsb-worker1:~$ sudo hostnamectl set-hostname  tsb-dev-play-k8w1
+[sudo] password for ubuntu:
+ubuntu@tsb-worker1:~$ hostname
+tsb-dev-play-k8w1
+ubuntu@tsb-worker1:~$
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+REQUIREMENT 
+Configure the Kubernetes cluster with Master 1, Master 2, and Worker 1 and validate that the cluster is working properly.
+
+step1 
+Make the Kubernetes nodes use physical RAM directly instead of moving workload memory to swap.(every nodes) 
+sudo swapoff -a
+swapon --show
+
+step2 
+Allow Kubernetes/CNI networking and firewall rules to properly handle traffic passing through Linux bridges.(every nodes)
+sudo modprobe overlay
+sudo modprobe br_netfilter
+verify
+lsmod | grep -E 'overlay|br_netfilter'
+
+step3 
+Allow the Linux host to act as a router for Kubernetes/container traffic.Allow Kubernetes networking/firewall rules to correctly process bridged IPv4 traffic.
+Ensure bridge traffic can be handled by the Linux IPv6 filtering layer.
+
+sudo tee /etc/sysctl.d/99-kubernetes-cri.conf <<EOF
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+EOF
+
+step4 
+Install the software that will actually execute containers on
+sudo apt update
+sudo apt install -y containerd
+sudo systemctl status containerd
+sudo systemctl enable containerd
+
+step5
+configuration 
+sudo mkdir -p /etc/containerd
+sudo containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
+sudo nano /etc/containerd/config.toml
+SystemdCgroup = true
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+verifygrep SystemdCgroup /etc/containerd/config.toml
+sudo systemctl restart containerd
+sudo systemctl status containerd
+containerd --version
+
+step6
+Install kubeadm, kubelet and kubectl
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg  (update ubuntus package information)
+sudo mkdir -p -m 755 /etc/apt/keyrings
+ls -ld /etc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+ls -l /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+cat /etc/apt/sources.list.d/kubernetes.list
+
+step7
+sudo apt-get install -y kubelet kubeadm kubectl 
+sudo apt-mark hold kubelet kubeadm kubectl
+sudo systemctl enable --now kubelet
+kubeadm version
+kubelet --version
+kubectl version --client
+
+step8
+master1 
+control plane (master1) creating command 
+sudo kubeadm init \
+  --apiserver-advertise-address=172.30.7.131 \
+  --control-plane-endpoint=172.30.7.131:6443 \
+  --pod-network-cidr=192.168.0.0/16
+
+step9
+kubectl configuration for controlplane to kubectl connection 
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+verify 
+kubectl cluster-info
+kubectl get nodes 
+
+step10 
+installing container network interface 
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.2/manifests/calico.yaml
+kubectl get pods -n kube-system
+
+step11 
+add master 2 on cluster used kubeadm join 
+master1 
+create token 
+sudo kubeadm token create --print-join-command
+sudo kubeadm init phase upload-certs --upload-certs\
+
+master2
+join command 
+sudo kubeadm join 172.30.7.131:6443 \
+  --token YOUR_NEW_TOKEN \
+  --discovery-token-ca-cert-hash sha256:YOUR_HASH \
+  --control-plane \
+  --certificate-key YOUR_CERTIFICATE_KEY
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+step12 
+worker setup 
+master1
+sudo kubeadm token create --print-join-command
+
+worker1 
+sudo kubeadm join 172.30.7.131:6443 \
+  --token  vuam5x.3plr6zzm2voz433e  \
+  --discovery-token-ca-cert-hash sha256:e6fca7cbf64137009e1d428ef41e0ad6c11924a32ac34048f8d89e30e567eb30
+
+verification 
+kubectl create deployment nginx-test --image=nginx
+kubectl get pods -o wide
+
+
+
+
+
+OUTPUT 
+master1 
+-------
+ubuntu@tsb-master1:~$ sudo swapoff -a
+[sudo] password for ubuntu:
+ubuntu@tsb-master1:~$ swapon --show
+ubuntu@tsb-master1:~$ grep -n swap /etc/fstab
+10:/swap.img    none    swap    sw      0       0
+ubuntu@tsb-master1:~$ sudo modprobe overlay
+sudo modprobe br_netfilter
+[sudo] password for ubuntu:
+ubuntu@tsb-master1:~$ sudo modprobe overlay
+ubuntu@tsb-master1:~$ sudo modprobe br_netfilter
+ubuntu@tsb-master1:~$ lsmod | grep -E 'overlay|br_netfilter'
+br_netfilter           32768  0
+bridge                425984  1 br_netfilter
+overlay               212992  0
+ubuntu@tsb-dev-play-k8m1:~$ sudo tee /etc/sysctl.d/99-kubernetes-cri.conf <<EOF
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+EOF
+[sudo] password for ubuntu:
+Sorry, try again.
+[sudo] password for ubuntu:
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt update
+[sudo] password for ubuntu:
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Get:2 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Get:3 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:5 http://security.ubuntu.com/ubuntu noble-security/main amd64 Components [46.3 kB]
+Get:6 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.2 kB]
+Get:7 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1260 kB]
+Get:8 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+Get:9 http://ae.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1536 kB]
+Get:10 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1691 kB]
+Get:11 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:12 http://ae.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:13 http://ae.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5760 B]
+Get:14 http://ae.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+Fetched 5575 kB in 4s (1570 kB/s)
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+6 packages can be upgraded. Run 'apt list --upgradable' to see them.
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt install -y containerd
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  runc
+The following NEW packages will be installed:
+  containerd runc
+0 upgraded, 2 newly installed, 0 to remove and 6 not upgraded.
+Need to get 37.7 MB of archives.
+After this operation, 140 MB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 runc amd64 1.3.4-0ubuntu1~24.04.1 [9574 kB]
+Get:2 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 containerd amd64 2.2.1-0ubuntu1~24.04.3 [28.1 MB]
+Fetched 37.7 MB in 4s (10.5 MB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package runc.
+(Reading database ... 116668 files and directories currently installed.)
+Preparing to unpack .../runc_1.3.4-0ubuntu1~24.04.1_amd64.deb ...
+Unpacking runc (1.3.4-0ubuntu1~24.04.1) ...
+Selecting previously unselected package containerd.
+Preparing to unpack .../containerd_2.2.1-0ubuntu1~24.04.3_amd64.deb ...
+Unpacking containerd (2.2.1-0ubuntu1~24.04.3) ...
+Setting up runc (1.3.4-0ubuntu1~24.04.1) ...
+Setting up containerd (2.2.1-0ubuntu1~24.04.3) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/containerd.service → /usr/lib/systemd/system/containerd.service.
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[956]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m1:~$ sudo systemctl status containerd
+● containerd.service - containerd container runtime
+     Loaded: loaded (/usr/lib/systemd/system/containerd.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-09-08 10:03:52 UTC; 20s ago
+       Docs: https://containerd.io
+    Process: 416141 ExecStartPre=/sbin/modprobe overlay (code=exited, status=0/SUCCESS)
+   Main PID: 416142 (containerd)
+      Tasks: 9
+     Memory: 15.0M (peak: 17.9M)
+        CPU: 177ms
+     CGroup: /system.slice/containerd.service
+             └─416142 /usr/bin/containerd
+
+Sep 08 10:03:52 tsb-dev-play-k8m1 containerd[416142]: time="2026-09-08T10:03:52.701639391Z" level=info msg="Start recovering state"
+Sep 08 10:03:52 tsb-dev-play-k8m1 containerd[416142]: time="2026-09-08T10:03:52.702844904Z" level=info msg="Start event monitor"
+Sep 08 10:03:52 tsb-dev-play-k8m1 containerd[416142]: time="2026-09-08T10:03:52.702882400Z" level=info msg="Start cni network conf syncer for default"
+Sep 08 10:03:52 tsb-dev-play-k8m1 containerd[416142]: time="2026-09-08T10:03:52.702901135Z" level=info msg="Start streaming server"
+Sep 08 10:03:52 tsb-dev-play-k8m1 containerd[416142]: time="2026-09-08T10:03:52.702920002Z" level=info msg="Registered namespace \"k8s.io\" with NRI"
+Sep 08 10:03:52 tsb-dev-play-k8m1 containerd[416142]: time="2026-09-08T10:03:52.702945278Z" level=info msg="runtime interface starting up..."
+Sep 08 10:03:52 tsb-dev-play-k8m1 containerd[416142]: time="2026-09-08T10:03:52.702963879Z" level=info msg="starting plugins..."
+Sep 08 10:03:52 tsb-dev-play-k8m1 containerd[416142]: time="2026-09-08T10:03:52.703002479Z" level=info msg="Synchronizing NRI (plugin) with current runtime state"
+Sep 08 10:03:52 tsb-dev-play-k8m1 containerd[416142]: time="2026-09-08T10:03:52.703282314Z" level=info msg="containerd successfully booted in 0.089929s"
+Sep 08 10:03:52 tsb-dev-play-k8m1 systemd[1]: Started containerd.service - containerd container runtime.
+ubuntu@tsb-dev-play-k8m1:~$ sudo systemctl enable containerd
+ubuntu@tsb-dev-play-k8m1:~$ sudo mkdir -p /etc/containerd
+ubuntu@tsb-dev-play-k8m1:~$ sudo containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
+ubuntu@tsb-dev-play-k8m1:~$ sudo nano /etc/containerd/config.toml
+sudo: nano: command not found
+ubuntu@tsb-dev-play-k8m1:~$ nano /etc/containerd/config.toml
+-bash: nano: command not found
+ubuntu@tsb-dev-play-k8m1:~$ ls
+ubuntu@tsb-dev-play-k8m1:~$ sudo nano /etc/containerd/config.toml
+sudo: nano: command not found
+ubuntu@tsb-dev-play-k8m1:~$
+ubuntu@tsb-dev-play-k8m1:~$ sudo containerd config default | sudo tee /etc/containerd/config.t
+-bash: ubuntu@tsb-dev-play-k8m1:~$: command not found
+ubuntu@tsb-dev-play-k8m1:~$ grep SystemdCgroup /etc/containerd/config.toml
+            SystemdCgroup = false
+ubuntu@tsb-dev-play-k8m1:~$ sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+ubuntu@tsb-dev-play-k8m1:~$ grep SystemdCgroup /etc/containerd/config.toml
+            SystemdCgroup = true
+ubuntu@tsb-dev-play-k8m1:~$ sudo systemctl restart containerd
+sudo systemctl status containerd
+containerd --version
+● containerd.service - containerd container runtime
+     Loaded: loaded (/usr/lib/systemd/system/containerd.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-09-08 10:17:48 UTC; 45ms ago
+       Docs: https://containerd.io
+    Process: 417066 ExecStartPre=/sbin/modprobe overlay (code=exited, status=0/SUCCESS)
+   Main PID: 417070 (containerd)
+      Tasks: 9
+     Memory: 14.0M (peak: 17.8M)
+        CPU: 134ms
+     CGroup: /system.slice/containerd.service
+             └─417070 /usr/bin/containerd
+
+Sep 08 10:17:48 tsb-dev-play-k8m1 containerd[417070]: time="2026-09-08T10:17:48.984936465Z" level=info msg="Start recovering state"
+Sep 08 10:17:48 tsb-dev-play-k8m1 containerd[417070]: time="2026-09-08T10:17:48.985529568Z" level=info msg="Start event monitor"
+Sep 08 10:17:48 tsb-dev-play-k8m1 containerd[417070]: time="2026-09-08T10:17:48.985590564Z" level=info msg="Start cni network conf syncer for default"
+Sep 08 10:17:48 tsb-dev-play-k8m1 containerd[417070]: time="2026-09-08T10:17:48.985622574Z" level=info msg="Start streaming server"
+Sep 08 10:17:48 tsb-dev-play-k8m1 containerd[417070]: time="2026-09-08T10:17:48.985651991Z" level=info msg="Registered namespace \"k8s.io\" with NRI"
+Sep 08 10:17:48 tsb-dev-play-k8m1 containerd[417070]: time="2026-09-08T10:17:48.985677523Z" level=info msg="runtime interface starting up..."
+Sep 08 10:17:48 tsb-dev-play-k8m1 containerd[417070]: time="2026-09-08T10:17:48.985700810Z" level=info msg="starting plugins..."
+Sep 08 10:17:48 tsb-dev-play-k8m1 containerd[417070]: time="2026-09-08T10:17:48.985741857Z" level=info msg="Synchronizing NRI (plugin) with current runtime state"
+Sep 08 10:17:48 tsb-dev-play-k8m1 containerd[417070]: time="2026-09-08T10:17:48.986071119Z" level=info msg="containerd successfully booted in 0.056423s"
+Sep 08 10:17:48 tsb-dev-play-k8m1 systemd[1]: Started containerd.service - containerd container runtime.
+containerd github.com/containerd/containerd/v2 2.2.1
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-get update
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:3 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Reading package lists... Done
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+ca-certificates is already the newest version (20260601~24.04.1).
+ca-certificates set to manually installed.
+curl is already the newest version (8.5.0-2ubuntu10.13).
+curl set to manually installed.
+gpg is already the newest version (2.4.4-2ubuntu17.6).
+gpg set to manually installed.
+The following NEW packages will be installed:
+  apt-transport-https
+0 upgraded, 1 newly installed, 0 to remove and 6 not upgraded.
+Need to get 3970 B of archives.
+After this operation, 36.9 kB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 apt-transport-https all 2.8.3 [3970 B]
+Fetched 3970 B in 0s (8282 B/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package apt-transport-https.
+(Reading database ... 116732 files and directories currently installed.)
+Preparing to unpack .../apt-transport-https_2.8.3_all.deb ...
+Unpacking apt-transport-https (2.8.3) ...
+Setting up apt-transport-https (2.8.3) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[956]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m1:~$ sudo mkdir -p -m 755 /etc/apt/keyrings
+ls -ld /etc/apt/keyrings
+drwxr-xr-x 2 root root 4096 Mar 31  2024 /etc/apt/keyrings
+ubuntu@tsb-dev-play-k8m1:~$ curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+ubuntu@tsb-dev-play-k8m1:~$ ls -l /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+-rw-r--r-- 1 root root 1200 Sep  8 10:37 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+ubuntu@tsb-dev-play-k8m1:~$ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+ubuntu@tsb-dev-play-k8m1:~$ cat /etc/apt/sources.list.d/kubernetes.list
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-get install -y kubelet kubeadm kubectl
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+E: Unable to locate package kubelet
+E: Unable to locate package kubeadm
+E: Unable to locate package kubectl
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-get install -y kubelet kubeadm kubectl
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+E: Unable to locate package kubelet
+E: Unable to locate package kubeadm
+E: Unable to locate package kubectl
+ubuntu@tsb-dev-play-k8m1:~$ # This overwrites any existing configuration in /etc/apt/sources.list.d/kubernetes.list
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-get update
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:3 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Get:4 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  InRelease [1227 B]
+Get:6 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  Packages [8145 B]
+Fetched 9372 B in 1s (7496 B/s)
+Reading package lists... Done
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-get install -y kubelet kubeadm kubectl
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  iptables kubernetes-cni libip4tc2 libip6tc2 libjansson4 libnetfilter-conntrack3 libnfnetlink0 libnftables1 libnftnl11 nftables
+Suggested packages:
+  firewalld
+The following NEW packages will be installed:
+  iptables kubeadm kubectl kubelet kubernetes-cni libip4tc2 libip6tc2 libjansson4 libnetfilter-conntrack3 libnfnetlink0 libnftables1 libnftnl11 nftables
+0 upgraded, 13 newly installed, 0 to remove and 6 not upgraded.
+Need to get 77.7 MB of archives.
+After this operation, 296 MB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libip4tc2 amd64 1.8.10-3ubuntu2 [23.3 kB]
+Get:2 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubeadm 1.36.4-1.1 [12.6 MB]
+Get:3 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libip6tc2 amd64 1.8.10-3ubuntu2 [23.7 kB]
+Get:5 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libnfnetlink0 amd64 1.0.2-2build1 [14.8 kB]
+Get:4 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubectl 1.36.4-1.1 [11.8 MB]
+Get:7 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libnetfilter-conntrack3 amd64 1.0.9-6build1 [45.2 kB]
+Get:9 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libnftnl11 amd64 1.2.6-2build1 [66.0 kB]
+Get:6 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubernetes-cni 1.9.1-1.1 [39.0 MB]
+Get:10 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 iptables amd64 1.8.10-3ubuntu2 [381 kB]
+Get:11 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libjansson4 amd64 2.14-2build2 [32.8 kB]
+Get:12 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 libnftables1 amd64 1.0.9-1ubuntu0.1 [359 kB]
+Get:8 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubelet 1.36.4-1.1 [13.4 MB]
+Get:13 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 nftables amd64 1.0.9-1ubuntu0.1 [69.8 kB]
+Fetched 77.7 MB in 2s (38.0 MB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package libip4tc2:amd64.
+(Reading database ... 116736 files and directories currently installed.)
+Preparing to unpack .../00-libip4tc2_1.8.10-3ubuntu2_amd64.deb ...
+Unpacking libip4tc2:amd64 (1.8.10-3ubuntu2) ...
+Selecting previously unselected package libip6tc2:amd64.
+Preparing to unpack .../01-libip6tc2_1.8.10-3ubuntu2_amd64.deb ...
+Unpacking libip6tc2:amd64 (1.8.10-3ubuntu2) ...
+Selecting previously unselected package libnfnetlink0:amd64.
+Preparing to unpack .../02-libnfnetlink0_1.0.2-2build1_amd64.deb ...
+Unpacking libnfnetlink0:amd64 (1.0.2-2build1) ...
+Selecting previously unselected package libnetfilter-conntrack3:amd64.
+Preparing to unpack .../03-libnetfilter-conntrack3_1.0.9-6build1_amd64.deb ...
+Unpacking libnetfilter-conntrack3:amd64 (1.0.9-6build1) ...
+Selecting previously unselected package libnftnl11:amd64.
+Preparing to unpack .../04-libnftnl11_1.2.6-2build1_amd64.deb ...
+Unpacking libnftnl11:amd64 (1.2.6-2build1) ...
+Selecting previously unselected package iptables.
+Preparing to unpack .../05-iptables_1.8.10-3ubuntu2_amd64.deb ...
+Unpacking iptables (1.8.10-3ubuntu2) ...
+Selecting previously unselected package libjansson4:amd64.
+Preparing to unpack .../06-libjansson4_2.14-2build2_amd64.deb ...
+Unpacking libjansson4:amd64 (2.14-2build2) ...
+Selecting previously unselected package libnftables1:amd64.
+Preparing to unpack .../07-libnftables1_1.0.9-1ubuntu0.1_amd64.deb ...
+Unpacking libnftables1:amd64 (1.0.9-1ubuntu0.1) ...
+Selecting previously unselected package nftables.
+Preparing to unpack .../08-nftables_1.0.9-1ubuntu0.1_amd64.deb ...
+Unpacking nftables (1.0.9-1ubuntu0.1) ...
+Selecting previously unselected package kubeadm.
+Preparing to unpack .../09-kubeadm_1.36.4-1.1_amd64.deb ...
+Unpacking kubeadm (1.36.4-1.1) ...
+Selecting previously unselected package kubectl.
+Preparing to unpack .../10-kubectl_1.36.4-1.1_amd64.deb ...
+Unpacking kubectl (1.36.4-1.1) ...
+Selecting previously unselected package kubernetes-cni.
+Preparing to unpack .../11-kubernetes-cni_1.9.1-1.1_amd64.deb ...
+Unpacking kubernetes-cni (1.9.1-1.1) ...
+Selecting previously unselected package kubelet.
+Preparing to unpack .../12-kubelet_1.36.4-1.1_amd64.deb ...
+Unpacking kubelet (1.36.4-1.1) ...
+Setting up libip4tc2:amd64 (1.8.10-3ubuntu2) ...
+Setting up kubeadm (1.36.4-1.1) ...
+Setting up libip6tc2:amd64 (1.8.10-3ubuntu2) ...
+Setting up libnftnl11:amd64 (1.2.6-2build1) ...
+Setting up libjansson4:amd64 (2.14-2build2) ...
+Setting up kubectl (1.36.4-1.1) ...
+Setting up libnfnetlink0:amd64 (1.0.2-2build1) ...
+Setting up kubernetes-cni (1.9.1-1.1) ...
+Setting up libnftables1:amd64 (1.0.9-1ubuntu0.1) ...
+Setting up nftables (1.0.9-1ubuntu0.1) ...
+Setting up libnetfilter-conntrack3:amd64 (1.0.9-6build1) ...
+Setting up iptables (1.8.10-3ubuntu2) ...
+update-alternatives: using /usr/sbin/iptables-legacy to provide /usr/sbin/iptables (iptables) in auto mode
+update-alternatives: using /usr/sbin/ip6tables-legacy to provide /usr/sbin/ip6tables (ip6tables) in auto mode
+update-alternatives: using /usr/sbin/iptables-nft to provide /usr/sbin/iptables (iptables) in auto mode
+update-alternatives: using /usr/sbin/ip6tables-nft to provide /usr/sbin/ip6tables (ip6tables) in auto mode
+update-alternatives: using /usr/sbin/arptables-nft to provide /usr/sbin/arptables (arptables) in auto mode
+update-alternatives: using /usr/sbin/ebtables-nft to provide /usr/sbin/ebtables (ebtables) in auto mode
+Setting up kubelet (1.36.4-1.1) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.8) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[956]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m1:~$ cat /etc/apt/sources.list.d/kubernetes.list
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-mark hold kubelet kubeadm kubectl
+kubelet set on hold.
+kubeadm set on hold.
+kubectl set on hold.
+ubuntu@tsb-dev-play-k8m1:~$ sudo systemctl enable --now kubelet
+ubuntu@tsb-dev-play-k8m1:~$ kubeadm version
+kubeadm version: &version.Info{Major:"1", Minor:"36", EmulationMajor:"", EmulationMinor:"", MinCompatibilityMajor:"", MinCompatibilityMinor:"", GitVersion:"v1.36.4", GitCommit:"bb826b1d48562f110659e64e8ec444327433db95", GitTreeState:"clean", BuildDate:"2026-08-20T03:08:41Z", GoVersion:"go1.26.5", Compiler:"gc", Platform:"linux/amd64"}
+ubuntu@tsb-dev-play-k8m1:~$ kubelet --version
+Kubernetes v1.36.4
+ubuntu@tsb-dev-play-k8m1:~$ kubectl version --client
+Client Version: v1.36.4
+Kustomize Version: v5.8.1
+ubuntu@tsb-dev-play-k8m1:~$ apt-mark showhold | grep -E 'kubelet|kubeadm|kubectl'
+kubeadm
+kubectl
+kubelet
+ubuntu@tsb-dev-play-k8m1:~$ mkdir -p $HOME/.kube
+ubuntu@tsb-dev-play-k8m1:~$ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+ubuntu@tsb-dev-play-k8m1:~$ sudo chown $(id -u):$(id -g) $HOME/.kube/config
+ubuntu@tsb-dev-play-k8m1:~$ kubectl cluster-info
+Kubernetes control plane is running at https://172.30.7.131:6443
+CoreDNS is running at https://172.30.7.131:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get nodes
+NAME                STATUS     ROLES           AGE   VERSION
+tsb-dev-play-k8m1   NotReady   control-plane   14m   v1.36.4
+ubuntu@tsb-dev-play-k8m1:~$
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.2/manifests/calico.yaml
+poddisruptionbudget.policy/calico-kube-controllers created
+serviceaccount/calico-kube-controllers created
+serviceaccount/calico-node created
+serviceaccount/calico-cni-plugin created
+configmap/calico-config created
+customresourcedefinition.apiextensions.k8s.io/bgpconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/bgpfilters.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/bgppeers.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/blockaffinities.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/caliconodestatuses.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/clusterinformations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/felixconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/globalnetworkpolicies.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/globalnetworksets.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/hostendpoints.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamblocks.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamconfigs.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamhandles.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ippools.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipreservations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/kubecontrollersconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/networkpolicies.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/networksets.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/stagedglobalnetworkpolicies.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/stagedkubernetesnetworkpolicies.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/stagednetworkpolicies.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/tiers.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/adminnetworkpolicies.policy.networking.k8s.io created
+customresourcedefinition.apiextensions.k8s.io/baselineadminnetworkpolicies.policy.networking.k8s.io created
+clusterrole.rbac.authorization.k8s.io/calico-kube-controllers created
+clusterrole.rbac.authorization.k8s.io/calico-node created
+clusterrole.rbac.authorization.k8s.io/calico-cni-plugin created
+clusterrole.rbac.authorization.k8s.io/calico-tier-getter created
+clusterrolebinding.rbac.authorization.k8s.io/calico-kube-controllers created
+clusterrolebinding.rbac.authorization.k8s.io/calico-node created
+clusterrolebinding.rbac.authorization.k8s.io/calico-cni-plugin created
+clusterrolebinding.rbac.authorization.k8s.io/calico-tier-getter created
+daemonset.apps/calico-node created
+deployment.apps/calico-kube-controllers created
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get nodes
+NAME                STATUS     ROLES           AGE   VERSION
+tsb-dev-play-k8m1   NotReady   control-plane   28m   v1.36.4
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -n kube-system
+NAME                                        READY   STATUS              RESTARTS   AGE
+calico-kube-controllers-5b84fd7749-5g92l    0/1     ContainerCreating   0          43s
+calico-node-c7dh6                           0/1     Init:2/3            0          43s
+coredns-589f44dc88-4cn9d                    0/1     ContainerCreating   0          28m
+coredns-589f44dc88-dhpx4                    0/1     ContainerCreating   0          28m
+etcd-tsb-dev-play-k8m1                      1/1     Running             0          28m
+kube-apiserver-tsb-dev-play-k8m1            1/1     Running             0          28m
+kube-controller-manager-tsb-dev-play-k8m1   1/1     Running             0          28m
+kube-proxy-l5s8h                            1/1     Running             0          28m
+kube-scheduler-tsb-dev-play-k8m1            1/1     Running             0          28m
+ubuntu@tsb-dev-play-k8m1:~$ kubectl getnodes
+error: unknown command "getnodes" for "kubectl"
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get npodes
+error: the server doesn't have a resource type "npodes"
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get nodes
+NAME                STATUS   ROLES           AGE   VERSION
+tsb-dev-play-k8m1   Ready    control-plane   29m   v1.36.4
+ubuntu@tsb-dev-play-k8m1:~$ sudo kubeadm token create --print-join-command
+[sudo] password for ubuntu:
+kubeadm join 172.30.7.131:6443 --token 137ybd.0czi4cvyx5d30d3m --discovery-token-ca-cert-hash sha256:e6fca7cbf64137009e1d428ef41e0ad6c11924a32ac34048f8d89e30e567eb30
+ubuntu@tsb-dev-play-k8m1:~$ sudo kubeadm init phase upload-certs --upload-certs
+W0908 12:25:50.077408  444601 version.go:108] could not fetch a Kubernetes version from the internet: unable to get URL "https://dl.k8s.io/release/stable-1.txt": Get "https://dl.k8s.io/release/stable-1.txt": tls: failed to verify certificate: x509: certificate signed by unknown authority
+W0908 12:25:50.077660  444601 version.go:109] falling back to the local client version: v1.36.4
+[upload-certs] Storing the certificates in Secret "kubeadm-certs" in the "kube-system" Namespace
+[upload-certs] Using certificate key:
+798b86c1d9df363c0a5a9ca40927f081e55ed5eaa97f8efc45f69dba76999ea2
+ubuntu@tsb-dev-play-k8m1:~$ sudo kubeadm token create --print-join-command
+kubeadm join 172.30.7.131:6443 --token vuam5x.3plr6zzm2voz433e --discovery-token-ca-cert-hash sha256:e6fca7cbf64137009e1d428ef41e0ad6c11924a32ac34048f8d89e30e567eb30
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get nodes
+NAME                STATUS   ROLES           AGE     VERSION
+tsb-dev-play-k8m1   Ready    control-plane   68m     v1.36.4
+tsb-dev-play-k8m2   Ready    control-plane   9m55s   v1.36.4
+tsb-dev-play-k8w1   Ready    <none>          104s    v1.36.4
+ubuntu@tsb-dev-play-k8m1:~$ # Run this on Master 1
+kubectl get nodes -o wide
+NAME                STATUS   ROLES           AGE    VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION              CONTAINER-RUNTIME
+tsb-dev-play-k8m1   Ready    control-plane   69m    v1.36.4   172.30.7.131   <none>        Ubuntu 24.04.4 LTS   6.8.0-138-generic (amd64)   containerd://2.2.1
+tsb-dev-play-k8m2   Ready    control-plane   10m    v1.36.4   172.30.7.132   <none>        Ubuntu 24.04.4 LTS   6.8.0-138-generic (amd64)   containerd://2.2.1
+tsb-dev-play-k8w1   Ready    <none>          2m8s   v1.36.4   172.30.7.133   <none>        Ubuntu 24.04.4 LTS   6.8.0-138-generic (amd64)   containerd://2.2.1
+ubuntu@tsb-dev-play-k8m1:~$ kubectl create deployment nginx-test --image=nginx
+deployment.apps/nginx-test created
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods
+NAME                         READY   STATUS    RESTARTS   AGE
+nginx-test-c8697b5cc-hpc5j   1/1     Running   0          30s
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
+NAME                         READY   STATUS    RESTARTS   AGE    IP                NODE                NOMINATED NODE   READINESS GATES
+nginx-test-c8697b5cc-hpc5j   1/1     Running   0          3m3s   192.168.228.129   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$
+
+
+
+
+
+
+
+master2
+-------
+ubuntu@tsb-master2:~$ sudo swapoff -a
+[sudo] password for ubuntu:
+ubuntu@tsb-master2:~$ swapon --show
+ubuntu@tsb-master2:~$ grep -n swap /etc/fstab
+10:/swap.img    none    swap    sw      0       0
+ubuntu@tsb-master2:~$ sudo modprobe overlay
+sudo modprobe br_netfilter
+[sudo] password for ubuntu:
+ubuntu@tsb-master2:~$ lsmod | grep -E 'overlay|br_netfilter'
+br_netfilter           32768  0
+bridge                425984  1 br_netfilter
+overlay               212992  0
+ubuntu@tsb-dev-play-k8m2:~$ sudo tee /etc/sysctl.d/99-kubernetes-cri.conf <<EOF
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+EOF
+[sudo] password for ubuntu:
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+ubuntu@tsb-dev-play-k8m2:~$
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt update
+[sudo] password for ubuntu:
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://security.ubuntu.com/ubuntu noble-security InRelease
+Get:3 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:5 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1260 kB]
+Get:6 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+Get:7 http://ae.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1536 kB]
+Get:8 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1691 kB]
+Get:9 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:10 http://ae.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:11 http://ae.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5760 B]
+Get:12 http://ae.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+Fetched 5327 kB in 5s (1106 kB/s)
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+6 packages can be upgraded. Run 'apt list --upgradable' to see them.
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt install -y containerd
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  runc
+The following NEW packages will be installed:
+  containerd runc
+0 upgraded, 2 newly installed, 0 to remove and 6 not upgraded.
+Need to get 37.7 MB of archives.
+After this operation, 140 MB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 runc amd64 1.3.4-0ubuntu1~24.04.1 [9574 kB]
+Get:2 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 containerd amd64 2.2.1-0ubuntu1~24.04.3 [28.1 MB]
+Fetched 37.7 MB in 3s (12.1 MB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package runc.
+(Reading database ... 116668 files and directories currently installed.)
+Preparing to unpack .../runc_1.3.4-0ubuntu1~24.04.1_amd64.deb ...
+Unpacking runc (1.3.4-0ubuntu1~24.04.1) ...
+Selecting previously unselected package containerd.
+Preparing to unpack .../containerd_2.2.1-0ubuntu1~24.04.3_amd64.deb ...
+Unpacking containerd (2.2.1-0ubuntu1~24.04.3) ...
+Setting up runc (1.3.4-0ubuntu1~24.04.1) ...
+Setting up containerd (2.2.1-0ubuntu1~24.04.3) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/containerd.service → /usr/lib/systemd/system/containerd.service.
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[981]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m2:~$ sudo systemctl status containerd
+● containerd.service - containerd container runtime
+     Loaded: loaded (/usr/lib/systemd/system/containerd.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-09-08 10:03:57 UTC; 22s ago
+       Docs: https://containerd.io
+    Process: 416138 ExecStartPre=/sbin/modprobe overlay (code=exited, status=0/SUCCESS)
+   Main PID: 416139 (containerd)
+      Tasks: 9
+     Memory: 14.4M (peak: 17.5M)
+        CPU: 184ms
+     CGroup: /system.slice/containerd.service
+             └─416139 /usr/bin/containerd
+
+Sep 08 10:03:57 tsb-dev-play-k8m2 containerd[416139]: time="2026-09-08T10:03:57.605046634Z" level=info msg="Start event monitor"
+Sep 08 10:03:57 tsb-dev-play-k8m2 containerd[416139]: time="2026-09-08T10:03:57.605090669Z" level=info msg="Start cni network conf syncer for default"
+Sep 08 10:03:57 tsb-dev-play-k8m2 containerd[416139]: time="2026-09-08T10:03:57.605142876Z" level=info msg=serving... address=/run/containerd/containerd.sock
+Sep 08 10:03:57 tsb-dev-play-k8m2 containerd[416139]: time="2026-09-08T10:03:57.605177616Z" level=info msg="Start streaming server"
+Sep 08 10:03:57 tsb-dev-play-k8m2 containerd[416139]: time="2026-09-08T10:03:57.605214110Z" level=info msg="Registered namespace \"k8s.io\" with NRI"
+Sep 08 10:03:57 tsb-dev-play-k8m2 containerd[416139]: time="2026-09-08T10:03:57.605232052Z" level=info msg="runtime interface starting up..."
+Sep 08 10:03:57 tsb-dev-play-k8m2 containerd[416139]: time="2026-09-08T10:03:57.605270774Z" level=info msg="starting plugins..."
+Sep 08 10:03:57 tsb-dev-play-k8m2 containerd[416139]: time="2026-09-08T10:03:57.605319298Z" level=info msg="Synchronizing NRI (plugin) with current runtime state"
+Sep 08 10:03:57 tsb-dev-play-k8m2 containerd[416139]: time="2026-09-08T10:03:57.606951423Z" level=info msg="containerd successfully booted in 1.061819s"
+Sep 08 10:03:57 tsb-dev-play-k8m2 systemd[1]: Started containerd.service - containerd container runtime.
+ubuntu@tsb-dev-play-k8m2:~$ sudo systemctl enable containerd
+ubuntu@tsb-dev-play-k8m2:~$ sudo mkdir -p /etc/containerd
+ubuntu@tsb-dev-play-k8m2:~$ sudo containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
+ubuntu@tsb-dev-play-k8m2:~$ sudo nano /etc/containerd/config.toml
+sudo: nano: command not found
+ubuntu@tsb-dev-play-k8m2:~$  grep SystemdCgroup /etc/containerd/config.toml
+            SystemdCgroup = false
+ubuntu@tsb-dev-play-k8m2:~$ sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+ubuntu@tsb-dev-play-k8m2:~$ sudo nano /etc/containerd/config.toml
+sudo: nano: command not found
+ubuntu@tsb-dev-play-k8m2:~$ grep SystemdCgroup /etc/containerd/config.toml
+            SystemdCgroup = true
+ubuntu@tsb-dev-play-k8m2:~$ sudo systemctl restart containerd
+ubuntu@tsb-dev-play-k8m2:~$ sudo systemctl status containerd
+● containerd.service - containerd container runtime
+     Loaded: loaded (/usr/lib/systemd/system/containerd.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-09-08 10:16:54 UTC; 8s ago
+       Docs: https://containerd.io
+    Process: 417375 ExecStartPre=/sbin/modprobe overlay (code=exited, status=0/SUCCESS)
+   Main PID: 417379 (containerd)
+      Tasks: 9
+     Memory: 14.7M (peak: 17.9M)
+        CPU: 147ms
+     CGroup: /system.slice/containerd.service
+             └─417379 /usr/bin/containerd
+
+Sep 08 10:16:54 tsb-dev-play-k8m2 containerd[417379]: time="2026-09-08T10:16:54.804894968Z" level=info msg="Start cni network conf syncer for default"
+Sep 08 10:16:54 tsb-dev-play-k8m2 containerd[417379]: time="2026-09-08T10:16:54.804952018Z" level=info msg="Start streaming server"
+Sep 08 10:16:54 tsb-dev-play-k8m2 containerd[417379]: time="2026-09-08T10:16:54.804988582Z" level=info msg="Registered namespace \"k8s.io\" with NRI"
+Sep 08 10:16:54 tsb-dev-play-k8m2 containerd[417379]: time="2026-09-08T10:16:54.805009707Z" level=info msg="runtime interface starting up..."
+Sep 08 10:16:54 tsb-dev-play-k8m2 containerd[417379]: time="2026-09-08T10:16:54.805050376Z" level=info msg="starting plugins..."
+Sep 08 10:16:54 tsb-dev-play-k8m2 containerd[417379]: time="2026-09-08T10:16:54.805103582Z" level=info msg="Synchronizing NRI (plugin) with current runtime state"
+Sep 08 10:16:54 tsb-dev-play-k8m2 containerd[417379]: time="2026-09-08T10:16:54.805000736Z" level=info msg=serving... address=/run/containerd/containerd.sock.ttrpc
+Sep 08 10:16:54 tsb-dev-play-k8m2 containerd[417379]: time="2026-09-08T10:16:54.805542885Z" level=info msg=serving... address=/run/containerd/containerd.sock
+Sep 08 10:16:54 tsb-dev-play-k8m2 containerd[417379]: time="2026-09-08T10:16:54.805673513Z" level=info msg="containerd successfully booted in 0.053826s"
+Sep 08 10:16:54 tsb-dev-play-k8m2 systemd[1]: Started containerd.service - containerd container runtime.
+ubuntu@tsb-dev-play-k8m2:~$ containerd --version
+containerd github.com/containerd/containerd/v2 2.2.1
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt-get update
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:3 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Reading package lists... Done
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+ca-certificates is already the newest version (20260601~24.04.1).
+ca-certificates set to manually installed.
+curl is already the newest version (8.5.0-2ubuntu10.13).
+curl set to manually installed.
+gpg is already the newest version (2.4.4-2ubuntu17.6).
+gpg set to manually installed.
+The following NEW packages will be installed:
+  apt-transport-https
+0 upgraded, 1 newly installed, 0 to remove and 6 not upgraded.
+Need to get 3970 B of archives.
+After this operation, 36.9 kB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 apt-transport-https all 2.8.3 [3970 B]
+Fetched 3970 B in 1s (7507 B/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package apt-transport-https.
+(Reading database ... 116732 files and directories currently installed.)
+Preparing to unpack .../apt-transport-https_2.8.3_all.deb ...
+Unpacking apt-transport-https (2.8.3) ...
+Setting up apt-transport-https (2.8.3) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[981]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m2:~$ sudo mkdir -p -m 755 /etc/apt/keyrings
+ls -ld /etc/apt/keyrings
+drwxr-xr-x 2 root root 4096 Mar 31  2024 /etc/apt/keyrings
+ubuntu@tsb-dev-play-k8m2:~$ curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+ubuntu@tsb-dev-play-k8m2:~$ ls -l /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+-rw-r--r-- 1 root root 1200 Sep  8 10:37 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+ubuntu@tsb-dev-play-k8m2:~$ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+ubuntu@tsb-dev-play-k8m2:~$ cat /etc/apt/sources.list.d/kubernetes.list
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt-get update
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:3 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Get:5 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease [1230 B]
+Get:6 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  Packages [16.8 kB]
+Fetched 18.0 kB in 1s (12.9 kB/s)
+Reading package lists... Done
+ubuntu@tsb-dev-play-k8m2:~$ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Get:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  InRelease [1227 B]
+Get:6 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  Packages [8145 B]
+Fetched 9372 B in 2s (5938 B/s)
+Reading package lists... Done
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  iptables kubernetes-cni libip4tc2 libip6tc2 libjansson4 libnetfilter-conntrack3 libnfnetlink0 libnftables1 libnftnl11 nftables
+Suggested packages:
+  firewalld
+The following NEW packages will be installed:
+  iptables kubeadm kubectl kubelet kubernetes-cni libip4tc2 libip6tc2 libjansson4 libnetfilter-conntrack3 libnfnetlink0 libnftables1 libnftnl11 nftables
+0 upgraded, 13 newly installed, 0 to remove and 6 not upgraded.
+Need to get 77.7 MB of archives.
+After this operation, 296 MB of additional disk space will be used.
+Get:1 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubeadm 1.36.4-1.1 [12.6 MB]
+Get:3 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libip4tc2 amd64 1.8.10-3ubuntu2 [23.3 kB]
+Get:2 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubectl 1.36.4-1.1 [11.8 MB]
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libip6tc2 amd64 1.8.10-3ubuntu2 [23.7 kB]
+Get:5 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubernetes-cni 1.9.1-1.1 [39.0 MB]
+Get:6 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libnfnetlink0 amd64 1.0.2-2build1 [14.8 kB]
+Get:8 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libnetfilter-conntrack3 amd64 1.0.9-6build1 [45.2 kB]
+Get:9 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libnftnl11 amd64 1.2.6-2build1 [66.0 kB]
+Get:10 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 iptables amd64 1.8.10-3ubuntu2 [381 kB]
+Get:7 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubelet 1.36.4-1.1 [13.4 MB]
+Get:11 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libjansson4 amd64 2.14-2build2 [32.8 kB]
+Get:12 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 libnftables1 amd64 1.0.9-1ubuntu0.1 [359 kB]
+Get:13 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 nftables amd64 1.0.9-1ubuntu0.1 [69.8 kB]
+Fetched 77.7 MB in 2s (32.5 MB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package libip4tc2:amd64.
+(Reading database ... 116736 files and directories currently installed.)
+Preparing to unpack .../00-libip4tc2_1.8.10-3ubuntu2_amd64.deb ...
+Unpacking libip4tc2:amd64 (1.8.10-3ubuntu2) ...
+Selecting previously unselected package libip6tc2:amd64.
+Preparing to unpack .../01-libip6tc2_1.8.10-3ubuntu2_amd64.deb ...
+Unpacking libip6tc2:amd64 (1.8.10-3ubuntu2) ...
+Selecting previously unselected package libnfnetlink0:amd64.
+Preparing to unpack .../02-libnfnetlink0_1.0.2-2build1_amd64.deb ...
+Unpacking libnfnetlink0:amd64 (1.0.2-2build1) ...
+Selecting previously unselected package libnetfilter-conntrack3:amd64.
+Preparing to unpack .../03-libnetfilter-conntrack3_1.0.9-6build1_amd64.deb ...
+Unpacking libnetfilter-conntrack3:amd64 (1.0.9-6build1) ...
+Selecting previously unselected package libnftnl11:amd64.
+Preparing to unpack .../04-libnftnl11_1.2.6-2build1_amd64.deb ...
+Unpacking libnftnl11:amd64 (1.2.6-2build1) ...
+Selecting previously unselected package iptables.
+Preparing to unpack .../05-iptables_1.8.10-3ubuntu2_amd64.deb ...
+Unpacking iptables (1.8.10-3ubuntu2) ...
+Selecting previously unselected package libjansson4:amd64.
+Preparing to unpack .../06-libjansson4_2.14-2build2_amd64.deb ...
+Unpacking libjansson4:amd64 (2.14-2build2) ...
+Selecting previously unselected package libnftables1:amd64.
+Preparing to unpack .../07-libnftables1_1.0.9-1ubuntu0.1_amd64.deb ...
+Unpacking libnftables1:amd64 (1.0.9-1ubuntu0.1) ...
+Selecting previously unselected package nftables.
+Preparing to unpack .../08-nftables_1.0.9-1ubuntu0.1_amd64.deb ...
+Unpacking nftables (1.0.9-1ubuntu0.1) ...
+Selecting previously unselected package kubeadm.
+Preparing to unpack .../09-kubeadm_1.36.4-1.1_amd64.deb ...
+Unpacking kubeadm (1.36.4-1.1) ...
+Selecting previously unselected package kubectl.
+Preparing to unpack .../10-kubectl_1.36.4-1.1_amd64.deb ...
+Unpacking kubectl (1.36.4-1.1) ...
+Selecting previously unselected package kubernetes-cni.
+Preparing to unpack .../11-kubernetes-cni_1.9.1-1.1_amd64.deb ...
+Unpacking kubernetes-cni (1.9.1-1.1) ...
+Selecting previously unselected package kubelet.
+Preparing to unpack .../12-kubelet_1.36.4-1.1_amd64.deb ...
+Unpacking kubelet (1.36.4-1.1) ...
+Setting up libip4tc2:amd64 (1.8.10-3ubuntu2) ...
+Setting up kubeadm (1.36.4-1.1) ...
+Setting up libip6tc2:amd64 (1.8.10-3ubuntu2) ...
+Setting up libnftnl11:amd64 (1.2.6-2build1) ...
+Setting up libjansson4:amd64 (2.14-2build2) ...
+Setting up kubectl (1.36.4-1.1) ...
+Setting up libnfnetlink0:amd64 (1.0.2-2build1) ...
+Setting up kubernetes-cni (1.9.1-1.1) ...
+Setting up libnftables1:amd64 (1.0.9-1ubuntu0.1) ...
+Setting up nftables (1.0.9-1ubuntu0.1) ...
+Setting up libnetfilter-conntrack3:amd64 (1.0.9-6build1) ...
+Setting up iptables (1.8.10-3ubuntu2) ...
+update-alternatives: using /usr/sbin/iptables-legacy to provide /usr/sbin/iptables (iptables) in auto mode
+update-alternatives: using /usr/sbin/ip6tables-legacy to provide /usr/sbin/ip6tables (ip6tables) in auto mode
+update-alternatives: using /usr/sbin/iptables-nft to provide /usr/sbin/iptables (iptables) in auto mode
+update-alternatives: using /usr/sbin/ip6tables-nft to provide /usr/sbin/ip6tables (ip6tables) in auto mode
+update-alternatives: using /usr/sbin/arptables-nft to provide /usr/sbin/arptables (arptables) in auto mode
+update-alternatives: using /usr/sbin/ebtables-nft to provide /usr/sbin/ebtables (ebtables) in auto mode
+Setting up kubelet (1.36.4-1.1) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.8) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[981]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt-mark hold kubelet kubeadm kubectl
+kubelet set on hold.
+kubeadm set on hold.
+kubectl set on hold.
+ubuntu@tsb-dev-play-k8m2:~$ sudo systemctl enable --now kubelet
+ubuntu@tsb-dev-play-k8m2:~$
+ubuntu@tsb-dev-play-k8m2:~$ kubeadm version
+kubeadm version: &version.Info{Major:"1", Minor:"36", EmulationMajor:"", EmulationMinor:"", MinCompatibilityMajor:"", MinCompatibilityMinor:"", GitVersion:"v1.36.4", GitCommit:"bb826b1d48562f110659e64e8ec444327433db95", GitTreeState:"clean", BuildDate:"2026-08-20T03:08:41Z", GoVersion:"go1.26.5", Compiler:"gc", Platform:"linux/amd64"}
+ubuntu@tsb-dev-play-k8m2:~$ kubelet --version
+Kubernetes v1.36.4
+ubuntu@tsb-dev-play-k8m2:~$ kubectl version --client
+Client Version: v1.36.4
+Kustomize Version: v5.8.1
+ubuntu@tsb-dev-play-k8m2:~$ apt-mark showhold | grep -E 'kubelet|kubeadm|kubectl'
+kubeadm
+kubectl
+kubelet
+ubuntu@tsb-de
+ubuntu@tsb-dev-play-k8m2:~$ hostname
+tsb-dev-play-k8m2
+ubuntu@tsb-dev-play-k8m2:~$ sudo kubeadm join 172.30.7.131:6443 \
+  --token  137ybd.0czi4cvyx5d30d3m \
+  --discovery-token-ca-cert-hash sha256:e6fca7cbf64137009e1d428ef41e0ad6c11924a32ac34048f8d89e30e567eb30 \
+  --control-plane \
+  --certificate-key 798b86c1d9df363c0a5a9ca40927f081e55ed5eaa97f8efc45f69dba76999ea2
+[sudo] password for ubuntu:
+[preflight] Running pre-flight checks
+[preflight] Some fatal errors occurred:
+        [ERROR FileContent--proc-sys-net-ipv4-ip_forward]: /proc/sys/net/ipv4/ip_forward contents are not set to 1
+[preflight] If you know what you are doing, you can make a check non-fatal with `--ignore-preflight-errors=...`
+error: error execution phase preflight: preflight checks failed
+To see the stack trace of this error execute with --v=5 or higher
+ubuntu@tsb-dev-play-k8m2:~$ sudo sysctl -w net.ipv4.ip_forward=1
+net.ipv4.ip_forward = 1
+ubuntu@tsb-dev-play-k8m2:~$ sudo tee /etc/sysctl.d/99-kubernetes-cri.conf <<EOF
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+EOF
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+ubuntu@tsb-dev-play-k8m2:~$ sudo sysctl --system
+* Applying /usr/lib/sysctl.d/10-apparmor.conf ...
+* Applying /etc/sysctl.d/10-bufferbloat.conf ...
+* Applying /etc/sysctl.d/10-console-messages.conf ...
+* Applying /etc/sysctl.d/10-ipv6-privacy.conf ...
+* Applying /etc/sysctl.d/10-kernel-hardening.conf ...
+* Applying /etc/sysctl.d/10-magic-sysrq.conf ...
+* Applying /etc/sysctl.d/10-map-count.conf ...
+* Applying /etc/sysctl.d/10-network-security.conf ...
+* Applying /etc/sysctl.d/10-ptrace.conf ...
+* Applying /etc/sysctl.d/10-zeropage.conf ...
+* Applying /usr/lib/sysctl.d/50-pid-max.conf ...
+* Applying /etc/sysctl.d/99-kubernetes-cri.conf ...
+* Applying /usr/lib/sysctl.d/99-protect-links.conf ...
+* Applying /etc/sysctl.d/99-sysctl.conf ...
+* Applying /etc/sysctl.conf ...
+kernel.apparmor_restrict_unprivileged_userns = 1
+net.core.default_qdisc = fq_codel
+kernel.printk = 4 4 1 7
+net.ipv6.conf.all.use_tempaddr = 2
+net.ipv6.conf.default.use_tempaddr = 2
+kernel.kptr_restrict = 1
+kernel.sysrq = 176
+vm.max_map_count = 1048576
+net.ipv4.conf.default.rp_filter = 2
+net.ipv4.conf.all.rp_filter = 2
+kernel.yama.ptrace_scope = 1
+vm.mmap_min_addr = 65536
+kernel.pid_max = 4194304
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+fs.protected_fifos = 1
+fs.protected_hardlinks = 1
+fs.protected_regular = 2
+fs.protected_symlinks = 1
+ubuntu@tsb-dev-play-k8m2:~$ sudo kubeadm join 172.30.7.131:6443   --token  137ybd.0czi4cvyx5d30d3m   --discovery-token-ca-cert-hash sha256:e6fca7cbf64137009e1d428ef41e0ad6c11924a32ac34048f8d89e30e567eb30   --control-plane   --certificate-key 798b86c1d9df363c0a5a9ca40927f081e55ed5eaa97f8efc45f69dba76999ea2
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the "kubeadm-config" ConfigMap in namespace "kube-system"...
+[preflight] Use 'kubeadm init phase upload-config kubeadm --config your-config-file' to re-upload it.
+W0908 12:31:36.219209  432062 utils.go:69] The recommended value for "bindAddress" in "KubeProxyConfiguration" is: ::; the provided value is: 0.0.0.0
+[preflight] Running pre-flight checks before initializing the new control plane instance
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action beforehand using 'kubeadm config images pull'
+E0908 12:31:49.751470  432062 remote_image.go:250] "PullImage from image service failed" err="rpc error: code = Unknown desc = failed to pull and unpack image \"registry.k8s.io/kube-controller-manager:v1.36.4\": failed to copy: httpReadSeeker: failed open: failed to do request: Get \"https://cdn.registry.k8s.io/containers/images/sha256:c27613cea70f9808cc25955886c764ad38de589a9faeb2a8341cb27af6714684?rid=800bc53d603ba6fa80a3a115d3711ddf\": tls: failed to verify certificate: x509: certificate signed by unknown authority" image="registry.k8s.io/kube-controller-manager:v1.36.4"
+E0908 12:31:59.279429  432062 remote_image.go:250] "PullImage from image service failed" err="rpc error: code = Unknown desc = failed to pull and unpack image \"registry.k8s.io/kube-scheduler:v1.36.4\": failed to copy: httpReadSeeker: failed open: failed to do request: Get \"https://cdn.registry.k8s.io/containers/images/sha256:11ce0d8bbc73b7c08c30bb040fac58fac8ba3405b92b85451b643ee1c08dcd9f?rid=0aacdb095b66b5e32e8b6b04d11db029\": tls: failed to verify certificate: x509: certificate signed by unknown authority" image="registry.k8s.io/kube-scheduler:v1.36.4"
+E0908 12:32:07.471039  432062 remote_image.go:250] "PullImage from image service failed" err="rpc error: code = Unknown desc = failed to pull and unpack image \"registry.k8s.io/kube-proxy:v1.36.4\": failed to copy: httpReadSeeker: failed open: failed to do request: Get \"https://cdn.registry.k8s.io/containers/images/sha256:443d6222271698b3cad8e2ebc1a91f740d2360801549f20a962c479a57d36045?rid=0080d017fe1114353489ab43d7adac60\": tls: failed to verify certificate: x509: certificate signed by unknown authority" image="registry.k8s.io/kube-proxy:v1.36.4"
+[download-certs] Downloading the certificates in Secret "kubeadm-certs" in the "kube-system" Namespace
+[download-certs] Saving the certificates to the folder: "/etc/kubernetes/pki"
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [localhost tsb-dev-play-k8m2] and IPs [172.30.7.132 127.0.0.1 ::1]
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [localhost tsb-dev-play-k8m2] and IPs [172.30.7.132 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local tsb-dev-play-k8m2] and IPs [10.96.0.1 172.30.7.132 172.30.7.131]
+[certs] Valid certificates and keys now exist in "/etc/kubernetes/pki"
+[certs] Using the existing "sa" key
+[kubeconfig] Generating kubeconfig files
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+[check-etcd] Checking that the etcd cluster is healthy
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/instance-config.yaml"
+[patches] Applied patch of type "application/strategic-merge-patch+json" to target "kubeletconfiguration"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[etcd] Announced new etcd member joining to the existing etcd cluster
+[etcd] Creating static Pod manifest for "etcd"
+{"level":"warn","ts":"2026-09-08T12:32:38.774677Z","logger":"etcd-client","caller":"v3@v3.6.8/retry_interceptor.go:65","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x2680cd6e30e0/172.30.7.131:2379","method":"/etcdserverpb.Cluster/MemberPromote","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+[etcd] Waiting for the new etcd member to join the cluster. This can take up to 40s
+[kubelet-check] Waiting for a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+[kubelet-check] The kubelet is healthy after 1.444441ms
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap
+[mark-control-plane] Marking the node tsb-dev-play-k8m2 as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+[mark-control-plane] Marking the node tsb-dev-play-k8m2 as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+[control-plane-check] Waiting for healthy control plane components. This can take up to 4m0s
+[control-plane-check] Checking kube-apiserver at https://172.30.7.132:6443/livez
+[control-plane-check] Checking kube-controller-manager at https://127.0.0.1:10257/healthz
+[control-plane-check] Checking kube-scheduler at https://127.0.0.1:10259/livez
+[control-plane-check] kube-controller-manager is healthy after 9.157894ms
+[control-plane-check] kube-scheduler is healthy after 10.508181ms
+[control-plane-check] kube-apiserver is healthy after 17.308601ms
+
+This node has joined the cluster and a new control plane instance was created:
+
+* Certificate signing request was sent to apiserver and approval was received.
+* The Kubelet was informed of the new secure connection details.
+* Control plane label and taint were applied to the new node.
+* The Kubernetes control plane instances scaled up.
+* A new etcd member was added to the local/stacked etcd cluster.
+
+To start administering your cluster from this node, you need to run the following as a regular user:
+
+        mkdir -p $HOME/.kube
+        sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Run 'kubectl get nodes' to see this node join the cluster.
+
+ubuntu@tsb-dev-play-k8m2:~$ mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+ubuntu@tsb-dev-play-k8m2:~$ kubectl get nodes
+NAME                STATUS   ROLES           AGE   VERSION
+tsb-dev-play-k8m1   Ready    control-plane   60m   v1.36.4
+tsb-dev-play-k8m2   Ready    control-plane   71s   v1.36.4
+
+
+
+
+
+
+worker1
+-------
+ubuntu@tsb-worker1:~$ sudo swapoff -a
+[sudo] password for ubuntu:
+ubuntu@tsb-worker1:~$ swapon --show
+ubuntu@tsb-worker1:~$ grep -n swap /etc/fstab
+10:/swap.img    none    swap    sw      0       0
+ubuntu@tsb-worker1:~$ sudo modprobe overlay
+sudo modprobe br_netfilter
+[sudo] password for ubuntu:
+ubuntu@tsb-worker1:~$ lsmod | grep -E 'overlay|br_netfilter'
+br_netfilter           32768  0
+bridge                425984  1 br_netfilter
+overlay               212992  0
+ubuntu@tsb-dev-play-k8w1:~$ sudo tee /etc/sysctl.d/99-kubernetes-cri.conf <<EOF
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+EOF
+[sudo] password for ubuntu:
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt update
+[sudo] password for ubuntu:
+Sorry, try again.
+[sudo] password for ubuntu:
+Sorry, try again.
+[sudo] password for ubuntu:
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://security.ubuntu.com/ubuntu noble-security InRelease
+Get:3 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:5 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1260 kB]
+Get:6 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+Get:7 http://ae.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1536 kB]
+Get:8 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1691 kB]
+Get:9 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:10 http://ae.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:11 http://ae.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5760 B]
+Get:12 http://ae.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+Fetched 5327 kB in 3s (1728 kB/s)
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+6 packages can be upgraded. Run 'apt list --upgradable' to see them.
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt install -y containerd
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  runc
+The following NEW packages will be installed:
+  containerd runc
+0 upgraded, 2 newly installed, 0 to remove and 6 not upgraded.
+Need to get 37.7 MB of archives.
+After this operation, 140 MB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 runc amd64 1.3.4-0ubuntu1~24.04.1 [9574 kB]
+Get:2 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 containerd amd64 2.2.1-0ubuntu1~24.04.3 [28.1 MB]
+Fetched 37.7 MB in 3s (11.5 MB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package runc.
+(Reading database ... 116668 files and directories currently installed.)
+Preparing to unpack .../runc_1.3.4-0ubuntu1~24.04.1_amd64.deb ...
+Unpacking runc (1.3.4-0ubuntu1~24.04.1) ...
+Selecting previously unselected package containerd.
+Preparing to unpack .../containerd_2.2.1-0ubuntu1~24.04.3_amd64.deb ...
+Unpacking containerd (2.2.1-0ubuntu1~24.04.3) ...
+Setting up runc (1.3.4-0ubuntu1~24.04.1) ...
+Setting up containerd (2.2.1-0ubuntu1~24.04.3) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/containerd.service → /usr/lib/systemd/system/containerd.service.
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[995]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8w1:~$ sudo systemctl status containerd
+● containerd.service - containerd container runtime
+     Loaded: loaded (/usr/lib/systemd/system/containerd.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-09-08 10:04:00 UTC; 22s ago
+       Docs: https://containerd.io
+    Process: 415846 ExecStartPre=/sbin/modprobe overlay (code=exited, status=0/SUCCESS)
+   Main PID: 415852 (containerd)
+      Tasks: 10
+     Memory: 14.5M (peak: 17.8M)
+        CPU: 181ms
+     CGroup: /system.slice/containerd.service
+             └─415852 /usr/bin/containerd
+
+Sep 08 10:04:00 tsb-dev-play-k8w1 containerd[415852]: time="2026-09-08T10:04:00.776985227Z" level=info msg="Start cni network conf syncer for default"
+Sep 08 10:04:00 tsb-dev-play-k8w1 containerd[415852]: time="2026-09-08T10:04:00.777002131Z" level=info msg="Start streaming server"
+Sep 08 10:04:00 tsb-dev-play-k8w1 containerd[415852]: time="2026-09-08T10:04:00.777070192Z" level=info msg="Registered namespace \"k8s.io\" with NRI"
+Sep 08 10:04:00 tsb-dev-play-k8w1 containerd[415852]: time="2026-09-08T10:04:00.777099955Z" level=info msg="runtime interface starting up..."
+Sep 08 10:04:00 tsb-dev-play-k8w1 containerd[415852]: time="2026-09-08T10:04:00.777118049Z" level=info msg="starting plugins..."
+Sep 08 10:04:00 tsb-dev-play-k8w1 containerd[415852]: time="2026-09-08T10:04:00.777158822Z" level=info msg="Synchronizing NRI (plugin) with current runtime state"
+Sep 08 10:04:00 tsb-dev-play-k8w1 containerd[415852]: time="2026-09-08T10:04:00.777482133Z" level=info msg=serving... address=/run/containerd/containerd.sock.ttrpc
+Sep 08 10:04:00 tsb-dev-play-k8w1 containerd[415852]: time="2026-09-08T10:04:00.777653583Z" level=info msg=serving... address=/run/containerd/containerd.sock
+Sep 08 10:04:00 tsb-dev-play-k8w1 containerd[415852]: time="2026-09-08T10:04:00.777772724Z" level=info msg="containerd successfully booted in 0.120555s"
+Sep 08 10:04:00 tsb-dev-play-k8w1 systemd[1]: Started containerd.service - containerd container runtime.
+ubuntu@tsb-dev-play-k8w1:~$ sudo systemctl enable containerd
+ubuntu@tsb-dev-play-k8w1:~$ sudo mkdir -p /etc/containerd
+ubuntu@tsb-dev-play-k8w1:~$ sudo containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
+ubuntu@tsb-dev-play-k8w1:~$ sudo nano /etc/containerd/config.toml
+sudo: nano: command not found
+ubuntu@tsb-dev-play-k8w1:~$ sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+ubuntu@tsb-dev-play-k8w1:~$ grep SystemdCgroup /etc/containerd/config.toml
+            SystemdCgroup = true
+ubuntu@tsb-dev-play-k8w1:~$ sudo systemctl restart containerd
+ubuntu@tsb-dev-play-k8w1:~$ sudo systemctl status containerd
+● containerd.service - containerd container runtime
+     Loaded: loaded (/usr/lib/systemd/system/containerd.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-09-08 10:16:17 UTC; 19s ago
+       Docs: https://containerd.io
+    Process: 416810 ExecStartPre=/sbin/modprobe overlay (code=exited, status=0/SUCCESS)
+   Main PID: 416814 (containerd)
+      Tasks: 9
+     Memory: 14.6M (peak: 17.4M)
+        CPU: 177ms
+     CGroup: /system.slice/containerd.service
+             └─416814 /usr/bin/containerd
+
+Sep 08 10:16:17 tsb-dev-play-k8w1 containerd[416814]: time="2026-09-08T10:16:17.397547007Z" level=info msg="Start cni network conf syncer for default"
+Sep 08 10:16:17 tsb-dev-play-k8w1 containerd[416814]: time="2026-09-08T10:16:17.397737174Z" level=info msg=serving... address=/run/containerd/containerd.sock.ttrpc
+Sep 08 10:16:17 tsb-dev-play-k8w1 containerd[416814]: time="2026-09-08T10:16:17.397935993Z" level=info msg=serving... address=/run/containerd/containerd.sock
+Sep 08 10:16:17 tsb-dev-play-k8w1 containerd[416814]: time="2026-09-08T10:16:17.398530127Z" level=info msg="Start streaming server"
+Sep 08 10:16:17 tsb-dev-play-k8w1 containerd[416814]: time="2026-09-08T10:16:17.398750590Z" level=info msg="Registered namespace \"k8s.io\" with NRI"
+Sep 08 10:16:17 tsb-dev-play-k8w1 containerd[416814]: time="2026-09-08T10:16:17.398806535Z" level=info msg="runtime interface starting up..."
+Sep 08 10:16:17 tsb-dev-play-k8w1 containerd[416814]: time="2026-09-08T10:16:17.398830796Z" level=info msg="starting plugins..."
+Sep 08 10:16:17 tsb-dev-play-k8w1 containerd[416814]: time="2026-09-08T10:16:17.398895945Z" level=info msg="Synchronizing NRI (plugin) with current runtime state"
+Sep 08 10:16:17 tsb-dev-play-k8w1 containerd[416814]: time="2026-09-08T10:16:17.399191759Z" level=info msg="containerd successfully booted in 0.059280s"
+Sep 08 10:16:17 tsb-dev-play-k8w1 systemd[1]: Started containerd.service - containerd container runtime.
+ubuntu@tsb-dev-play-k8w1:~$ contrainerd --version
+-bash: contrainerd: command not found
+ubuntu@tsb-dev-play-k8w1:~$ containerd --version
+containerd github.com/containerd/containerd/v2 2.2.1
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-get update
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:3 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Reading package lists... Done
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+ca-certificates is already the newest version (20260601~24.04.1).
+ca-certificates set to manually installed.
+curl is already the newest version (8.5.0-2ubuntu10.13).
+curl set to manually installed.
+gpg is already the newest version (2.4.4-2ubuntu17.6).
+gpg set to manually installed.
+The following NEW packages will be installed:
+  apt-transport-https
+0 upgraded, 1 newly installed, 0 to remove and 6 not upgraded.
+Need to get 3970 B of archives.
+After this operation, 36.9 kB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 apt-transport-https all 2.8.3 [3970 B]
+Fetched 3970 B in 0s (9482 B/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package apt-transport-https.
+(Reading database ... 116732 files and directories currently installed.)
+Preparing to unpack .../apt-transport-https_2.8.3_all.deb ...
+Unpacking apt-transport-https (2.8.3) ...
+Setting up apt-transport-https (2.8.3) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[995]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8w1:~$ sudo mkdir -p -m 755 /etc/apt/keyrings
+ls -ld /etc/apt/keyrings
+drwxr-xr-x 2 root root 4096 Mar 31  2024 /etc/apt/keyrings
+ubuntu@tsb-dev-play-k8w1:~$ curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+ubuntu@tsb-dev-play-k8w1:~$ ls -l /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+-rw-r--r-- 1 root root 1200 Sep  8 10:37 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+ubuntu@tsb-dev-play-k8w1:~$ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+ubuntu@tsb-dev-play-k8w1:~$ cat /etc/apt/sources.list.d/kubernetes.list
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-get update
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Get:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease [1230 B]
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Get:6 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  Packages [16.8 kB]
+Fetched 18.0 kB in 2s (12.0 kB/s)
+Reading package lists... Done
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-get update
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Reading package lists... Done
+ubuntu@tsb-dev-play-k8w1:~$ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Hit:5 http://security.ubuntu.com/ubuntu noble-security InRelease
+Get:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  InRelease [1227 B]
+Get:6 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  Packages [8145 B]
+Fetched 9372 B in 1s (7316 B/s)
+Reading package lists... Done
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  iptables kubernetes-cni libip4tc2 libip6tc2 libjansson4 libnetfilter-conntrack3 libnfnetlink0 libnftables1 libnftnl11 nftables
+Suggested packages:
+  firewalld
+The following NEW packages will be installed:
+  iptables kubeadm kubectl kubelet kubernetes-cni libip4tc2 libip6tc2 libjansson4 libnetfilter-conntrack3 libnfnetlink0 libnftables1 libnftnl11 nftables
+0 upgraded, 13 newly installed, 0 to remove and 6 not upgraded.
+Need to get 77.7 MB of archives.
+After this operation, 296 MB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libip4tc2 amd64 1.8.10-3ubuntu2 [23.3 kB]
+Get:2 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libip6tc2 amd64 1.8.10-3ubuntu2 [23.7 kB]
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libnfnetlink0 amd64 1.0.2-2build1 [14.8 kB]
+Get:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubeadm 1.36.4-1.1 [12.6 MB]
+Get:5 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libnetfilter-conntrack3 amd64 1.0.9-6build1 [45.2 kB]
+Get:6 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubectl 1.36.4-1.1 [11.8 MB]
+Get:7 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libnftnl11 amd64 1.2.6-2build1 [66.0 kB]
+Get:8 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubernetes-cni 1.9.1-1.1 [39.0 MB]
+Get:10 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 iptables amd64 1.8.10-3ubuntu2 [381 kB]
+Get:11 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libjansson4 amd64 2.14-2build2 [32.8 kB]
+Get:12 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 libnftables1 amd64 1.0.9-1ubuntu0.1 [359 kB]
+Get:13 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 nftables amd64 1.0.9-1ubuntu0.1 [69.8 kB]
+Get:9 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  kubelet 1.36.4-1.1 [13.4 MB]
+Fetched 77.7 MB in 2s (40.5 MB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package libip4tc2:amd64.
+(Reading database ... 116736 files and directories currently installed.)
+Preparing to unpack .../00-libip4tc2_1.8.10-3ubuntu2_amd64.deb ...
+Unpacking libip4tc2:amd64 (1.8.10-3ubuntu2) ...
+Selecting previously unselected package libip6tc2:amd64.
+Preparing to unpack .../01-libip6tc2_1.8.10-3ubuntu2_amd64.deb ...
+Unpacking libip6tc2:amd64 (1.8.10-3ubuntu2) ...
+Selecting previously unselected package libnfnetlink0:amd64.
+Preparing to unpack .../02-libnfnetlink0_1.0.2-2build1_amd64.deb ...
+Unpacking libnfnetlink0:amd64 (1.0.2-2build1) ...
+Selecting previously unselected package libnetfilter-conntrack3:amd64.
+Preparing to unpack .../03-libnetfilter-conntrack3_1.0.9-6build1_amd64.deb ...
+Unpacking libnetfilter-conntrack3:amd64 (1.0.9-6build1) ...
+Selecting previously unselected package libnftnl11:amd64.
+Preparing to unpack .../04-libnftnl11_1.2.6-2build1_amd64.deb ...
+Unpacking libnftnl11:amd64 (1.2.6-2build1) ...
+Selecting previously unselected package iptables.
+Preparing to unpack .../05-iptables_1.8.10-3ubuntu2_amd64.deb ...
+Unpacking iptables (1.8.10-3ubuntu2) ...
+Selecting previously unselected package libjansson4:amd64.
+Preparing to unpack .../06-libjansson4_2.14-2build2_amd64.deb ...
+Unpacking libjansson4:amd64 (2.14-2build2) ...
+Selecting previously unselected package libnftables1:amd64.
+Preparing to unpack .../07-libnftables1_1.0.9-1ubuntu0.1_amd64.deb ...
+Unpacking libnftables1:amd64 (1.0.9-1ubuntu0.1) ...
+Selecting previously unselected package nftables.
+Preparing to unpack .../08-nftables_1.0.9-1ubuntu0.1_amd64.deb ...
+Unpacking nftables (1.0.9-1ubuntu0.1) ...
+Selecting previously unselected package kubeadm.
+Preparing to unpack .../09-kubeadm_1.36.4-1.1_amd64.deb ...
+Unpacking kubeadm (1.36.4-1.1) ...
+Selecting previously unselected package kubectl.
+Preparing to unpack .../10-kubectl_1.36.4-1.1_amd64.deb ...
+Unpacking kubectl (1.36.4-1.1) ...
+Selecting previously unselected package kubernetes-cni.
+Preparing to unpack .../11-kubernetes-cni_1.9.1-1.1_amd64.deb ...
+Unpacking kubernetes-cni (1.9.1-1.1) ...
+Selecting previously unselected package kubelet.
+Preparing to unpack .../12-kubelet_1.36.4-1.1_amd64.deb ...
+Unpacking kubelet (1.36.4-1.1) ...
+Setting up libip4tc2:amd64 (1.8.10-3ubuntu2) ...
+Setting up kubeadm (1.36.4-1.1) ...
+Setting up libip6tc2:amd64 (1.8.10-3ubuntu2) ...
+Setting up libnftnl11:amd64 (1.2.6-2build1) ...
+Setting up libjansson4:amd64 (2.14-2build2) ...
+Setting up kubectl (1.36.4-1.1) ...
+Setting up libnfnetlink0:amd64 (1.0.2-2build1) ...
+Setting up kubernetes-cni (1.9.1-1.1) ...
+Setting up libnftables1:amd64 (1.0.9-1ubuntu0.1) ...
+Setting up nftables (1.0.9-1ubuntu0.1) ...
+Setting up libnetfilter-conntrack3:amd64 (1.0.9-6build1) ...
+Setting up iptables (1.8.10-3ubuntu2) ...
+update-alternatives: using /usr/sbin/iptables-legacy to provide /usr/sbin/iptables (iptables) in auto mode
+update-alternatives: using /usr/sbin/ip6tables-legacy to provide /usr/sbin/ip6tables (ip6tables) in auto mode
+update-alternatives: using /usr/sbin/iptables-nft to provide /usr/sbin/iptables (iptables) in auto mode
+update-alternatives: using /usr/sbin/ip6tables-nft to provide /usr/sbin/ip6tables (ip6tables) in auto mode
+update-alternatives: using /usr/sbin/arptables-nft to provide /usr/sbin/arptables (arptables) in auto mode
+update-alternatives: using /usr/sbin/ebtables-nft to provide /usr/sbin/ebtables (ebtables) in auto mode
+Setting up kubelet (1.36.4-1.1) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.8) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[995]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-mark hold kubelet kubeadm kubectl
+kubelet set on hold.
+kubeadm set on hold.
+kubectl set on hold.
+ubuntu@tsb-dev-play-k8w1:~$ sudo systemctl enable --now kubelet
+ubuntu@tsb-dev-play-k8w1:~$
+ubuntu@tsb-dev-play-k8w1:~$ kubeadm version
+kubeadm version: &version.Info{Major:"1", Minor:"36", EmulationMajor:"", EmulationMinor:"", MinCompatibilityMajor:"", MinCompatibilityMinor:"", GitVersion:"v1.36.4", GitCommit:"bb826b1d48562f110659e64e8ec444327433db95", GitTreeState:"clean", BuildDate:"2026-08-20T03:08:41Z", GoVersion:"go1.26.5", Compiler:"gc", Platform:"linux/amd64"}
+ubuntu@tsb-dev-play-k8w1:~$ kubelet --version
+Kubernetes v1.36.4
+ubuntu@tsb-dev-play-k8w1:~$ kubectl version --client
+Client Version: v1.36.4
+Kustomize Version: v5.8.1
+ubuntu@tsb-dev-play-k8w1:~$ apt-mark showhold | grep -E 'kubelet|kubeadm|kubectl'
+kubeadm
+kubectl
+kubelet
+
+
+
+
+
+
+
+
 
