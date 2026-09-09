@@ -154,6 +154,130 @@ sudo kubeadm join 172.30.7.131:6443 \
 verification 
 kubectl create deployment nginx-test --image=nginx
 kubectl get pods -o wide
+**************************************
+changing the version of kubernetes to v1.34.9 and High availability 
+
+step1 
+master1
+sudo kubeadm reset -f
+sudo rm -rf /etc/cni/net.d
+sudo rm -rf $HOME/.kube
+
+step2
+master2 
+sudo kubeadm reset -f
+sudo rm -rf /etc/cni/net.d
+sudo rm -rf $HOME/.kube
+
+step3 
+worker1 
+sudo kubeadm reset -f
+sudo rm -rf /etc/cni/net.d
+
+verify 
+ls -la /etc/cni/net.d
+---
+Installs the tools needed to securely use the Kubernetes package repository.
+step4 
+master1 ,master2,worker1 
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+
+step5
+kubernetes signing key 
+sudo mkdir -p -m 755 /etc/apt/keyrings
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key \
+| sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+step5
+kubernetes v1.34 repository add 
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /' \
+| sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+
+step6 
+check the version is available on reposirory 
+apt-cache madison kubeadm
+
+step7 
+install k8s packages 
+sudo apt-get install -y --allow-downgrades \
+kubelet=1.34.9-1.1 \
+kubeadm=1.34.9-1.1 \
+kubectl=1.34.9-1.1
+
+then hold package 
+sudo apt-mark hold kubelet kubeadm kubectl
+
+verify 
+kubeadm version
+kubelet --version
+kubectl version --client
+
+step8
+master1,master2
+Configure Kubernetes HA Virtual IP
+Install HA components
+sudo apt update
+sudo apt install -y haproxy keepalived
+enable 
+sudo systemctl enable haproxy
+sudo systemctl enable keepalived
+
+verify 
+haproxy -v
+keepalived --version
+
+step9 
+Configure Keepalived for the Kubernetes VIP
+master1,master2 
+sudo cp /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf.bak
+sudo nano /etc/keepalived/keepalived.conf
+vrrp_instance VI_1 {
+    state MASTER
+    interface ens160
+    virtual_router_id 51
+    priority 150
+    advert_int 1
+
+    authentication {
+        auth_type PASS
+        auth_pass kubeha
+    }
+
+    virtual_ipaddress {
+        172.30.7.130/24
+    }
+}
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface ens160
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+
+    authentication {
+        auth_type PASS
+        auth_pass kubeha
+    }
+
+    virtual_ipaddress {
+        172.30.7.130/24
+    }
+}
+
+check config and enable 
+sudo keepalived -t -f /etc/keepalived/keepalived.conf
+sudo systemctl enable --now keepalived
+
+verify 
+systemctl is-active keepalived
+sudo journalctl -u keepalived --no-pager -n 20
+
 
 
 
@@ -648,6 +772,419 @@ ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
 NAME                         READY   STATUS    RESTARTS   AGE    IP                NODE                NOMINATED NODE   READINESS GATES
 nginx-test-c8697b5cc-hpc5j   1/1     Running   0          3m3s   192.168.228.129   tsb-dev-play-k8w1   <none>           <none>
 ubuntu@tsb-dev-play-k8m1:~$
+CNI plugin configuration,
+network filtering rules and kubeconfig files.
+ubuntu@tsb-dev-play-k8m1:~$ sudo kubeadm reset -f
+sudo rm -rf /etc/cni/net.d
+sudo rm -rf $HOME/.kube
+[sudo] password for ubuntu:
+[reset] Reading configuration from the "kubeadm-config" ConfigMap in namespace "kube-system"...
+[reset] Use 'kubeadm init phase upload-config kubeadm --config your-config-file' to re-upload it.
+[preflight] Running pre-flight checks
+[reset] Deleted contents of the etcd data directory: /var/lib/etcd
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+E0909 06:42:40.926916 1194106 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab"
+E0909 06:42:41.011336 1194106 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab"
+E0909 06:42:41.231192 1194106 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab\": plugin type=\"calico\" failed (delete): Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/ipamhandles/k8s-pod-network.9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab"
+E0909 06:42:41.341429 1194106 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab"
+E0909 06:42:41.421041 1194106 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab"
+E0909 06:42:42.581489 1194106 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94"
+E0909 06:42:42.776124 1194106 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94\": plugin type=\"calico\" failed (delete): Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/ipamhandles/k8s-pod-network.e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94"
+E0909 06:42:42.840322 1194106 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94"
+E0909 06:42:42.914500 1194106 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94"
+E0909 06:42:42.987785 1194106 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94"
+W0909 06:42:42.988968 1194106 cleanupnode.go:105] [reset] Failed to remove containers: [failed to stop running pod 9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab: rpc error: code = Unknown desc = failed to destroy network for sandbox "9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab": plugin type="calico" failed (delete): error getting ClusterInformation: Get "https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default": dial tcp 10.96.0.1:443: connect: connection refused, failed to stop running pod e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94: rpc error: code = Unknown desc = failed to destroy network for sandbox "e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94": plugin type="calico" failed (delete): error getting ClusterInformation: Get "https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default": dial tcp 10.96.0.1:443: connect: connection refused]
+[reset] Deleting contents of directories: [/etc/kubernetes/manifests /var/lib/kubelet /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+
+The reset process does not perform cleanup of CNI plugin configuration,
+network filtering rules and kubeconfig files.
+
+For information on how to perform this cleanup manually, please see:
+    https://k8s.io/docs/reference/setup-tools/kubeadm/kubeadm-reset/
+
+ubuntu@tsb-dev-play-k8m1:~$ sudo kubeadm reset -f
+[preflight] Running pre-flight checks
+W0909 06:44:17.235708 1194903 removeetcdmember.go:105] [reset] No kubeadm config, using etcd pod spec to get data directory
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+E0909 06:44:17.259914 1194903 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab\": cni plugin not initialized" podSandboxID="9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab"
+E0909 06:44:17.261100 1194903 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab\": cni plugin not initialized" podSandboxID="9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab"
+E0909 06:44:17.262259 1194903 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab\": cni plugin not initialized" podSandboxID="9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab"
+E0909 06:44:17.263353 1194903 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab\": cni plugin not initialized" podSandboxID="9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab"
+E0909 06:44:17.264893 1194903 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab\": cni plugin not initialized" podSandboxID="9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab"
+E0909 06:44:17.265947 1194903 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94\": cni plugin not initialized" podSandboxID="e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94"
+E0909 06:44:17.267147 1194903 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94\": cni plugin not initialized" podSandboxID="e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94"
+E0909 06:44:17.268259 1194903 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94\": cni plugin not initialized" podSandboxID="e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94"
+E0909 06:44:17.269417 1194903 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94\": cni plugin not initialized" podSandboxID="e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94"
+E0909 06:44:17.270637 1194903 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94\": cni plugin not initialized" podSandboxID="e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94"
+W0909 06:44:17.271646 1194903 cleanupnode.go:105] [reset] Failed to remove containers: [failed to stop running pod 9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab: rpc error: code = Unknown desc = failed to destroy network for sandbox "9d98b2c65be56fd239552e4edb5259ee836b2bf1c8a780c63571b958c09d34ab": cni plugin not initialized, failed to stop running pod e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94: rpc error: code = Unknown desc = failed to destroy network for sandbox "e1c8a9c33a2dc390f5e794b18240b9324248ae3a0977275b70deb29c1d34ea94": cni plugin not initialized]
+[reset] Deleting contents of directories: [/etc/kubernetes/manifests /var/lib/kubelet /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+
+The reset process does not perform cleanup of CNI plugin configuration,
+network filtering rules and kubeconfig files.
+
+For information on how to perform this cleanup manually, please see:
+    https://k8s.io/docs/reference/setup-tools/kubeadm/kubeadm-reset/
+
+ubuntu@tsb-dev-play-k8m1:~$ sudo rm -rf /etc/cni/net.d
+ubuntu@tsb-dev-play-k8m1:~$ ls -la /etc/cni/net.d
+ls: cannot open directory '/etc/cni/net.d': Permission denied
+ubuntu@tsb-dev-play-k8m1:~$ sudo ls -la /etc/cni/net.d
+total 8
+drwx------ 2 root root 4096 Sep  9 06:48 .
+drwxr-xr-x 3 root root 4096 Sep  9 06:48 ..
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+[sudo] password for ubuntu:
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Get:3 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Hit:2 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  InRelease
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:6 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [1005 kB]
+Get:7 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1260 kB]
+Get:8 http://security.ubuntu.com/ubuntu noble-security/main Translation-en [213 kB]
+Get:9 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [181 kB]
+Get:10 http://security.ubuntu.com/ubuntu noble-security/main amd64 Components [46.5 kB]
+Get:11 http://ae.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1536 kB]
+Get:12 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1441 kB]
+Get:13 http://security.ubuntu.com/ubuntu noble-security/restricted Translation-en [334 kB]
+Get:14 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1690 kB]
+Get:15 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.3 kB]
+Get:16 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:17 http://ae.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:18 http://ae.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5760 B]
+Get:19 http://ae.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+Fetched 8567 kB in 5s (1821 kB/s)
+Reading package lists... Done
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+apt-transport-https is already the newest version (2.8.3).
+ca-certificates is already the newest version (20260601~24.04.1).
+curl is already the newest version (8.5.0-2ubuntu10.13).
+gpg is already the newest version (2.4.4-2ubuntu17.6).
+0 upgraded, 0 newly installed, 0 to remove and 6 not upgraded.
+ubuntu@tsb-dev-play-k8m1:~$ kubernetes signing key
+sudo mkdir -p -m 755 /etc/apt/keyrings
+-bash: kubernetes: command not found
+ubuntu@tsb-dev-play-k8m1:~$ kubernetes signing key
+sudo mkdir -p -m 755 /etc/apt/keyrings
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key \
+| sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+-bash: kubernetes: command not found
+File '/etc/apt/keyrings/kubernetes-apt-keyring.gpg' exists. Overwrite? (y/N) yes
+ubuntu@tsb-dev-play-k8m1:~$ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /' \
+| sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Get:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease [1230 B]
+Get:6 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  Packages [16.8 kB]
+Fetched 18.0 kB in 2s (11.7 kB/s)
+Reading package lists... Done
+ubuntu@tsb-dev-play-k8m1:~$ apt-cache madison kubeadm
+   kubeadm | 1.34.11-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.10-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.9-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.8-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.7-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.6-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.5-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.4-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.3-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.2-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.1-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.0-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-get install -y \
+kubelet=1.34.9-* \
+kubeadm=1.34.9-* \
+kubectl=1.34.9-*
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+Selected version '1.34.9-1.1' (isv:kubernetes:core:stable:v1.34:pkgs.k8s.io [amd64]) for 'kubelet'
+Selected version '1.34.9-1.1' (isv:kubernetes:core:stable:v1.34:pkgs.k8s.io [amd64]) for 'kubeadm'
+Selected version '1.34.9-1.1' (isv:kubernetes:core:stable:v1.34:pkgs.k8s.io [amd64]) for 'kubectl'
+The following held packages will be changed:
+  kubeadm kubectl kubelet
+The following packages will be DOWNGRADED:
+  kubeadm kubectl kubelet
+0 upgraded, 0 newly installed, 3 downgraded, 0 to remove and 6 not upgraded.
+E: Packages were downgraded and -y was used without --allow-downgrades.
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-mark hold kubelet kubeadm kubectl
+kubelet was already set on hold.
+kubeadm was already set on hold.
+kubectl was already set on hold.
+ubuntu@tsb-dev-play-k8m1:~$ kubeadm version
+kubelet --version
+kubectl version --client
+kubeadm version: &version.Info{Major:"1", Minor:"36", EmulationMajor:"", EmulationMinor:"", MinCompatibilityMajor:"", MinCompatibilityMinor:"", GitVersion:"v1.36.4", GitCommit:"bb826b1d48562f110659e64e8ec444327433db95", GitTreeState:"clean", BuildDate:"2026-08-20T03:08:41Z", GoVersion:"go1.26.5", Compiler:"gc", Platform:"linux/amd64"}
+Kubernetes v1.36.4
+Client Version: v1.36.4
+Kustomize Version: v5.8.1
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-mark unhold kubelet kubeadm kubectl
+Canceled hold on kubelet.
+Canceled hold on kubeadm.
+Canceled hold on kubectl.
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-get install -y --allow-downgrades \
+kubelet=1.34.9-1.1 \
+kubeadm=1.34.9-1.1 \
+kubectl=1.34.9-1.1
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following packages will be DOWNGRADED:
+  kubeadm kubectl kubelet
+0 upgraded, 0 newly installed, 3 downgraded, 0 to remove and 6 not upgraded.
+Need to get 37.5 MB of archives.
+After this operation, 1622 kB of additional disk space will be used.
+Get:1 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  kubeadm 1.34.9-1.1 [12.6 MB]
+Get:2 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  kubectl 1.34.9-1.1 [11.8 MB]
+Get:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  kubelet 1.34.9-1.1 [13.1 MB]
+Fetched 37.5 MB in 6s (6353 kB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+dpkg: warning: downgrading kubeadm from 1.36.4-1.1 to 1.34.9-1.1
+(Reading database ... 117066 files and directories currently installed.)
+Preparing to unpack .../kubeadm_1.34.9-1.1_amd64.deb ...
+Unpacking kubeadm (1.34.9-1.1) over (1.36.4-1.1) ...
+dpkg: warning: downgrading kubectl from 1.36.4-1.1 to 1.34.9-1.1
+Preparing to unpack .../kubectl_1.34.9-1.1_amd64.deb ...
+Unpacking kubectl (1.34.9-1.1) over (1.36.4-1.1) ...
+dpkg: warning: downgrading kubelet from 1.36.4-1.1 to 1.34.9-1.1
+Preparing to unpack .../kubelet_1.34.9-1.1_amd64.deb ...
+Unpacking kubelet (1.34.9-1.1) over (1.36.4-1.1) ...
+Setting up kubeadm (1.34.9-1.1) ...
+Setting up kubectl (1.34.9-1.1) ...
+Setting up kubelet (1.34.9-1.1) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[956]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt-mark hold kubelet kubeadm kubectl
+kubelet set on hold.
+kubeadm set on hold.
+kubectl set on hold.
+ubuntu@tsb-dev-play-k8m1:~$ kubeadm version
+kubelet --version
+kubectl version --client
+kubeadm version: &version.Info{Major:"1", Minor:"34", EmulationMajor:"", EmulationMinor:"", MinCompatibilityMajor:"", MinCompatibilityMinor:"", GitVersion:"v1.34.9", GitCommit:"ad7c7374b74c04d07ea041d367ecb1a526bdf758", GitTreeState:"clean", BuildDate:"2026-06-11T17:39:19Z", GoVersion:"go1.25.11", Compiler:"gc", Platform:"linux/amd64"}
+Kubernetes v1.34.9
+Client Version: v1.34.9
+Kustomize Version: v5.7.1
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt update
+sudo apt install -y haproxy keepalived
+[sudo] password for ubuntu:
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:3 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Hit:4 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+9 packages can be upgraded. Run 'apt list --upgradable' to see them.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  ipvsadm liblua5.4-0 libsensors-config libsensors5 libsnmp-base libsnmp40t64
+Suggested packages:
+  vim-haproxy haproxy-doc heartbeat ldirectord lm-sensors snmp-mibs-downloader
+The following NEW packages will be installed:
+  haproxy ipvsadm keepalived liblua5.4-0 libsensors-config libsensors5 libsnmp-base libsnmp40t64
+0 upgraded, 8 newly installed, 0 to remove and 9 not upgraded.
+Need to get 4041 kB of archives.
+After this operation, 11.3 MB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 liblua5.4-0 amd64 5.4.6-3build2 [166 kB]
+Get:2 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 haproxy amd64 2.8.16-0ubuntu0.24.04.3 [2070 kB]
+Get:3 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libsensors-config all 1:3.6.0-9build1 [5546 B]
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libsensors5 amd64 1:3.6.0-9build1 [26.6 kB]
+Get:5 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsnmp-base all 5.9.4+dfsg-1.1ubuntu3.2 [206 kB]
+Get:6 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsnmp40t64 amd64 5.9.4+dfsg-1.1ubuntu3.2 [1066 kB]
+Get:7 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 keepalived amd64 1:2.2.8-1build2 [460 kB]
+Get:8 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 ipvsadm amd64 1:1.31-1ubuntu0.1 [40.3 kB]
+Fetched 4041 kB in 4s (1140 kB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package liblua5.4-0:amd64.
+(Reading database ... 117066 files and directories currently installed.)
+Preparing to unpack .../0-liblua5.4-0_5.4.6-3build2_amd64.deb ...
+Unpacking liblua5.4-0:amd64 (5.4.6-3build2) ...
+Selecting previously unselected package haproxy.
+Preparing to unpack .../1-haproxy_2.8.16-0ubuntu0.24.04.3_amd64.deb ...
+Unpacking haproxy (2.8.16-0ubuntu0.24.04.3) ...
+Selecting previously unselected package libsensors-config.
+Preparing to unpack .../2-libsensors-config_1%3a3.6.0-9build1_all.deb ...
+Unpacking libsensors-config (1:3.6.0-9build1) ...
+Selecting previously unselected package libsensors5:amd64.
+Preparing to unpack .../3-libsensors5_1%3a3.6.0-9build1_amd64.deb ...
+Unpacking libsensors5:amd64 (1:3.6.0-9build1) ...
+Selecting previously unselected package libsnmp-base.
+Preparing to unpack .../4-libsnmp-base_5.9.4+dfsg-1.1ubuntu3.2_all.deb ...
+Unpacking libsnmp-base (5.9.4+dfsg-1.1ubuntu3.2) ...
+Selecting previously unselected package libsnmp40t64:amd64.
+Preparing to unpack .../5-libsnmp40t64_5.9.4+dfsg-1.1ubuntu3.2_amd64.deb ...
+Unpacking libsnmp40t64:amd64 (5.9.4+dfsg-1.1ubuntu3.2) ...
+Selecting previously unselected package keepalived.
+Preparing to unpack .../6-keepalived_1%3a2.2.8-1build2_amd64.deb ...
+Unpacking keepalived (1:2.2.8-1build2) ...
+Selecting previously unselected package ipvsadm.
+Preparing to unpack .../7-ipvsadm_1%3a1.31-1ubuntu0.1_amd64.deb ...
+Unpacking ipvsadm (1:1.31-1ubuntu0.1) ...
+Setting up ipvsadm (1:1.31-1ubuntu0.1) ...
+Setting up libsnmp-base (5.9.4+dfsg-1.1ubuntu3.2) ...
+Setting up libsensors-config (1:3.6.0-9build1) ...
+Setting up libsensors5:amd64 (1:3.6.0-9build1) ...
+Setting up liblua5.4-0:amd64 (5.4.6-3build2) ...
+Setting up libsnmp40t64:amd64 (5.9.4+dfsg-1.1ubuntu3.2) ...
+Setting up keepalived (1:2.2.8-1build2) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/keepalived.service → /usr/lib/systemd/system/keepalived.service.
+Setting up haproxy (2.8.16-0ubuntu0.24.04.3) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/haproxy.service → /usr/lib/systemd/system/haproxy.service.
+Processing triggers for libc-bin (2.39-0ubuntu8.8) ...
+Processing triggers for dbus (1.14.10-4ubuntu4.1) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[956]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m1:~$ sudo systemctl enable haproxy
+sudo systemctl enable keepalived
+Synchronizing state of haproxy.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable haproxy
+Synchronizing state of keepalived.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable keepalived
+ubuntu@tsb-dev-play-k8m1:~$ haproxy -v
+keepalived --version
+HAProxy version 2.8.16-0ubuntu0.24.04.3 2026/06/19 - https://haproxy.org/
+Status: long-term supported branch - will stop receiving fixes around Q2 2028.
+Known bugs: http://www.haproxy.org/bugs/bugs-2.8.16.html
+Running on: Linux 6.8.0-138-generic #138-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 31 22:41:49 UTC 2026 x86_64
+Keepalived v2.2.8 (04/04,2023), git commit v2.2.7-154-g292b299e+
+
+Copyright(C) 2001-2023 Alexandre Cassen, <acassen@gmail.com>
+
+Built with kernel headers for Linux 6.8.0
+Running on Linux 6.8.0-138-generic #138-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 31 22:41:49 UTC 2026
+Distro: Ubuntu 24.04.4 LTS
+
+configure options: --build=x86_64-linux-gnu --prefix=/usr --includedir=${prefix}/include --mandir=${prefix}/share/man --infodir=${prefix}/share/info --sysconfdir=/etc --localstatedir=/var --disable-option-checking --disable-silent-rules --libdir=${prefix}/lib/x86_64-linux-gnu --runstatedir=/run --disable-maintainer-mode --disable-dependency-tracking --enable-snmp --enable-sha1 --enable-snmp-rfcv2 --enable-snmp-rfcv3 --enable-dbus --enable-json --enable-bfd --enable-regex --with-init=systemd build_alias=x86_64-linux-gnu CFLAGS=-g -O2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer  -flto=auto -ffat-lto-objects -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -fdebug-prefix-map=/build/keepalived-F53vvG/keepalived-2.2.8=/usr/src/keepalived-1:2.2.8-1build2 LDFLAGS=-Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -Wl,-z,relro CPPFLAGS=-Wdate-time -D_FORTIFY_SOURCE=3
+
+Config options:  NFTABLES LVS REGEX VRRP VRRP_AUTH VRRP_VMAC JSON BFD OLD_CHKSUM_COMPAT SNMP_V3_FOR_V2 SNMP_VRRP SNMP_CHECKER SNMP_RFCV2 SNMP_RFCV3 DBUS INIT=systemd SYSTEMD_NOTIFY
+
+System options:  VSYSLOG MEMFD_CREATE IPV6_MULTICAST_ALL IPV4_DEVCONF LIBNL3 RTA_ENCAP RTA_EXPIRES RTA_NEWDST RTA_PREF FRA_SUPPRESS_PREFIXLEN FRA_SUPPRESS_IFGROUP FRA_TUN_ID RTAX_CC_ALGO RTAX_QUICKACK RTEXT_FILTER_SKIP_STATS FRA_L3MDEV FRA_UID_RANGE RTAX_FASTOPEN_NO_COOKIE RTA_VIA FRA_PROTOCOL FRA_IP_PROTO FRA_SPORT_RANGE FRA_DPORT_RANGE RTA_TTL_PROPAGATE IFA_FLAGS LWTUNNEL_ENCAP_MPLS LWTUNNEL_ENCAP_ILA NET_LINUX_IF_H_COLLISION LIBIPVS_NETLINK IPVS_DEST_ATTR_ADDR_FAMILY IPVS_SYNCD_ATTRIBUTES IPVS_64BIT_STATS IPVS_TUN_TYPE IPVS_TUN_CSUM IPVS_TUN_GRE VRRP_IPVLAN IFLA_LINK_NETNSID GLOB_BRACE GLOB_ALTDIRFUNC INET6_ADDR_GEN_MODE VRF SO_MARK
+ubuntu@tsb-dev-play-k8m1:~$ ip -br addr
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+ens160           UP             172.30.7.131/24 fe80::250:56ff:feb8:2485/64
+tunl0@NONE       UNKNOWN        192.168.18.128/32
+ubuntu@tsb-dev-play-k8m1:~$ sudo cp /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf.bak
+sudo nano /etc/keepalived/keepalived.conf
+cp: cannot stat '/etc/keepalived/keepalived.conf': No such file or directory
+sudo: nano: command not found
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt update && sudo apt install nano -y
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Hit:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+9 packages can be upgraded. Run 'apt list --upgradable' to see them.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+Suggested packages:
+  hunspell
+The following NEW packages will be installed:
+  nano
+0 upgraded, 1 newly installed, 0 to remove and 9 not upgraded.
+Need to get 282 kB of archives.
+After this operation, 856 kB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 nano amd64 7.2-2ubuntu0.2 [282 kB]
+Fetched 282 kB in 1s (194 kB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package nano.
+(Reading database ... 117369 files and directories currently installed.)
+Preparing to unpack .../nano_7.2-2ubuntu0.2_amd64.deb ...
+Unpacking nano (7.2-2ubuntu0.2) ...
+Setting up nano (7.2-2ubuntu0.2) ...
+update-alternatives: using /bin/nano to provide /usr/bin/editor (editor) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/man1/editor.1.gz because associated file /usr/share/man/man1/nano.1.gz (of link group editor) doesn't exist
+update-alternatives: using /bin/nano to provide /usr/bin/pico (pico) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/man1/pico.1.gz because associated file /usr/share/man/man1/nano.1.gz (of link group pico) doesn't exist
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[956]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
 
 
 
@@ -1166,6 +1703,380 @@ ubuntu@tsb-dev-play-k8m2:~$ kubectl get nodes
 NAME                STATUS   ROLES           AGE   VERSION
 tsb-dev-play-k8m1   Ready    control-plane   60m   v1.36.4
 tsb-dev-play-k8m2   Ready    control-plane   71s   v1.36.4
+ubuntu@tsb-dev-play-k8m2:~$ sudo kubeadm reset -f
+sudo rm -rf /etc/cni/net.d
+sudo rm -rf $HOME/.kube
+[sudo] password for ubuntu:
+Sorry, try again.
+[sudo] password for ubuntu:
+[reset] Reading configuration from the "kubeadm-config" ConfigMap in namespace "kube-system"...
+[reset] Use 'kubeadm init phase upload-config kubeadm --config your-config-file' to re-upload it.
+W0909 06:43:18.637602  880282 reset.go:141] [reset] Unable to fetch the kubeadm-config ConfigMap from cluster: failed to get config map: Get "https://172.30.7.131:6443/api/v1/namespaces/kube-system/configmaps/kubeadm-config?timeout=10s": dial tcp 172.30.7.131:6443: connect: connection refused
+[preflight] Running pre-flight checks
+W0909 06:43:18.637834  880282 removeetcdmember.go:105] [reset] No kubeadm config, using etcd pod spec to get data directory
+[reset] Deleted contents of the etcd data directory: /var/lib/etcd
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+[reset] Deleting contents of directories: [/etc/kubernetes/manifests /var/lib/kubelet /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+
+The reset process does not perform cleanup of CNI plugin configuration,
+network filtering rules and kubeconfig files.
+
+For information on how to perform this cleanup manually, please see:
+    https://k8s.io/docs/reference/setup-tools/kubeadm/kubeadm-reset/
+
+ubuntu@tsb-dev-play-k8m2:~$ sudo kubeadm reset -f
+[preflight] Running pre-flight checks
+W0909 06:44:29.426285  880705 removeetcdmember.go:105] [reset] No kubeadm config, using etcd pod spec to get data directory
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+[reset] Deleting contents of directories: [/etc/kubernetes/manifests /var/lib/kubelet /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+
+The reset process does not perform cleanup of CNI plugin configuration,
+network filtering rules and kubeconfig files.
+
+For information on how to perform this cleanup manually, please see:
+    https://k8s.io/docs/reference/setup-tools/kubeadm/kubeadm-reset/
+
+ubuntu@tsb-dev-play-k8m2:~$ sudo rm -rf /etc/cni/net.d
+ubuntu@tsb-dev-play-k8m2:~$ sudo ls -la /etc/cni/net.d
+total 8
+drwx------ 2 root root 4096 Sep  9 06:48 .
+drwxr-xr-x 3 root root 4096 Sep  9 06:48 ..
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+[sudo] password for ubuntu:
+Sorry, try again.
+[sudo] password for ubuntu:
+Sorry, try again.
+[sudo] password for ubuntu:
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  InRelease
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Reading package lists... Done
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+apt-transport-https is already the newest version (2.8.3).
+ca-certificates is already the newest version (20260601~24.04.1).
+curl is already the newest version (8.5.0-2ubuntu10.13).
+gpg is already the newest version (2.4.4-2ubuntu17.6).
+0 upgraded, 0 newly installed, 0 to remove and 6 not upgraded.
+ubuntu@tsb-dev-play-k8m2:~$ sudo mkdir -p -m 755 /etc/apt/keyrings
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key \
+| sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+File '/etc/apt/keyrings/kubernetes-apt-keyring.gpg' exists. Overwrite? (y/N) yes
+ubuntu@tsb-dev-play-k8m2:~$ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /' \
+| sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Get:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease [1230 B]
+Get:6 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  Packages [16.8 kB]
+Fetched 18.0 kB in 1s (12.1 kB/s)
+Reading package lists... Done
+ubuntu@tsb-dev-play-k8m2:~$ apt-cache madison kubeadm
+   kubeadm | 1.34.11-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.10-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.9-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.8-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.7-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.6-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.5-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.4-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.3-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.2-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.1-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.0-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt-get install -y \
+kubelet=1.34.9-* \
+kubeadm=1.34.9-* \
+kubectl=1.34.9-*
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+Selected version '1.34.9-1.1' (isv:kubernetes:core:stable:v1.34:pkgs.k8s.io [amd64]) for 'kubelet'
+Selected version '1.34.9-1.1' (isv:kubernetes:core:stable:v1.34:pkgs.k8s.io [amd64]) for 'kubeadm'
+Selected version '1.34.9-1.1' (isv:kubernetes:core:stable:v1.34:pkgs.k8s.io [amd64]) for 'kubectl'
+The following held packages will be changed:
+  kubeadm kubectl kubelet
+The following packages will be DOWNGRADED:
+  kubeadm kubectl kubelet
+0 upgraded, 0 newly installed, 3 downgraded, 0 to remove and 6 not upgraded.
+E: Packages were downgraded and -y was used without --allow-downgrades.
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt-mark hold kubelet kubeadm kubectl
+kubelet was already set on hold.
+kubeadm was already set on hold.
+kubectl was already set on hold.
+ubuntu@tsb-dev-play-k8m2:~$ kubeadm version
+kubelet --version
+kubectl version --client
+kubeadm version: &version.Info{Major:"1", Minor:"36", EmulationMajor:"", EmulationMinor:"", MinCompatibilityMajor:"", MinCompatibilityMinor:"", GitVersion:"v1.36.4", GitCommit:"bb826b1d48562f110659e64e8ec444327433db95", GitTreeState:"clean", BuildDate:"2026-08-20T03:08:41Z", GoVersion:"go1.26.5", Compiler:"gc", Platform:"linux/amd64"}
+Kubernetes v1.36.4
+Client Version: v1.36.4
+Kustomize Version: v5.8.1
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt-mark unhold kubelet kubeadm kubectl
+Canceled hold on kubelet.
+Canceled hold on kubeadm.
+Canceled hold on kubectl.
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt-get install -y --allow-downgrades \
+kubelet=1.34.9-1.1 \
+kubeadm=1.34.9-1.1 \
+kubectl=1.34.9-1.1
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following packages will be DOWNGRADED:
+  kubeadm kubectl kubelet
+0 upgraded, 0 newly installed, 3 downgraded, 0 to remove and 6 not upgraded.
+Need to get 37.5 MB of archives.
+After this operation, 1622 kB of additional disk space will be used.
+Get:1 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  kubeadm 1.34.9-1.1 [12.6 MB]
+Get:2 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  kubectl 1.34.9-1.1 [11.8 MB]
+Get:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  kubelet 1.34.9-1.1 [13.1 MB]
+Fetched 37.5 MB in 2s (20.4 MB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+dpkg: warning: downgrading kubeadm from 1.36.4-1.1 to 1.34.9-1.1
+(Reading database ... 117066 files and directories currently installed.)
+Preparing to unpack .../kubeadm_1.34.9-1.1_amd64.deb ...
+Unpacking kubeadm (1.34.9-1.1) over (1.36.4-1.1) ...
+dpkg: warning: downgrading kubectl from 1.36.4-1.1 to 1.34.9-1.1
+Preparing to unpack .../kubectl_1.34.9-1.1_amd64.deb ...
+Unpacking kubectl (1.34.9-1.1) over (1.36.4-1.1) ...
+dpkg: warning: downgrading kubelet from 1.36.4-1.1 to 1.34.9-1.1
+Preparing to unpack .../kubelet_1.34.9-1.1_amd64.deb ...
+Unpacking kubelet (1.34.9-1.1) over (1.36.4-1.1) ...
+Setting up kubeadm (1.34.9-1.1) ...
+Setting up kubectl (1.34.9-1.1) ...
+Setting up kubelet (1.34.9-1.1) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[981]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt-mark hold kubelet kubeadm kubectl
+kubelet set on hold.
+kubeadm set on hold.
+kubectl set on hold.
+ubuntu@tsb-dev-play-k8m2:~$ kubeadm version
+kubelet --version
+kubectl version --client
+kubeadm version: &version.Info{Major:"1", Minor:"34", EmulationMajor:"", EmulationMinor:"", MinCompatibilityMajor:"", MinCompatibilityMinor:"", GitVersion:"v1.34.9", GitCommit:"ad7c7374b74c04d07ea041d367ecb1a526bdf758", GitTreeState:"clean", BuildDate:"2026-06-11T17:39:19Z", GoVersion:"go1.25.11", Compiler:"gc", Platform:"linux/amd64"}
+Kubernetes v1.34.9
+Client Version: v1.34.9
+Kustomize Version: v5.7.1
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt update
+sudo apt install -y haproxy keepalived
+[sudo] password for ubuntu:
+Sorry, try again.
+[sudo] password for ubuntu:
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:3 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:4 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+9 packages can be upgraded. Run 'apt list --upgradable' to see them.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  ipvsadm liblua5.4-0 libsensors-config libsensors5 libsnmp-base libsnmp40t64
+Suggested packages:
+  vim-haproxy haproxy-doc heartbeat ldirectord lm-sensors snmp-mibs-downloader
+The following NEW packages will be installed:
+  haproxy ipvsadm keepalived liblua5.4-0 libsensors-config libsensors5 libsnmp-base libsnmp40t64
+0 upgraded, 8 newly installed, 0 to remove and 9 not upgraded.
+Need to get 4041 kB of archives.
+After this operation, 11.3 MB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 liblua5.4-0 amd64 5.4.6-3build2 [166 kB]
+Get:2 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 haproxy amd64 2.8.16-0ubuntu0.24.04.3 [2070 kB]
+Get:3 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libsensors-config all 1:3.6.0-9build1 [5546 B]
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 libsensors5 amd64 1:3.6.0-9build1 [26.6 kB]
+Get:5 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsnmp-base all 5.9.4+dfsg-1.1ubuntu3.2 [206 kB]
+Get:6 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsnmp40t64 amd64 5.9.4+dfsg-1.1ubuntu3.2 [1066 kB]
+Get:7 http://ae.archive.ubuntu.com/ubuntu noble/main amd64 keepalived amd64 1:2.2.8-1build2 [460 kB]
+Get:8 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 ipvsadm amd64 1:1.31-1ubuntu0.1 [40.3 kB]
+Fetched 4041 kB in 3s (1232 kB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package liblua5.4-0:amd64.
+(Reading database ... 117066 files and directories currently installed.)
+Preparing to unpack .../0-liblua5.4-0_5.4.6-3build2_amd64.deb ...
+Unpacking liblua5.4-0:amd64 (5.4.6-3build2) ...
+Selecting previously unselected package haproxy.
+Preparing to unpack .../1-haproxy_2.8.16-0ubuntu0.24.04.3_amd64.deb ...
+Unpacking haproxy (2.8.16-0ubuntu0.24.04.3) ...
+Selecting previously unselected package libsensors-config.
+Preparing to unpack .../2-libsensors-config_1%3a3.6.0-9build1_all.deb ...
+Unpacking libsensors-config (1:3.6.0-9build1) ...
+Selecting previously unselected package libsensors5:amd64.
+Preparing to unpack .../3-libsensors5_1%3a3.6.0-9build1_amd64.deb ...
+Unpacking libsensors5:amd64 (1:3.6.0-9build1) ...
+Selecting previously unselected package libsnmp-base.
+Preparing to unpack .../4-libsnmp-base_5.9.4+dfsg-1.1ubuntu3.2_all.deb ...
+Unpacking libsnmp-base (5.9.4+dfsg-1.1ubuntu3.2) ...
+Selecting previously unselected package libsnmp40t64:amd64.
+Preparing to unpack .../5-libsnmp40t64_5.9.4+dfsg-1.1ubuntu3.2_amd64.deb ...
+Unpacking libsnmp40t64:amd64 (5.9.4+dfsg-1.1ubuntu3.2) ...
+Selecting previously unselected package keepalived.
+Preparing to unpack .../6-keepalived_1%3a2.2.8-1build2_amd64.deb ...
+Unpacking keepalived (1:2.2.8-1build2) ...
+Selecting previously unselected package ipvsadm.
+Preparing to unpack .../7-ipvsadm_1%3a1.31-1ubuntu0.1_amd64.deb ...
+Unpacking ipvsadm (1:1.31-1ubuntu0.1) ...
+Setting up ipvsadm (1:1.31-1ubuntu0.1) ...
+Setting up libsnmp-base (5.9.4+dfsg-1.1ubuntu3.2) ...
+Setting up libsensors-config (1:3.6.0-9build1) ...
+Setting up libsensors5:amd64 (1:3.6.0-9build1) ...
+Setting up liblua5.4-0:amd64 (5.4.6-3build2) ...
+Setting up libsnmp40t64:amd64 (5.9.4+dfsg-1.1ubuntu3.2) ...
+Setting up keepalived (1:2.2.8-1build2) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/keepalived.service → /usr/lib/systemd/system/keepalived.service.
+Setting up haproxy (2.8.16-0ubuntu0.24.04.3) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/haproxy.service → /usr/lib/systemd/system/haproxy.service.
+Processing triggers for libc-bin (2.39-0ubuntu8.8) ...
+Processing triggers for dbus (1.14.10-4ubuntu4.1) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[981]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m2:~$ sudo systemctl enable haproxy
+sudo systemctl enable keepalived
+Synchronizing state of haproxy.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable haproxy
+Synchronizing state of keepalived.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable keepalived
+ubuntu@tsb-dev-play-k8m2:~$ haproxy -v
+keepalived --version
+HAProxy version 2.8.16-0ubuntu0.24.04.3 2026/06/19 - https://haproxy.org/
+Status: long-term supported branch - will stop receiving fixes around Q2 2028.
+Known bugs: http://www.haproxy.org/bugs/bugs-2.8.16.html
+Running on: Linux 6.8.0-138-generic #138-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 31 22:41:49 UTC 2026 x86_64
+Keepalived v2.2.8 (04/04,2023), git commit v2.2.7-154-g292b299e+
+
+Copyright(C) 2001-2023 Alexandre Cassen, <acassen@gmail.com>
+
+Built with kernel headers for Linux 6.8.0
+Running on Linux 6.8.0-138-generic #138-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 31 22:41:49 UTC 2026
+Distro: Ubuntu 24.04.4 LTS
+
+configure options: --build=x86_64-linux-gnu --prefix=/usr --includedir=${prefix}/include --mandir=${prefix}/share/man --infodir=${prefix}/share/info --sysconfdir=/etc --localstatedir=/var --disable-option-checking --disable-silent-rules --libdir=${prefix}/lib/x86_64-linux-gnu --runstatedir=/run --disable-maintainer-mode --disable-dependency-tracking --enable-snmp --enable-sha1 --enable-snmp-rfcv2 --enable-snmp-rfcv3 --enable-dbus --enable-json --enable-bfd --enable-regex --with-init=systemd build_alias=x86_64-linux-gnu CFLAGS=-g -O2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer  -flto=auto -ffat-lto-objects -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -fdebug-prefix-map=/build/keepalived-F53vvG/keepalived-2.2.8=/usr/src/keepalived-1:2.2.8-1build2 LDFLAGS=-Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -Wl,-z,relro CPPFLAGS=-Wdate-time -D_FORTIFY_SOURCE=3
+
+Config options:  NFTABLES LVS REGEX VRRP VRRP_AUTH VRRP_VMAC JSON BFD OLD_CHKSUM_COMPAT SNMP_V3_FOR_V2 SNMP_VRRP SNMP_CHECKER SNMP_RFCV2 SNMP_RFCV3 DBUS INIT=systemd SYSTEMD_NOTIFY
+
+System options:  VSYSLOG MEMFD_CREATE IPV6_MULTICAST_ALL IPV4_DEVCONF LIBNL3 RTA_ENCAP RTA_EXPIRES RTA_NEWDST RTA_PREF FRA_SUPPRESS_PREFIXLEN FRA_SUPPRESS_IFGROUP FRA_TUN_ID RTAX_CC_ALGO RTAX_QUICKACK RTEXT_FILTER_SKIP_STATS FRA_L3MDEV FRA_UID_RANGE RTAX_FASTOPEN_NO_COOKIE RTA_VIA FRA_PROTOCOL FRA_IP_PROTO FRA_SPORT_RANGE FRA_DPORT_RANGE RTA_TTL_PROPAGATE IFA_FLAGS LWTUNNEL_ENCAP_MPLS LWTUNNEL_ENCAP_ILA NET_LINUX_IF_H_COLLISION LIBIPVS_NETLINK IPVS_DEST_ATTR_ADDR_FAMILY IPVS_SYNCD_ATTRIBUTES IPVS_64BIT_STATS IPVS_TUN_TYPE IPVS_TUN_CSUM IPVS_TUN_GRE VRRP_IPVLAN IFLA_LINK_NETNSID GLOB_BRACE GLOB_ALTDIRFUNC INET6_ADDR_GEN_MODE VRF SO_MARK
+ubuntu@tsb-dev-play-k8m2:~$ ip -br addr
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+ens160           UP             172.30.7.132/24 fe80::250:56ff:feb8:8a41/64
+tunl0@NONE       UNKNOWN        192.168.102.64/32
+ubuntu@tsb-dev-play-k8m2:~$ sudo apt update && sudo apt install nano -y
+[sudo] password for ubuntu:
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+9 packages can be upgraded. Run 'apt list --upgradable' to see them.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+Suggested packages:
+  hunspell
+The following NEW packages will be installed:
+  nano
+0 upgraded, 1 newly installed, 0 to remove and 9 not upgraded.
+Need to get 282 kB of archives.
+After this operation, 856 kB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 nano amd64 7.2-2ubuntu0.2 [282 kB]
+Fetched 282 kB in 1s (216 kB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package nano.
+(Reading database ... 117369 files and directories currently installed.)
+Preparing to unpack .../nano_7.2-2ubuntu0.2_amd64.deb ...
+Unpacking nano (7.2-2ubuntu0.2) ...
+Setting up nano (7.2-2ubuntu0.2) ...
+update-alternatives: using /bin/nano to provide /usr/bin/editor (editor) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/man1/editor.1.gz because associated file /usr/share/man/man1/nano.1.gz (of link group editor) doesn't exist
+update-alternatives: using /bin/nano to provide /usr/bin/pico (pico) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/man1/pico.1.gz because associated file /usr/share/man/man1/nano.1.gz (of link group pico) doesn't exist
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[981]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
 
 
 
@@ -1549,6 +2460,193 @@ kubeadm
 kubectl
 kubelet
 
+ubuntu@tsb-dev-play-k8w1:~$ sudo kubeadm reset -f
+[sudo] password for ubuntu:
+[preflight] Running pre-flight checks
+W0909 06:44:46.786813  874940 removeetcdmember.go:105] [reset] No kubeadm config, using etcd pod spec to get data directory
+[reset] Deleted contents of the etcd data directory: /var/lib/etcd
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+E0909 06:44:47.576742  874940 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617"
+E0909 06:44:47.640698  874940 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617"
+E0909 06:44:47.713855  874940 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617"
+E0909 06:44:47.782956  874940 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617"
+E0909 06:44:47.858885  874940 remote_runtime.go:267] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 10.96.0.1:443: connect: connection refused" podSandboxID="7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617"
+W0909 06:44:47.860072  874940 cleanupnode.go:105] [reset] Failed to remove containers: failed to stop running pod 7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617: rpc error: code = Unknown desc = failed to destroy network for sandbox "7c39a39eb6ddd57673d2cc2fe9175c95ea352e43a517e61c49834c2863db8617": plugin type="calico" failed (delete): error getting ClusterInformation: Get "https://10.96.0.1:443/apis/crd.projectcalico.org/v1/clusterinformations/default": dial tcp 10.96.0.1:443: connect: connection refused
+[reset] Deleting contents of directories: [/etc/kubernetes/manifests /var/lib/kubelet /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+
+The reset process does not perform cleanup of CNI plugin configuration,
+network filtering rules and kubeconfig files.
+
+For information on how to perform this cleanup manually, please see:
+    https://k8s.io/docs/reference/setup-tools/kubeadm/kubeadm-reset/
+
+ubuntu@tsb-dev-play-k8w1:~$ sudo rm -rf /etc/cni/net.d
+ubuntu@tsb-dev-play-k8w1:~$ sudo ls -la /etc/cni/net.d
+total 8
+drwx------ 2 root root 4096 Sep  9 06:45 .
+drwxr-xr-x 3 root root 4096 Sep  9 06:45 ..
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+[sudo] password for ubuntu:
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Get:3 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Hit:2 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.36/deb  InRelease
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:6 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [1005 kB]
+Get:7 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1260 kB]
+Get:8 http://security.ubuntu.com/ubuntu noble-security/main Translation-en [213 kB]
+Get:9 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [181 kB]
+Get:10 http://security.ubuntu.com/ubuntu noble-security/main amd64 Components [46.5 kB]
+Get:11 http://ae.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1536 kB]
+Get:12 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1441 kB]
+Get:13 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1690 kB]
+Get:14 http://security.ubuntu.com/ubuntu noble-security/restricted Translation-en [334 kB]
+Get:15 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:16 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.3 kB]
+Get:17 http://ae.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:18 http://ae.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5760 B]
+Get:19 http://ae.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+Fetched 8567 kB in 5s (1889 kB/s)
+Reading package lists... Done
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+apt-transport-https is already the newest version (2.8.3).
+ca-certificates is already the newest version (20260601~24.04.1).
+curl is already the newest version (8.5.0-2ubuntu10.13).
+gpg is already the newest version (2.4.4-2ubuntu17.6).
+0 upgraded, 0 newly installed, 0 to remove and 6 not upgraded.
+ubuntu@tsb-dev-play-k8w1:~$ sudo mkdir -p -m 755 /etc/apt/keyrings
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key \
+| sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+File '/etc/apt/keyrings/kubernetes-apt-keyring.gpg' exists. Overwrite? (y/N) yes
+ubuntu@tsb-dev-play-k8w1:~$ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /' \
+| sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:3 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease
+Get:2 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease [1230 B]
+Hit:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease
+Get:6 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  Packages [16.8 kB]
+Fetched 18.0 kB in 2s (11.8 kB/s)
+Reading package lists... Done
+ubuntu@tsb-dev-play-k8w1:~$ apt-cache madison kubeadm
+   kubeadm | 1.34.11-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.10-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.9-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.8-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.7-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.6-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.5-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.4-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.3-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.2-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.1-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+   kubeadm | 1.34.0-1.1 | https://pkgs.k8s.io/core:/stable:/v1.34/deb  Packages
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-get install -y \
+kubelet=1.34.9-* \
+kubeadm=1.34.9-* \
+kubectl=1.34.9-*
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+Selected version '1.34.9-1.1' (isv:kubernetes:core:stable:v1.34:pkgs.k8s.io [amd64]) for 'kubelet'
+Selected version '1.34.9-1.1' (isv:kubernetes:core:stable:v1.34:pkgs.k8s.io [amd64]) for 'kubeadm'
+Selected version '1.34.9-1.1' (isv:kubernetes:core:stable:v1.34:pkgs.k8s.io [amd64]) for 'kubectl'
+The following held packages will be changed:
+  kubeadm kubectl kubelet
+The following packages will be DOWNGRADED:
+  kubeadm kubectl kubelet
+0 upgraded, 0 newly installed, 3 downgraded, 0 to remove and 6 not upgraded.
+E: Packages were downgraded and -y was used without --allow-downgrades.
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-mark hold kubelet kubeadm kubectl
+kubelet was already set on hold.
+kubeadm was already set on hold.
+kubectl was already set on hold.
+ubuntu@tsb-dev-play-k8w1:~$ kubeadm version
+kubelet --version
+kubectl version --client
+kubeadm version: &version.Info{Major:"1", Minor:"36", EmulationMajor:"", EmulationMinor:"", MinCompatibilityMajor:"", MinCompatibilityMinor:"", GitVersion:"v1.36.4", GitCommit:"bb826b1d48562f110659e64e8ec444327433db95", GitTreeState:"clean", BuildDate:"2026-08-20T03:08:41Z", GoVersion:"go1.26.5", Compiler:"gc", Platform:"linux/amd64"}
+Kubernetes v1.36.4
+Client Version: v1.36.4
+Kustomize Version: v5.8.1
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-mark unhold kubelet kubeadm kubectl
+Canceled hold on kubelet.
+Canceled hold on kubeadm.
+Canceled hold on kubectl.
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-get install -y --allow-downgrades \
+kubelet=1.34.9-1.1 \
+kubeadm=1.34.9-1.1 \
+kubectl=1.34.9-1.1
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following packages will be DOWNGRADED:
+  kubeadm kubectl kubelet
+0 upgraded, 0 newly installed, 3 downgraded, 0 to remove and 6 not upgraded.
+Need to get 37.5 MB of archives.
+After this operation, 1622 kB of additional disk space will be used.
+Get:1 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  kubeadm 1.34.9-1.1 [12.6 MB]
+Get:2 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  kubectl 1.34.9-1.1 [11.8 MB]
+Get:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  kubelet 1.34.9-1.1 [13.1 MB]
+Fetched 37.5 MB in 1s (25.7 MB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+dpkg: warning: downgrading kubeadm from 1.36.4-1.1 to 1.34.9-1.1
+(Reading database ... 117066 files and directories currently installed.)
+Preparing to unpack .../kubeadm_1.34.9-1.1_amd64.deb ...
+Unpacking kubeadm (1.34.9-1.1) over (1.36.4-1.1) ...
+dpkg: warning: downgrading kubectl from 1.36.4-1.1 to 1.34.9-1.1
+Preparing to unpack .../kubectl_1.34.9-1.1_amd64.deb ...
+Unpacking kubectl (1.34.9-1.1) over (1.36.4-1.1) ...
+dpkg: warning: downgrading kubelet from 1.36.4-1.1 to 1.34.9-1.1
+Preparing to unpack .../kubelet_1.34.9-1.1_amd64.deb ...
+Unpacking kubelet (1.34.9-1.1) over (1.36.4-1.1) ...
+Setting up kubeadm (1.34.9-1.1) ...
+Setting up kubectl (1.34.9-1.1) ...
+Setting up kubelet (1.34.9-1.1) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[995]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt-mark hold kubelet kubeadm kubectl
+kubelet set on hold.
+kubeadm set on hold.
+kubectl set on hold.
+ubuntu@tsb-dev-play-k8w1:~$ kubeadm version
+kubelet --version
+kubectl version --client
+kubeadm version: &version.Info{Major:"1", Minor:"34", EmulationMajor:"", EmulationMinor:"", MinCompatibilityMajor:"", MinCompatibilityMinor:"", GitVersion:"v1.34.9", GitCommit:"ad7c7374b74c04d07ea041d367ecb1a526bdf758", GitTreeState:"clean", BuildDate:"2026-06-11T17:39:19Z", GoVersion:"go1.25.11", Compiler:"gc", Platform:"linux/amd64"}
+Kubernetes v1.34.9
+Client Version: v1.34.9
+Kustomize Version: v5.7.1
 
 
 
