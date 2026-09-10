@@ -1,0 +1,374 @@
+---
+# ============================================================
+# Kubernetes v1.34.x HA Cluster
+#
+# Nodes:
+#   Master1 : 172.30.7.131
+#   Master2 : 172.30.7.132
+#   Worker1 : 172.30.7.133
+#
+# Kubernetes API VIP:
+#   172.30.7.130:6443
+#
+# Container runtime:
+#   containerd
+#
+# Kubernetes:
+#   v1.34.x
+# ============================================================
+
+
+# ============================================================
+# PLAY 1 - COMMON CONFIGURATION
+# Runs on all Kubernetes nodes
+# ============================================================
+
+- name: Prepare all Kubernetes nodes
+  hosts: k8s_cluster
+  become: true
+  gather_facts: true
+
+  tasks:
+
+    # --------------------------------------------------------
+    # Disable swap
+    # --------------------------------------------------------
+
+    - name: Disable active swap
+      ansible.builtin.command:
+        cmd: swapoff -a
+      when: ansible_swaptotal_mb | int > 0
+      changed_when: true
+
+    - name: Remove swap entries from fstab
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^(?!#)(.*\s+swap\s+.*)$'
+        replace: '# \1'
+      register: fstab_swap
+
+    # --------------------------------------------------------
+    # Required packages
+    # --------------------------------------------------------
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gpg
+          - containerd
+        state: present
+
+    # --------------------------------------------------------
+    # Kernel modules required by Kubernetes/containerd
+    # --------------------------------------------------------
+
+    - name: Create containerd kernel modules configuration
+      ansible.builtin.copy:
+        dest: /etc/modules-load.d/containerd.conf
+        mode: '0644'
+        content: |
+          overlay
+          br_netfilter
+
+    - name: Load overlay module
+      ansible.builtin.modprobe:
+        name: overlay
+        state: present
+
+    - name: Load br_netfilter module
+      ansible.builtin.modprobe:
+        name: br_netfilter
+        state: present
+
+    # --------------------------------------------------------
+    # Kubernetes networking sysctl settings
+    # --------------------------------------------------------
+
+    - name: Configure Kubernetes networking sysctl settings
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-kubernetes.conf
+        mode: '0644'
+        content: |
+          net.bridge.bridge-nf-call-iptables = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.ipv4.ip_forward = 1
+
+    - name: Apply sysctl settings
+      ansible.builtin.command:
+        cmd: sysctl --system
+      changed_when: true
+
+    # --------------------------------------------------------
+    # Configure containerd
+    # --------------------------------------------------------
+
+    - name: Create containerd configuration directory
+      ansible.builtin.file:
+        path: /etc/containerd
+        state: directory
+        mode: '0755'
+
+    - name: Generate containerd default configuration
+      ansible.builtin.shell:
+        cmd: containerd config default > /etc/containerd/config.toml
+        creates: /etc/containerd/config.toml
+
+    - name: Configure containerd to use systemd cgroups
+      ansible.builtin.replace:
+        path: /etc/containerd/config.toml
+        regexp: 'SystemdCgroup = false'
+        replace: 'SystemdCgroup = true'
+
+    - name: Enable and restart containerd
+      ansible.builtin.systemd:
+        name: containerd
+        enabled: true
+        state: restarted
+
+    # --------------------------------------------------------
+    # Kubernetes repository
+    # --------------------------------------------------------
+
+    - name: Create Kubernetes keyring directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Kubernetes repository signing key
+      ansible.builtin.get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key
+        dest: /tmp/kubernetes-release.key
+        mode: '0644'
+
+    - name: Convert Kubernetes signing key to keyring
+      ansible.builtin.command:
+        cmd: >
+          gpg --dearmor
+          -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+          /tmp/kubernetes-release.key
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Configure Kubernetes apt repository
+      ansible.builtin.apt_repository:
+        repo: >
+          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg]
+          https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+        filename: kubernetes
+        state: present
+
+    - name: Update apt cache after Kubernetes repository configuration
+      ansible.builtin.apt:
+        update_cache: true
+
+    # --------------------------------------------------------
+    # Install Kubernetes packages
+    # --------------------------------------------------------
+
+    - name: Install kubelet kubeadm and kubectl
+      ansible.builtin.apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+
+    - name: Hold Kubernetes packages
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+    - name: Enable kubelet
+      ansible.builtin.systemd:
+        name: kubelet
+        enabled: true
+
+
+# ============================================================
+# PLAY 2 - MASTER1 INITIALIZATION
+# ============================================================
+
+- name: Initialize Kubernetes Master1
+  hosts: k8s_master1
+  become: true
+
+  tasks:
+
+    - name: Check whether Kubernetes cluster is already initialized
+      ansible.builtin.stat:
+        path: /etc/kubernetes/admin.conf
+      register: kubeadm_initialized
+
+    - name: Initialize Kubernetes cluster
+      ansible.builtin.command:
+        cmd: >
+          kubeadm init
+          --control-plane-endpoint=172.30.7.130:6443
+          --upload-certs
+          --pod-network-cidr=192.168.0.0/16
+      when: not kubeadm_initialized.stat.exists
+      register: kubeadm_init
+
+    # --------------------------------------------------------
+    # Configure kubectl for ubuntu user
+    # --------------------------------------------------------
+
+    - name: Create .kube directory
+      ansible.builtin.file:
+        path: /home/ubuntu/.kube
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0700'
+
+    - name: Copy admin kubeconfig
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ubuntu/.kube/config
+        remote_src: true
+        owner: ubuntu
+        group: ubuntu
+        mode: '0600'
+
+    # --------------------------------------------------------
+    # Generate join command
+    # --------------------------------------------------------
+
+    - name: Generate worker join command
+      ansible.builtin.command:
+        cmd: kubeadm token create --print-join-command
+      register: worker_join
+      changed_when: false
+
+    - name: Generate certificate key
+      ansible.builtin.command:
+        cmd: kubeadm init phase upload-certs --upload-certs
+      register: certificate_key_output
+      changed_when: false
+
+    - name: Display worker join command
+      ansible.builtin.debug:
+        msg: "{{ worker_join.stdout }}"
+
+    - name: Display certificate information
+      ansible.builtin.debug:
+        msg: "{{ certificate_key_output.stdout_lines }}"
+
+
+# ============================================================
+# PLAY 3 - MASTER2 JOIN
+# ============================================================
+
+- name: Join Master2 to Kubernetes control plane
+  hosts: k8s_master2
+  become: true
+
+  tasks:
+
+    - name: Check whether Master2 is already joined
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: master2_joined
+
+    - name: Get worker join command from Master1
+      ansible.builtin.command:
+        cmd: kubeadm token create --print-join-command
+      delegate_to: master1
+      register: worker_join_command
+      changed_when: false
+      run_once: true
+
+    - name: Get certificate key from Master1
+      ansible.builtin.shell:
+        cmd: >
+          kubeadm init phase upload-certs --upload-certs |
+          tail -1
+      delegate_to: master1
+      register: certificate_key
+      changed_when: false
+      run_once: true
+
+    - name: Join Master2 as control plane
+      ansible.builtin.command:
+        cmd: >
+          {{ worker_join_command.stdout }}
+          --control-plane
+          --certificate-key {{ certificate_key.stdout }}
+      when: not master2_joined.stat.exists
+
+
+# ============================================================
+# PLAY 4 - WORKER1 JOIN
+# ============================================================
+
+- name: Join Worker1 to Kubernetes cluster
+  hosts: k8s_workers
+  become: true
+
+  tasks:
+
+    - name: Check whether Worker1 is already joined
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: worker_joined
+
+    - name: Get worker join command from Master1
+      ansible.builtin.command:
+        cmd: kubeadm token create --print-join-command
+      delegate_to: master1
+      register: worker_join_command
+      changed_when: false
+      run_once: true
+
+    - name: Join Worker1 to cluster
+      ansible.builtin.command:
+        cmd: "{{ worker_join_command.stdout }}"
+      when: not worker_joined.stat.exists
+
+
+# ============================================================
+# PLAY 5 - FINAL VERIFICATION
+# ============================================================
+
+- name: Verify Kubernetes cluster
+  hosts: k8s_master1
+  become: false
+
+  tasks:
+
+    - name: Check Kubernetes nodes
+      ansible.builtin.command:
+        cmd: kubectl get nodes -o wide
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+      register: kubernetes_nodes
+      changed_when: false
+
+    - name: Display Kubernetes nodes
+      ansible.builtin.debug:
+        var: kubernetes_nodes.stdout_lines
+
+    - name: Check Kubernetes version
+      ansible.builtin.command:
+        cmd: kubectl version
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+      register: kubernetes_version
+      changed_when: false
+
+    - name: Display Kubernetes version
+      ansible.builtin.debug:
+        var: kubernetes_version.stdout_lines
