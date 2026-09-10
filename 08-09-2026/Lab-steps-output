@@ -561,6 +561,12 @@ check nfs server once more
 sudo cat /myhome/nfs/k8s/test.txt
 
 
+REQUIREMENT 
+run an nginx application with IP address 172.30.7.136. You may use the virtual IP range from 172.30.7.136 to 172.30.7.140 for this kind of purpose. 
+
+step1 
+
+
 
 -------------------------------------------------------------------------------------------------------------------------------
 
