@@ -565,6 +565,90 @@ REQUIREMENT
 run an nginx application with IP address 172.30.7.136. You may use the virtual IP range from 172.30.7.136 to 172.30.7.140 for this kind of purpose. 
 
 step1 
+install metalLB (MetalLB provides the external IP/load-balancer implementation for that Service)
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.3/config/manifests/metallb-native.yaml
+verify
+kubectl get pods -n metallb-system
+
+step2 
+Configure MetalLB IP Pool (IP addresses 172.30.7.136 to 172.30.7.140)
+nano metallb-config.yaml
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: nginx-vip-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 172.30.7.136-172.30.7.140
+
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: nginx-vip-advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - nginx-vip-pool
+
+kubectl apply -f metallb-config.yaml
+
+step3
+kubectl get ipaddresspool -n metallb-system
+kubectl get l2advertisement -n metallb-system
+
+step4 
+create deployment.yaml
+nano nginx-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+
+kubectl apply -f nginx-deployment.yaml
+kubectl get pods -l app=nginx -o wide
+
+step5 
+loadbalancer service delpoy 
+nano nginx-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 172.30.7.136
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+kubectl apply -f nginx-service.yaml
+kubectl get svc nginx
+
+test the application 
+curl http://172.30.7.136
+http://172.30.7.136
+
+
 
 
 
@@ -1618,6 +1702,298 @@ ubuntu@tsb-dev-play-k8m1:~$ mount | grep nfs-test
 ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
 NAME                        READY   STATUS    RESTARTS   AGE   IP                NODE                NOMINATED NODE   READINESS GATES
 nfs-test-56cc45fbd4-j75z2   1/1     Running   0          96m   192.168.228.129   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get deployment nfs-test
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+nfs-test   1/1     1            1           3h20m
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -l app=nfs-test -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP                NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   1/1     Running   0          3h21m   192.168.228.129   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl exec nfs-test-56cc45fbd4-j75z2 -- sh -c 'echo "NFS persistence test" > /data/test.txt'
+ubuntu@tsb-dev-play-k8m1:~$ kubectl exec nfs-test-56cc45fbd4-j75z2 -- cat /data/test.txt
+NFS persistence test
+ubuntu@tsb-dev-play-k8m1:~$ kubectl delete pod nfs-test-56cc45fbd4-j75z2
+pod "nfs-test-56cc45fbd4-j75z2" deleted from default namespace
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -l app=nfs-test -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP                NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-wtrlq   1/1     Running   0          25s   192.168.228.130   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -l app=nfs-test -o wide
+NAME                        READY   STATUS    RESTARTS   AGE    IP                NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-wtrlq   1/1     Running   0          116s   192.168.228.130   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+nfs-test-56cc45fbd4-wtrlq   1/1     Running   0          2m6s
+ubuntu@tsb-dev-play-k8m1:~$ kubectl exec nfs-test-56cc45fbd4-wtrlq -- cat /data/test.txt
+NFS persistence test
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+nfs-test-56cc45fbd4-wtrlq   1/1     Running   0          13m
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get svc -A -o wide
+NAMESPACE     NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                  AGE   SELECTOR
+default       kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP                  24h   <none>
+kube-system   kube-dns     ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP,9153/TCP   24h   k8s-app=kube-dns
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -A | grep -i metallb
+ubuntu@tsb-dev-play-k8m1:~$ ping -c 3 172.30.7.136
+-bash: ping: command not found
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt update && sudo apt install -y iputils-ping
+[sudo] password for ubuntu:
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:6 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1262 kB]
+Get:7 http://ae.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [292 kB]
+Get:8 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+Get:9 http://ae.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1540 kB]
+Get:10 http://ae.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [353 kB]
+Get:11 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:12 http://ae.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:13 http://ae.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5784 B]
+Get:14 http://ae.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+Fetched 4286 kB in 5s (942 kB/s)
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+9 packages can be upgraded. Run 'apt list --upgradable' to see them.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following NEW packages will be installed:
+  iputils-ping
+0 upgraded, 1 newly installed, 0 to remove and 9 not upgraded.
+Need to get 44.6 kB of archives.
+After this operation, 124 kB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 iputils-ping amd64 3:20240117-1ubuntu0.1 [44.6 kB]
+Fetched 44.6 kB in 1s (42.4 kB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package iputils-ping.
+(Reading database ... 117442 files and directories currently installed.)
+Preparing to unpack .../iputils-ping_3%3a20240117-1ubuntu0.1_amd64.deb ...
+Unpacking iputils-ping (3:20240117-1ubuntu0.1) ...
+Setting up iputils-ping (3:20240117-1ubuntu0.1) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[956]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m1:~$ ping -c 3 172.30.7.136
+PING 172.30.7.136 (172.30.7.136) 56(84) bytes of data.
+From 172.30.7.131 icmp_seq=1 Destination Host Unreachable
+From 172.30.7.131 icmp_seq=2 Destination Host Unreachable
+From 172.30.7.131 icmp_seq=3 Destination Host Unreachable
+
+--- 172.30.7.136 ping statistics ---
+3 packets transmitted, 0 received, +3 errors, 100% packet loss, time 2051ms
+pipe 3
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get deployment nfs-test
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+nfs-test   1/1     1            1           3h20m
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -l app=nfs-test -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP                NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   1/1     Running   0          3h21m   192.168.228.129   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl exec nfs-test-56cc45fbd4-j75z2 -- sh -c 'echo "NFS persistence test" > /data/test.txt'
+ubuntu@tsb-dev-play-k8m1:~$ kubectl exec nfs-test-56cc45fbd4-j75z2 -- cat /data/test.txt
+NFS persistence test
+ubuntu@tsb-dev-play-k8m1:~$ kubectl delete pod nfs-test-56cc45fbd4-j75z2
+pod "nfs-test-56cc45fbd4-j75z2" deleted from default namespace
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -l app=nfs-test -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP                NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-wtrlq   1/1     Running   0          25s   192.168.228.130   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -l app=nfs-test -o wide
+NAME                        READY   STATUS    RESTARTS   AGE    IP                NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-wtrlq   1/1     Running   0          116s   192.168.228.130   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+nfs-test-56cc45fbd4-wtrlq   1/1     Running   0          2m6s
+ubuntu@tsb-dev-play-k8m1:~$ kubectl exec nfs-test-56cc45fbd4-wtrlq -- cat /data/test.txt
+NFS persistence test
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+nfs-test-56cc45fbd4-wtrlq   1/1     Running   0          13m
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get svc -A -o wide
+NAMESPACE     NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                  AGE   SELECTOR
+default       kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP                  24h   <none>
+kube-system   kube-dns     ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP,9153/TCP   24h   k8s-app=kube-dns
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -A | grep -i metallb
+ubuntu@tsb-dev-play-k8m1:~$ ping -c 3 172.30.7.136
+-bash: ping: command not found
+ubuntu@tsb-dev-play-k8m1:~$ sudo apt update && sudo apt install -y iputils-ping
+[sudo] password for ubuntu:
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:6 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1262 kB]
+Get:7 http://ae.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [292 kB]
+Get:8 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+Get:9 http://ae.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1540 kB]
+Get:10 http://ae.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [353 kB]
+Get:11 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:12 http://ae.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:13 http://ae.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5784 B]
+Get:14 http://ae.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+Fetched 4286 kB in 5s (942 kB/s)
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+9 packages can be upgraded. Run 'apt list --upgradable' to see them.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following NEW packages will be installed:
+  iputils-ping
+0 upgraded, 1 newly installed, 0 to remove and 9 not upgraded.
+Need to get 44.6 kB of archives.
+After this operation, 124 kB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 iputils-ping amd64 3:20240117-1ubuntu0.1 [44.6 kB]
+Fetched 44.6 kB in 1s (42.4 kB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package iputils-ping.
+(Reading database ... 117442 files and directories currently installed.)
+Preparing to unpack .../iputils-ping_3%3a20240117-1ubuntu0.1_amd64.deb ...
+Unpacking iputils-ping (3:20240117-1ubuntu0.1) ...
+Setting up iputils-ping (3:20240117-1ubuntu0.1) ...
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[956]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m1:~$ ping -c 3 172.30.7.136
+PING 172.30.7.136 (172.30.7.136) 56(84) bytes of data.
+From 172.30.7.131 icmp_seq=1 Destination Host Unreachable
+From 172.30.7.131 icmp_seq=2 Destination Host Unreachable
+From 172.30.7.131 icmp_seq=3 Destination Host Unreachable
+
+--- 172.30.7.136 ping statistics ---
+3 packets transmitted, 0 received, +3 errors, 100% packet loss, time 2051ms
+pipe 3
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.3/config/manifests/metallb-native.yaml
+namespace/metallb-system created
+customresourcedefinition.apiextensions.k8s.io/bfdprofiles.metallb.io created
+customresourcedefinition.apiextensions.k8s.io/bgpadvertisements.metallb.io created
+customresourcedefinition.apiextensions.k8s.io/bgppeers.metallb.io created
+customresourcedefinition.apiextensions.k8s.io/communities.metallb.io created
+customresourcedefinition.apiextensions.k8s.io/configurationstates.metallb.io created
+customresourcedefinition.apiextensions.k8s.io/ipaddresspools.metallb.io created
+customresourcedefinition.apiextensions.k8s.io/l2advertisements.metallb.io created
+customresourcedefinition.apiextensions.k8s.io/servicebgpstatuses.metallb.io created
+customresourcedefinition.apiextensions.k8s.io/servicel2statuses.metallb.io created
+serviceaccount/controller created
+serviceaccount/speaker created
+role.rbac.authorization.k8s.io/controller created
+role.rbac.authorization.k8s.io/pod-lister created
+clusterrole.rbac.authorization.k8s.io/metallb-system:controller created
+clusterrole.rbac.authorization.k8s.io/metallb-system:speaker created
+rolebinding.rbac.authorization.k8s.io/controller created
+rolebinding.rbac.authorization.k8s.io/pod-lister created
+clusterrolebinding.rbac.authorization.k8s.io/metallb-system:controller created
+clusterrolebinding.rbac.authorization.k8s.io/metallb-system:speaker created
+configmap/metallb-excludel2 created
+secret/metallb-webhook-cert created
+service/metallb-webhook-service created
+deployment.apps/controller created
+daemonset.apps/speaker created
+validatingwebhookconfiguration.admissionregistration.k8s.io/metallb-webhook-configuration created
+ubuntu@tsb-dev-play-k8m1:~$
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -n metallb-system
+NAME                          READY   STATUS    RESTARTS   AGE
+controller-57fdb754bc-79zx9   1/1     Running   0          51s
+speaker-4qxxd                 1/1     Running   0          51s
+speaker-ct7cl                 1/1     Running   0          51s
+speaker-xfqwg                 1/1     Running   0          51s
+ubuntu@tsb-dev-play-k8m1:~$ nano metallb-config.yaml
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f metallb-config.yaml
+ipaddresspool.metallb.io/nginx-vip-pool created
+l2advertisement.metallb.io/nginx-vip-advertisement created
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get ipaddresspool -n metallb-system
+NAME             AUTO ASSIGN   AVOID BUGGY IPS   ADDRESSES
+nginx-vip-pool   true          false             ["172.30.7.136-172.30.7.140"]
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get l2advertisement -n metallb-system
+NAME                      IPADDRESSPOOLS       IPADDRESSPOOL SELECTORS   INTERFACES
+nginx-vip-advertisement   ["nginx-vip-pool"]
+ubuntu@tsb-dev-play-k8m1:~$ ubuntu@tsb-dev-play-k8m1:~$ kubectl get deployment nfs-test
+NAME       READY   UP-TO-DATkubectl get l2advertisement -n metallb-system
+
+ubuntu@tsb-dev-play-k8m1:~$ nano nginx-deployment.yaml
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f nginx-deployment.yaml
+deployment.apps/nginx created
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -l app=nginx -o wide
+NAME                     READY   STATUS    RESTARTS   AGE   IP                NODE                NOMINATED NODE   READINESS GATES
+nginx-6f9664446b-j4w7r   1/1     Running   0          6s    192.168.228.132   tsb-dev-play-k8w1   <none>           <none>
+nginx-6f9664446b-sf7c8   1/1     Running   0          6s    192.168.228.133   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ nano nginx-service.yaml
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f nginx-service.yaml
+service/nginx created
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get svc nginx
+NAME    TYPE           CLUSTER-IP     EXTERNAL-IP    PORT(S)        AGE
+nginx   LoadBalancer   10.107.21.32   172.30.7.136   80:30866/TCP   6s
+ubuntu@tsb-dev-play-k8m1:~$ curl http://172.30.7.136
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, nginx is successfully installed and working.
+Further configuration is required for the web server, reverse proxy,
+API gateway, load balancer, content cache, or other features.</p>
+
+<p>For online documentation and support please refer to
+<a href="https://nginx.org/">nginx.org</a>.<br/>
+To engage with the community please visit
+<a href="https://community.nginx.org/">community.nginx.org</a>.<br/>
+For enterprise grade support, professional services, additional
+security features and capabilities please refer to
+<a href="https://f5.com/nginx">f5.com/nginx</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
 
 
 
