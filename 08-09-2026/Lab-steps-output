@@ -278,6 +278,261 @@ verify
 systemctl is-active keepalived
 sudo journalctl -u keepalived --no-pager -n 20
 
+step10 
+master1,master2
+Configure HAProxy for the Kubernetes API
+sudo sysctl -w net.ipv4.ip_nonlocal_bind=1
+sudo tee /etc/sysctl.d/99-kubernetes-ha.conf <<EOF
+net.ipv4.ip_nonlocal_bind = 1
+EOF
+sudo sysctl --system
+
+step11
+Configure HAProxy on Master 1
+sudo cp /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg.bak
+sudo nano /etc/haproxy/haproxy.cfg
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    daemon
+    maxconn 2048
+
+defaults
+    log global
+    mode tcp
+    timeout connect 5s
+    timeout client  30s
+    timeout server  30s
+
+frontend kubernetes-api
+    bind 172.30.7.130:6443
+    mode tcp
+    default_backend kubernetes-masters
+
+backend kubernetes-masters
+    mode tcp
+    balance roundrobin
+    option tcp-check
+
+    server master1 172.30.7.131:6443 check
+    server master2 172.30.7.132:6443 check
+
+master2 
+sudo cp /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg.bak
+sudo nano /etc/haproxy/haproxy.cfg
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    daemon
+    maxconn 2048
+
+defaults
+    log global
+    mode tcp
+    timeout connect 5s
+    timeout client  30s
+    timeout server  30s
+
+frontend kubernetes-api
+    bind 172.30.7.130:6443
+    mode tcp
+    default_backend kubernetes-masters
+
+backend kubernetes-masters
+    mode tcp
+    balance roundrobin
+    option tcp-check
+
+    server master1 172.30.7.131:6443 check
+    server master2 172.30.7.132:6443 check
+
+validate on m1 and m2 
+sudo haproxy -c -f /etc/haproxy/haproxy.cfg
+sudo systemctl enable --now haproxy
+systemctl is-active haproxy
+
+step12 
+creating the Kubernetes cluster on Master 1
+sudo kubeadm init \
+  --control-plane-endpoint=172.30.7.130:6443 \
+  --upload-certs \
+  --pod-network-cidr=192.168.0.0/16
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+step13 
+install calico network 
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.2/manifests/calico.yaml
+verify 
+kubectl get pods -n kube-system
+
+step14 
+add master2 to the cluster 
+generate join command on master1 
+kubeadm token create --print-join-command
+generate certificate key 
+kubeadm init phase upload-certs --upload-certs
+
+master2 
+sudo kubeadm join 172.30.7.130:6443 \
+  --token <fresh-token> \
+  --discovery-token-ca-cert-hash sha256:<hash> \
+  --control-plane \
+  --certificate-key <certificate-key>
+
+configure kubectl on master2 
+mkdir -p $HOME/.kube
+sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+kubectl get nodes 
+
+step15
+add worker1 on cluster
+generate join command on master1 
+kubeadm token create --print-join-command
+
+worker1 
+sudo kubeadm join 172.30.7.130:6443 \
+  --token <fresh-token> \
+  --discovery-token-ca-cert-hash sha256:<hash>
+kubectl get nodes -o wide
+
+REQUIREMENT 
+Use devops-intern-app2.luluex.com as the NFS server. Configure the NFS storage using the existing LVM, so that the storage can be expanded easily in the future.
+
+step1 
+installed nfs server on server2 
+sudo apt update
+sudo apt install -y nfs-kernel-server
+sudo systemctl enable --now nfs-server
+sudo systemctl is-active nfs-server
+
+step2 
+create nfs directory on server2 for k8s 
+sudo mkdir -p /myhome/nfs/k8s
+
+step3 
+configure the nfs export 
+sudo nano /etc/exports
+/myhome/nfs/k8s 172.30.7.131(rw,sync,no_subtree_check) 172.30.7.132(rw,sync,no_subtree_check) 172.30.7.133(rw,sync,no_subtree_check)
+sudo exportfs -rav
+sudo exportfs -v
+
+step4
+configure the hostname resolution on kubernetes nodes 
+master1,master2,worker1 
+sudo nano /etc/hosts
+add
+172.30.7.143    tsb-dev-playground2
+
+verify
+getent hosts tsb-dev-playground2
+showmount -e tsb-dev-playground2
+
+step5
+allow NFS from the Kubernetes nodes
+sudo ufw allow from 172.30.7.131 to any port 2049 proto tcp
+sudo ufw allow from 172.30.7.132 to any port 2049 proto tcp
+sudo ufw allow from 172.30.7.133 to any port 2049 proto tcp
+
+sudo ufw status
+
+
+
+
+REQUIREMENT
+Integrate the NFS storage with Kubernetes and validate persistent storage using StorageClass, PV/PVC, and a test deployment. Confirm that the data persists even after the Pod is deleted and recreated.
+
+step1 
+create a storage class (nfs-storage)
+nano nfs-storageclass.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: Immediate
+
+kubectl apply -f nfs-storageclass.yaml
+verify
+kubectl get storageclass
+
+step2 
+create the persistant volume 
+nano nfs-pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-storage
+  nfs:
+    server: tsb-dev-playground2 
+    path: /myhome/nfs/k8s
+
+kubectl apply -f nfs-pv.yaml
+
+step3 
+create the persistant volumeclaim 
+nano nfs-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-storage
+  resources:
+    requests:
+      storage: 5Gi
+kubectl apply -f nfs-pvc.yaml
+kubectl get pvc
+
+step4 
+create a test deployment 
+nano nfs-test-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-test
+  template:
+    metadata:
+      labels:
+        app: nfs-test
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          volumeMounts:
+            - name: nfs-storage
+              mountPath: /data
+      volumes:
+        - name: nfs-storage
+          persistentVolumeClaim:
+            claimName: nfs-pvc
+kubectl apply -f nfs-test-deployment.yaml
+kubectl get pods -o wide
+kubectl get deployment nfs-test
+
+step5
+
+
+
+
+
 
 
 
@@ -1185,6 +1440,148 @@ User sessions running outdated binaries:
  ubuntu @ user manager service: systemd[956]
 
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m1:~$ nano nfs-storageclass.yaml
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f nfs-storageclass.yaml
+storageclass.storage.k8s.io/nfs-storage created
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get storageclass
+NAME          PROVISIONER                    RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+nfs-storage   kubernetes.io/no-provisioner   Delete          Immediate           false                  26s
+ubuntu@tsb-dev-play-k8m1:~$ ls
+nfs-storageclass.yaml
+ubuntu@tsb-dev-play-k8m1:~$ nano nfs-pv.yaml
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f nfs-pv.yaml
+persistentvolume/nfs-pv created
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pv
+NAME     CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+nfs-pv   5Gi        RWX            Retain           Available           nfs-storage    <unset>                          20s
+ubuntu@tsb-dev-play-k8m1:~$ nano nfs-pvc.yaml
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f nfs-pvc.yaml
+error: error parsing nfs-pvc.yaml: error converting YAML to JSON: yaml: line 13: could not find expected ':'
+ubuntu@tsb-dev-play-k8m1:~$ nano nfs-pvc.yaml
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f nfs-pvc.yaml
+persistentvolumeclaim/nfs-pvc created
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pvc
+NAME      STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+nfs-pvc   Bound    nfs-pv   5Gi        RWX            nfs-storage    <unset>                 21s
+ubuntu@tsb-dev-play-k8m1:~$ nano nfs-test-deployment.yaml
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f nfs-test-deployment.yaml
+deployment.apps/nfs-test created
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
+NAME                        READY   STATUS              RESTARTS   AGE   IP       NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   0/1     ContainerCreating   0          11s   <none>   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get deployment nfs-test
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+nfs-test   0/1     1            0           53s
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
+NAME                        READY   STATUS              RESTARTS   AGE    IP       NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   0/1     ContainerCreating   0          2m5s   <none>   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods
+NAME                        READY   STATUS              RESTARTS   AGE
+nfs-test-56cc45fbd4-j75z2   0/1     ContainerCreating   0          2m17s
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get deployment
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+nfs-test   0/1     1            0           2m49s
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
+NAME                        READY   STATUS              RESTARTS   AGE     IP       NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   0/1     ContainerCreating   0          3m13s   <none>   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
+NAME                        READY   STATUS              RESTARTS   AGE     IP       NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   0/1     ContainerCreating   0          9m42s   <none>   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl describe pod nfs-test-56cc45fbd4-j75z2
+Name:             nfs-test-56cc45fbd4-j75z2
+Namespace:        default
+Priority:         0
+Service Account:  default
+Node:             tsb-dev-play-k8w1/172.30.7.133
+Start Time:       Thu, 10 Sep 2026 06:15:04 +0000
+Labels:           app=nfs-test
+                  pod-template-hash=56cc45fbd4
+Annotations:      <none>
+Status:           Pending
+IP:
+IPs:              <none>
+Controlled By:    ReplicaSet/nfs-test-56cc45fbd4
+Containers:
+  nginx:
+    Container ID:
+    Image:          nginx:latest
+    Image ID:
+    Port:           <none>
+    Host Port:      <none>
+    State:          Waiting
+      Reason:       ContainerCreating
+    Ready:          False
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /data from nfs-storage (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-w55xw (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   False
+  Initialized                 True
+  Ready                       False
+  ContainersReady             False
+  PodScheduled                True
+Volumes:
+  nfs-storage:
+    Type:       PersistentVolumeClaim (a reference to a PersistentVolumeClaim in the same namespace)
+    ClaimName:  nfs-pvc
+    ReadOnly:   false
+  kube-api-access-w55xw:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason       Age                 From               Message
+  ----     ------       ----                ----               -------
+  Normal   Scheduled    12m                 default-scheduler  Successfully assigned default/nfs-test-56cc45fbd4-j75z2 to tsb-dev-play-k8w1
+  Warning  FailedMount  101s (x5 over 10m)  kubelet            MountVolume.SetUp failed for volume "nfs-pv" : mount failed: exit status 32
+Mounting command: mount
+Mounting arguments: -t nfs tsb-dev-playground2:/myhome/nfs/k8s /var/lib/kubelet/pods/dec9e9cb-4e40-457a-a00b-e187a038f1d4/volumes/kubernetes.io~nfs/nfs-pv
+Output: mount.nfs: Resource temporarily unavailable for tsb-dev-playground2:/myhome/nfs/k8s on /var/lib/kubelet/pods/dec9e9cb-4e40-457a-a00b-e187a038f1d4/volumes/kubernetes.io~nfs/nfs-pv
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
+NAME                        READY   STATUS              RESTARTS   AGE   IP       NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   0/1     ContainerCreating   0          20m   <none>   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f nfs-test-deployment.yaml
+deployment.apps/nfs-test unchanged
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
+NAME                        READY   STATUS              RESTARTS   AGE   IP       NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   0/1     ContainerCreating   0          20m   <none>   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
+NAME                        READY   STATUS              RESTARTS   AGE   IP       NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   0/1     ContainerCreating   0          30m   <none>   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f nfs-test-deployment.yaml
+deployment.apps/nfs-test unchanged
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
+NAME                        READY   STATUS              RESTARTS   AGE   IP       NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   0/1     ContainerCreating   0          30m   <none>   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl apply -f nfs-test-deployment.yaml
+deployment.apps/nfs-test unchanged
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
+NAME                        READY   STATUS              RESTARTS   AGE   IP       NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   0/1     ContainerCreating   0          59m   <none>   tsb-dev-play-k8w1   <none>           <none>
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods
+NAME                        READY   STATUS              RESTARTS   AGE
+nfs-test-56cc45fbd4-j75z2   0/1     ContainerCreating   0          60m
+ubuntu@tsb-dev-play-k8m1:~$ timeout 10 showmount -e tsb-dev-playground2
+echo $?
+timeout: failed to run command ‘showmount’: No such file or directory
+127
+ubuntu@tsb-dev-play-k8m1:~$ sudo mount -t nfs tsb-dev-playground2:/myhome/nfs/k8s /mnt/nfs-test
+[sudo] password for ubuntu:
+mount: /mnt/nfs-test: mount point does not exist.
+       dmesg(1) may have more information after failed mount system call.
+ubuntu@tsb-dev-play-k8m1:~$ mount | grep nfs-test
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP                NODE                NOMINATED NODE   READINESS GATES
+nfs-test-56cc45fbd4-j75z2   1/1     Running   0          96m   192.168.228.129   tsb-dev-play-k8w1   <none>           <none>
 
 
 
@@ -2077,6 +2474,19 @@ User sessions running outdated binaries:
  ubuntu @ user manager service: systemd[981]
 
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get storageclass
+NAME          PROVISIONER                    RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+nfs-storage   kubernetes.io/no-provisioner   Delete          Immediate           false                  2m27s
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pv
+NAME     CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+nfs-pv   5Gi        RWX            Retain           Available           nfs-storage    <unset>                          44s
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pvc
+NAME      STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+nfs-pvc   Bound    nfs-pv   5Gi        RWX            nfs-storage    <unset>                 56s
+ubuntu@tsb-dev-play-k8m1:~$ kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+nfs-test-56cc45fbd4-j75z2   1/1     Running   0          97m
+ubuntu@tsb-dev-play-k8m1:~$
 
 
 
@@ -2647,6 +3057,154 @@ kubeadm version: &version.Info{Major:"1", Minor:"34", EmulationMajor:"", Emulati
 Kubernetes v1.34.9
 Client Version: v1.34.9
 Kustomize Version: v5.7.1
+ubuntu@tsb-dev-play-k8w1:~$ docker ps
+-bash: docker: command not found
+ubuntu@tsb-dev-play-k8w1:~$ sudo docker ps
+[sudo] password for ubuntu:
+sudo: docker: command not found
+ubuntu@tsb-dev-play-k8w1:~$ getent hosts tsb-dev-playground2
+ubuntu@tsb-dev-play-k8w1:~$ showmount -e tsb-dev-playground2
+clnt_create: RPC: Unknown host
+ubuntu@tsb-dev-play-k8w1:~$ ping -c 2 172.30.7.143
+-bash: ping: command not found
+ubuntu@tsb-dev-play-k8w1:~$ showmount -e 172.30.7.143
+
+
+
+                                                                                                                                                                                                             hbxshbhsx
+
+xmkjxs
+
+
+ubuntu@tsb-dev-play-k8w1:~$ sudo mkdir -p /mnt/nfs-test
+sudo mount -t nfs 172.30.7.143:/myhome/nfs/k8s /mnt/nfs-test
+ubuntu@tsb-dev-play-k8w1:~$
+ubuntu@tsb-dev-play-k8w1:~$
+ubuntu@tsb-dev-play-k8w1:~$ sudo mkdir -p /mnt/nfs-test
+ubuntu@tsb-dev-play-k8w1:~$ sudo mount -t nfs 172.30.7.143:/myhome/nfs/k8s /mnt/nfs-test
+
+ubuntu@tsb-dev-play-k8w1:~$ mount | grep /mnt/nfs-test
+ubuntu@tsb-dev-play-k8w1:~$ sudo touch /mnt/nfs-test/test.txt
+ls -l /mnt/nfs-test
+total 0
+-rw-r--r-- 1 root root 0 Sep 10 06:55 test.txt
+ubuntu@tsb-dev-play-k8w1:~$ sudo nano /etc/hosts
+sudo: nano: command not found
+ubuntu@tsb-dev-play-k8w1:~$ sudo apt update && sudo apt install nano -y
+Hit:1 http://ae.archive.ubuntu.com/ubuntu noble InRelease
+Get:3 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Hit:2 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.34/deb  InRelease
+Get:4 http://ae.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:5 http://ae.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:6 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [1005 kB]
+Get:7 http://security.ubuntu.com/ubuntu noble-security/main amd64 Components [46.4 kB]
+Get:8 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1262 kB]
+Get:9 http://ae.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [292 kB]
+Get:10 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1206 kB]
+Get:11 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+Get:12 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.2 kB]
+Get:13 http://ae.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1540 kB]
+Get:14 http://ae.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [353 kB]
+Get:15 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1690 kB]
+Get:16 http://ae.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:17 http://ae.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:18 http://ae.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5784 B]
+Get:19 http://ae.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+Fetched 8435 kB in 6s (1520 kB/s)
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+9 packages can be upgraded. Run 'apt list --upgradable' to see them.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+Suggested packages:
+  hunspell
+The following NEW packages will be installed:
+  nano
+0 upgraded, 1 newly installed, 0 to remove and 9 not upgraded.
+Need to get 282 kB of archives.
+After this operation, 856 kB of additional disk space will be used.
+Get:1 http://ae.archive.ubuntu.com/ubuntu noble-updates/main amd64 nano amd64 7.2-2ubuntu0.2 [282 kB]
+Fetched 282 kB in 1s (195 kB/s)
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package nano.
+(Reading database ... 117221 files and directories currently installed.)
+Preparing to unpack .../nano_7.2-2ubuntu0.2_amd64.deb ...
+Unpacking nano (7.2-2ubuntu0.2) ...
+Setting up nano (7.2-2ubuntu0.2) ...
+update-alternatives: using /bin/nano to provide /usr/bin/editor (editor) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/man1/editor.1.gz because associated file /usr/share/man/man1/nano.1.gz (of link group editor) doesn't exist
+update-alternatives: using /bin/nano to provide /usr/bin/pico (pico) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/man1/pico.1.gz because associated file /usr/share/man/man1/nano.1.gz (of link group pico) doesn't exist
+Scanning processes...
+Scanning candidates...
+Scanning linux images...
+
+Pending kernel upgrade!
+Running kernel version:
+  6.8.0-138-generic
+Diagnostics:
+  The currently running kernel version is not the expected kernel version 6.8.0-139-generic.
+
+Restarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.
+
+Restarting services...
+
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart unattended-upgrades.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ ubuntu @ user manager service: systemd[995]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+ubuntu@tsb-dev-play-k8w1:~$ sudo nano /etc/hosts
+ubuntu@tsb-dev-play-k8w1:~$ sudo nano /etc/hosts
+ubuntu@tsb-dev-play-k8w1:~$ getent hosts tsb-dev-playground2
+172.30.7.143    tsb-dev-playground2                                                                                                                                                                       c
+ubuntu@tsb-dev-play-k8w1:~$ showmount -e tsb-dev-playground2
+ubuntu@tsb-dev-play-k8w1:~$
+ubuntu@tsb-dev-play-k8w1:~$
+ubuntu@tsb-dev-play-k8w1:~$ timeout 10 showmount -e tsb-dev-playground2
+echo $?
+
+
+[1]+  Stopped                 timeout 10 showmount -e tsb-dev-playground2
+148
+ubuntu@tsb-dev-play-k8w1:~$ mount | grep nfs-test
+ubuntu@tsb-dev-play-k8w1:~$ sudo mount -t nfs tsb-dev-playground2:/myhome/nfs/k8s /mnt/nfs-test
+
+ubuntu@tsb-dev-play-k8w1:~$
+ubuntu@tsb-dev-play-k8w1:~$ mount | grep nfs-test
+ubuntu@tsb-dev-play-k8w1:~$ sudo umount /mnt/nfs-test 2>/dev/null
+sudo mkdir -p /mnt/nfs-test
+sudo mount -v -t nfs -o vers=4 tsb-dev-playground2:/myhome/nfs/k8s /mnt/nfs-test
+mount.nfs: timeout set for Thu Sep 10 07:35:15 2026
+mount.nfs: trying text-based options 'vers=4.2,addr=172.30.7.143,clientaddr=172.30.7.133'
+mount.nfs: mount(2): Connection timed out
+mount.nfs: Connection timed out for tsb-dev-playground2:/myhome/nfs/k8s on /mnt/nfs-test
+ubuntu@tsb-dev-play-k8w1:~$ sudo umount /mnt/nfs-test 2>/dev/null
+sudo mkdir -p /mnt/nfs-test
+sudo mount -t nfs tsb-dev-playground2:/myhome/nfs/k8s /mnt/nfs-test
+
+ubuntu@tsb-dev-play-k8w1:~$ mount | grep nfs-test
+ubuntu@tsb-dev-play-k8w1:~$ sudo touch /mnt/nfs-test/test.txt
+ls -l /mnt/nfs-test
+total 0
+-rw-r--r-- 1 root root 0 Sep 10 07:41 test.txt
+ubuntu@tsb-dev-play-k8w1:~$ findmnt /mnt/nfs-test
+ubuntu@tsb-dev-play-k8w1:~$ sudo mount -v -t nfs -o vers=4.2,proto=tcp tsb-dev-playground2:/myhome/nfs/k8s /mnt/nfs-test
+mount.nfs: timeout set for Thu Sep 10 07:44:45 2026
+mount.nfs: trying text-based options 'vers=4.2,proto=tcp,addr=172.30.7.143,clientaddr=172.30.7.133'
+
+ubuntu@tsb-dev-play-k8w1:~$ findmnt /mnt/nfs-test
+ubuntu@tsb-dev-play-k8w1:~$ nc -vz -w 5 172.30.7.143 2049
+-bash: nc: command not found
+ubuntu@tsb-dev-play-k8w1:~$ timeout 5 bash -c '</dev/tcp/172.30.7.143/2049' && echo "Port 2049 reachable" || echo "Port 2049 not reachable"
+Port 2049 not reachable
 
 
 
