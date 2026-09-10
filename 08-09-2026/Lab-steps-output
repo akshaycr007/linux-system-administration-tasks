@@ -528,11 +528,41 @@ kubectl get pods -o wide
 kubectl get deployment nfs-test
 
 step5
+check deployment 
+kubectl get deployment nfs-test
+
+step6 
+check pod is running
+kubectl get pods -l app=nfs-test -o wide
+
+step7
+add data in to nfs pod 
+kubectl exec nfs-test-56cc45fbd4-j75z2 -- sh -c 'echo "NFS persistence test" > /data/test.txt'
+
+step8 
+check data exist on nfs pod  
+kubectl exec nfs-test-56cc45fbd4-j75z2 -- cat /data/test.txt
+
+step9
+check nfs server this data exist or not 
+sudo cat /myhome/nfs/k8s/test.txt
+
+step10
+delete the pod 
+kubectl delete pod nfs-test-56cc45fbd4-j75z2
+kubectl get pods -l app=nfs-test -o wide
+
+step11 
+check the data exist on new pod 
+kubectl exec name-of-newpod  -- cat /data/test.txt
+
+step12 
+check nfs server once more 
+sudo cat /myhome/nfs/k8s/test.txt
 
 
 
-
-
+-------------------------------------------------------------------------------------------------------------------------------
 
 
 
