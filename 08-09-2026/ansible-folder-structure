@@ -22,3 +22,25 @@
     └── k8s_join/             <-- Role 4: Join remaining nodes
         └── tasks/
             └── main.yml      <-- Commands: kubeadm join on Master 2, 3 & Worker 1
+
+
+
+
+[ server2 (Control Node) ]
+        │
+        ├── 1. Reads inventory.ini & connects via SSH
+        │
+        ├── 2. Play 1: Executes 'common' role on ALL 4 nodes
+        │      (Disables swap, sets sysctl, installs containerd & K8s v1.34.9)
+        │
+        ├── 3. Play 2: Executes 'loadbalancer' role on 3 Masters
+        │      (Templates haproxy.cfg & keepalived.conf with dynamic priorities 103/102/101)
+        │
+        ├── 4. Play 3: Executes 'k8s_master' role ONLY on Master 1 (172.30.7.131)
+        │      (Runs 'kubeadm init', installs Calico CNI, captures join tokens into Ansible memory)
+        │
+        └── 5. Play 4: Executes 'k8s_join' role on remaining nodes
+               (Uses in-memory tokens to join Master 2, Master 3, and Worker 1)
+
+
+
