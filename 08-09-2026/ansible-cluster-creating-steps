@@ -1,1 +1,16 @@
+step1 
+SERVER1 
+*generate SSH key or use exist 
+
+ssh-copy-id ubuntu@172.30.7.131
+ssh-copy-id ubuntu@172.30.7.132
+ssh-copy-id ubuntu@172.30.7.144
+ssh-copy-id ubuntu@172.30.7.133
+
+install ansible 
+
+sudo apt update
+sudo apt install -y ansible
+
+step2 
 
