@@ -1,0 +1,24 @@
+~/k8s-ha-ansible/
+├── inventory.ini             <-- List of servers, IPs, and variables
+├── site.yml                  <-- The main playbook (orchestrates execution order)
+└── roles/
+    ├── common/               <-- Role 1: Base setup for ALL 4 nodes
+    │   └── tasks/
+    │       └── main.yml      <-- Commands: swapoff, containerd, install kubeadm
+    │
+    ├── loadbalancer/         <-- Role 2: HAProxy & Keepalived for MASTERS
+    │   ├── tasks/
+    │   │   └── main.yml      <-- Commands: apt install haproxy keepalived
+    │   ├── handlers/
+    │   │   └── main.yml      <-- Service restart logic
+    │   └── templates/
+    │       ├── haproxy.cfg.j2       <-- Jinja2 template for HAProxy
+    │       └── keepalived.conf.j2   <-- Jinja2 template for Keepalived
+    │
+    ├── k8s_master/           <-- Role 3: Initialize MASTER 1
+    │   └── tasks/
+    │       └── main.yml      <-- Commands: kubeadm init, Calico apply
+    │
+    └── k8s_join/             <-- Role 4: Join remaining nodes
+        └── tasks/
+            └── main.yml      <-- Commands: kubeadm join on Master 2, 3 & Worker 1
