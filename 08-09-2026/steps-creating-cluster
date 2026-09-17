@@ -131,8 +131,9 @@ vrrp_instance VI_1 {
     }
 }
 
-
-
+sudo systemctl enable keepalived
+sudo systemctl restart keepalived
+ip addr | grep 172.30.7.130
 
 
 RUN ON MASTER2 
@@ -173,6 +174,10 @@ vrrp_instance VI_1 {
         check_haproxy
     }
 }
+
+sudo systemctl enable keepalived
+sudo systemctl restart keepalived
+ip addr | grep 172.30.7.130
 
 
 RUN ON MASTER3 
@@ -215,13 +220,66 @@ vrrp_instance VI_1 {
 }
 
 
+sudo systemctl enable keepalived
+sudo systemctl restart keepalived
+ip addr | grep 172.30.7.130
+
+
+RUN ON MATSER1
+kubeadm init 
+sudo kubeadm init --control-plane-endpoint "k8s-api.local:8443" --upload-certs
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+kubectl get nodes
+
+
+RUN ON MASTER2 
+kubeadm join k8s-api.local:8443 --token l68qao.gwkyyu1g55u0jdhz \
+        --discovery-token-ca-cert-hash sha256:e3fe4dc93fdce261bca439519429f80f737442a5ca341463985d0cbea64d7b9b \
+        --control-plane --certificate-key 6a336403c62e2690b60543384392af42ecc3112e5f3740458280b51580ffab72
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+
+RUN ON MASTER3
+kubeadm join k8s-api.local:8443 --token l68qao.gwkyyu1g55u0jdhz \
+--discovery-token-ca-cert-hash sha256:e3fe4dc93fdce261bca439519429f80f737442a5ca341463985d0cbea64d7b9b \
+--control-plane --certificate-key 6a336403c62e2690b60543384392af42ecc3112e5f3740458280b51580ffab72
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 
 
+RUN ON WORKER1
+sudo kubeadm join k8s-api.local:8443 --token l68qao.gwkyyu1g55u0jdhz  \
+  --discovery-token-ca-cert-hash  sha256:e3fe4dc93fdce261bca439519429f80f737442a5ca341463985d0cbea64d7b9b \
 
 
+RUN ON MASTER1 
+*install cni (calico)
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.32.2/manifests/calico.yaml
 
 
+VERIFY ALL MASTERS 
+
+kubectl get pods -n kube-system -w
+kubectl get nodes -o wide
+kubectl get pods -A
+kubectl cluster-info
+
+MASTER1
+kubectl get pods -n kube-system -o wide | grep etcd
+kubectl run nginx-test --image=nginx
+kubectl get pod nginx-test -o wide
+
+sudo shutdown -h now
+VERIFY WITH MASTER2 
 
 
 
