@@ -560,6 +560,103 @@ step12
 check nfs server once more 
 sudo cat /myhome/nfs/k8s/test.txt
 
+corrected 
+-----
+step1
+Install NFS Client on ALL Cluster Nodes
+sudo apt-get update && sudo apt-get install -y nfs-common
+
+step2 
+install helm cli on one master node 
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+step3 
+Add the Official NFS Provisioner Helm Repo
+helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+helm repo update
+
+step4 
+helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+    --set nfs.server=172.30.7.143\
+    --set nfs.path=/myhome/nfs/k8s \
+    --set storageClass.name=nfs-client \
+    --set storageClass.defaultClass=true
+
+step5 
+verify 
+Check if the provisioner pod is running
+kubectl get pods -l app=nfs-subdir-external-provisioner
+
+Check that the new StorageClass exists alongside your old one
+kubectl get storageclass
+
+step6
+nano akshay-app.yaml 
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: akshay
+---
+# 1. PersistentVolumeClaim (Triggers the NFS provisioner automatically)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myapp-pvc
+  namespace: akshay
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-client        # Uses your NFS Subdir External Provisioner
+  resources:
+    requests:
+      storage: 1Gi
+---
+# 2. Application Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  namespace: akshay
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: app-data
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: app-data
+        persistentVolumeClaim:
+
+kubectl apply -f akshay-app.yaml
+
+step5 
+get inside container 
+kubectl exec -it myapp-797b84687-b5mdz -n akshay -- /bin/bash
+echo "This is a test file." > test.txt
+
+step6
+verify 
+http://172.30.7.139/test.txt
+cd /myhome/nfs/k8s/
+cat test.txt
+
+
+
+
+
 
 REQUIREMENT 
 run an nginx application with IP address 172.30.7.136. You may use the virtual IP range from 172.30.7.136 to 172.30.7.140 for this kind of purpose. 
