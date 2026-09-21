@@ -560,7 +560,7 @@ step12
 check nfs server once more 
 sudo cat /myhome/nfs/k8s/test.txt
 
-corrected 
+corrected using nfs-subdir-external-provisioner
 -----
 step1
 Install NFS Client on ALL Cluster Nodes
