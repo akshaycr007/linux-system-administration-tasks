@@ -163,4 +163,8 @@ commit
 
 
 verify 
+https://devops-intern-webapp.luluex.com/app3/phpinfo.php
+https://devops-intern-webapp.luluex.com/app1
+https://devops-intern-webapp.luluex.com/app3/create.php
+https://devops-intern-webapp.luluex.com/app3/list.php
 
