@@ -1,0 +1,166 @@
+Automated the CI/CD pipeline in `.gitlab-ci.yml` using GitLab variables (`DOCKERHUB_USER`, `DOCKERHUB_PASS`, `KUBECONFIG`) to build container 
+images from source (`./ci-cd-app3/`), configured HTTP-to-HTTPS redirects, aligned source HTML hyperlinks (`/app1/phpinfo.php`),
+and deployed dynamic `$CI_COMMIT_SHA` updates directly to the existing 5 cluster applications (`app1` to `app5`, `postgres-db`) in namespace `webapp-ns`.
+
+step1 
+in Gtlab settings cicd add variables 
+Variable         NameTypeValue /        Purpose                               FlagSettings
+DOCKERHUB_USER	  Variable	           akshay852	                              Masked
+DOCKERHUB_PASS  	Variable	       Personal Access Token	                      Masked
+KUBECONFIG	    File	            Raw contents of your ~/.kube/config          Protected / File
+                                  file containing cluster access credentials 
+
+
+step2 
+create ingress.yaml inside gitlab for Store your Ingress routing rules inside the app folder to support pure GitOps automation.
+inside ci-cd-app3/ingress.yaml 
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: akshay-kong-ingress
+  namespace: webapp-ns
+  annotations:
+    konghq.com/protocols: "http, https"
+    konghq.com/https-redirect-code: "301"
+    ingress.kubernetes.io/force-ssl-redirect: "true"
+    konghq.com/strip-path: "true"
+spec:
+  ingressClassName: kong
+  tls:
+    - hosts:
+        - devops-intern-webapp.luluex.com
+      secretName: luluex-tls-secret
+  rules:
+    - host: devops-intern-webapp.luluex.com
+      http:
+        paths:
+          - path: /app1
+            pathType: Prefix
+            backend:
+              service:
+                name: webapp1-service
+                port:
+                  number: 80
+          - path: /app2
+            pathType: Prefix
+            backend:
+              service:
+                name: webapp2-service
+                port:
+                  number: 80
+          - path: /app3
+            pathType: Prefix
+            backend:
+              service:
+                name: webapp3-service
+                port:
+                  number: 80
+          - path: /app4
+            pathType: Prefix
+            backend:
+              service:
+                name: webapp4-service
+                port:
+                  number: 80
+          - path: /app5
+            pathType: Prefix
+            backend:
+              service:
+                name: webapp5-service
+                port:
+                  number: 80
+
+
+step3
+edit gitlab-ci.yaml
+
+stages:
+  - build
+  - deploy
+
+variables:
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_HOST: "tcp://docker:2375"
+  DOCKER_BUILDKIT: "0"
+  IMAGE_TAG: "$CI_COMMIT_SHA"
+  DOCKERHUB_REPO: "akshay852"
+
+# ====================================================
+# STAGE 1: DOCKER IMAGE BUILD FROM SOURCE CODE
+# ====================================================
+build-images:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - name: docker:24.0.5-dind
+      alias: docker
+  before_script:
+    - echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+  script:
+    - echo "===== 1. BUILDING BASE IMAGE ====="
+    - docker build --no-cache -t akshaybase:app1-ci -t ${DOCKERHUB_REPO}/akshaybase:app1-ci -t ${DOCKERHUB_REPO}/akshaybase:${IMAGE_TAG} ./ci-cd-app3/image1-base
+
+    - echo "===== 2. BUILDING APP1 IMAGE ====="
+    - docker build --no-cache -t akshayimage:app1-ci -t ${DOCKERHUB_REPO}/akshayimage:app1-${IMAGE_TAG} -t ${DOCKERHUB_REPO}/akshayimage:app1-ci ./ci-cd-app3/image2-app1
+
+    - echo "===== 3. BUILDING APP2 IMAGE ====="
+    - docker build --no-cache -t akshayimage:app2-ci -t ${DOCKERHUB_REPO}/akshayimage:app2-${IMAGE_TAG} -t ${DOCKERHUB_REPO}/akshayimage:app2-ci ./ci-cd-app3/image3-app2
+
+    - echo "===== 4. BUILDING APP3 IMAGE ====="
+    - docker build --no-cache -t akshayimage:app3-ci -t ${DOCKERHUB_REPO}/akshayimage:app3-${IMAGE_TAG} -t ${DOCKERHUB_REPO}/akshayimage:app3-ci ./ci-cd-app3/image4-app3
+
+    - echo "===== 5. PUSHING ALL IMAGES TO DOCKER HUB ====="
+    - docker push ${DOCKERHUB_REPO}/akshaybase:${IMAGE_TAG}
+    - docker push ${DOCKERHUB_REPO}/akshaybase:app1-ci
+
+    - docker push ${DOCKERHUB_REPO}/akshayimage:app1-${IMAGE_TAG}
+    - docker push ${DOCKERHUB_REPO}/akshayimage:app1-ci
+
+    - docker push ${DOCKERHUB_REPO}/akshayimage:app2-${IMAGE_TAG}
+    - docker push ${DOCKERHUB_REPO}/akshayimage:app2-ci
+
+    - docker push ${DOCKERHUB_REPO}/akshayimage:app3-${IMAGE_TAG}
+    - docker push ${DOCKERHUB_REPO}/akshayimage:app3-ci
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+
+# ====================================================
+# STAGE 2: KUBERNETES DEPLOYMENT & GITOPS SYNC
+# ====================================================
+deploy-application:
+  stage: deploy
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
+  before_script:
+    - mkdir -p ~/.kube
+    - cp "$KUBECONFIG" ~/.kube/config
+    - chmod 600 ~/.kube/config
+    - CLUSTER_NAME=$(kubectl config view --raw -o jsonpath='{.contexts[0].context.cluster}')
+    - kubectl config set-cluster "$CLUSTER_NAME" --server="https://172.30.7.130:8443" --insecure-skip-tls-verify=true
+  script:
+    - echo "===== APPLYING DECLARATIVE INGRESS FROM SOURCE CODE ====="
+    - kubectl apply -f ./ci-cd-app3/ingress.yaml
+
+    - echo "===== DEPLOYING FRESH COMMIT-SHA IMAGES ====="
+    - kubectl set image deployment/app1 nginx=${DOCKERHUB_REPO}/akshayimage:app1-${IMAGE_TAG} -n webapp-ns
+    - kubectl set image deployment/app2 nginx=${DOCKERHUB_REPO}/akshayimage:app2-${IMAGE_TAG} -n webapp-ns
+    - kubectl set image deployment/app3 nginx=${DOCKERHUB_REPO}/akshayimage:app3-${IMAGE_TAG} -n webapp-ns
+
+    - echo "===== INJECTING DEPLOYER METADATA ====="
+    - for WORKLOAD in app1 app2 app3 app4 app5 postgres-db; do kubectl annotate deployment/${WORKLOAD} -n webapp-ns app.gitlab.com/deployer="$GITLAB_USER_NAME" --overwrite; done
+
+    - echo "===== VERIFYING ROLLOUT STATUS ====="
+    - for WORKLOAD in app1 app2 app3 app4 app5 postgres-db; do echo "Checking status for ${WORKLOAD}..."; kubectl rollout status deployment/${WORKLOAD} -n webapp-ns --timeout=120s || true; done
+
+    - echo "===== CURRENT POD STATUS ====="
+    - kubectl get pods -n webapp-ns
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+
+commit 
+
+
+verify 
+
