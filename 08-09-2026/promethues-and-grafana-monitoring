@@ -6,6 +6,7 @@ create node exporter in a cluster
 
 nano node-exporter.yaml 
 
+
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -24,6 +25,8 @@ spec:
     spec:
       hostNetwork: true
       hostPID: true
+      tolerations:             # <-- ADD THIS
+      - operator: "Exists"     # <-- ADD THIS (Allows it to run on Master nodes)
       containers:
       - name: node-exporter
         image: prom/node-exporter:v1.6.1
